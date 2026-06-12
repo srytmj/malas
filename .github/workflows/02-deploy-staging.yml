@@ -1,0 +1,63 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [ develop ]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  test:
+    name: Test Before Deploy
+    uses: ./.github/workflows/01-test.yml
+    secrets: inherit
+  
+  deploy-staging:
+    name: Deploy to Staging Server
+    runs-on: ubuntu-latest
+    needs: test
+    environment:
+      name: staging
+      url: https://staging.malas.example.com
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+      
+      - name: Add host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
+      
+      - name: Deploy via SSH
+        run: |
+          ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
+            cd /var/www/malas-staging
+            git pull origin develop
+            composer install --no-dev --optimize-autoloader
+            php artisan migrate --force
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            php artisan queue:restart
+            php artisan optimize:clear
+            sudo systemctl reload php8.3-fpm
+          EOF
+      
+      - name: Run Smoke Tests
+        run: |
+          sleep 10
+          curl -f https://staging.malas.example.com/api/health || exit 1
+          echo "Smoke test passed"
+      
+      - name: Notify on failure
+        if: failure()
+        run: |
+          curl -X POST -H "Content-Type: application/json" \
+            -d '{"text":"🚨 Deploy to STAGING failed! Check GitHub Actions."}' \
+            ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true
