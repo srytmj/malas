@@ -6,7 +6,7 @@
 
 - Versi: v1.0.0
 - Tanggal: 2026-06-13
-- Status: Fase 1 (MVP Koleksi) - belum mulai implementasi
+- Status: Fase 1 (MVP Koleksi) - implementasi awal
 
 ## Daftar Isi
 
