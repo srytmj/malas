@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: malas_app
+    volumes:
+      - ./src:/var/www/html
+    env_file:
+      - .env.docker
+    depends_on:
+      - postgres
+      - redis
+
+  webserver:
+    image: nginx:alpine
+    container_name: malas_webserver
+    ports:
+      - "80:80"
+    volumes:
+      - ./src:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+
+  postgres:
+    image: postgres:16
+    container_name: malas_postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: malas
+      POSTGRES_USER: malas
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  redis:
+    image: redis:7-alpine
+    container_name: malas_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  horizon:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: malas_horizon
+    command: php artisan horizon
+    volumes:
+      - ./src:/var/www/html
+    env_file:
+      - .env.docker
+    depends_on:
+      - app
+      - redis
+      - postgres
+
+  queue:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: malas_queue
+    command: php artisan queue:work
+    volumes:
+      - ./src:/var/www/html
+    env_file:
+      - .env.docker
+    depends_on:
+      - app
+      - redis
+
+volumes:
+  postgres_data:
+  redis_data:
