@@ -1,107 +1,88 @@
 # CI/CD Pipeline
 
-## Diagram Pipeline
+## Catatan Status
+
+Saat ini MALAS berjalan di lingkungan **development lokal** (XAMPP, Windows). Pipeline CI/CD belum aktif digunakan secara production. Dokumen ini mendeskripsikan setup yang ada dan prosedur deployment manual.
+
+## Setup Lokal (Development)
+
+```
+Stack lokal:
+- PHP via XAMPP (MariaDB 10.4.32, Apache/PHP)
+- Composer untuk PHP dependencies
+- Node.js + npm untuk frontend assets
+- php artisan serve atau via XAMPP Apache
+
+Commands:
+  composer install
+  cp src/.env.example src/.env
+  php artisan key:generate
+  php artisan migrate
+  npm install
+  npm run dev          # Vite dev server dengan HMR
+  php artisan queue:work   # Jalankan queue worker
+  php artisan schedule:run # Jalankan scheduler (atau setup cron)
+```
+
+## Workflow CI (GitHub Actions)
+
+File CI: `.github/workflows/` (jika ada).
 
 ```mermaid
 flowchart TD
-    A[Push Code] --> B{Branch / Event?}
-
-    B -- "push develop / PR ke main" --> C[Test Job]
-    B -- "push main" --> C
-    B -- "tag release v*" --> C
-
-    C --> C1[Setup PHP 8.3, PostgreSQL 16, Redis]
-    C1 --> C2[Install Composer dependencies]
-    C2 --> C3[Migrate with seeders]
-    C3 --> C4[Run PHPUnit/Pest]
-    C4 --> C5[Run Laravel Pint]
-    C5 --> C6[Run PHPStan level 5+]
-    C6 --> D{Semua test lulus?}
-
-    D -- Tidak --> FAIL[Pipeline gagal<br/>notifikasi developer]
-    D -- Ya --> E{Branch?}
-
-    E -- "develop" --> F[Deploy Staging<br/>otomatis]
-    F --> F1[staging.malas.example.com]
-    F1 --> F2[Migration + Queue Restart staging]
-
-    E -- "main / tag release" --> G[Build Assets<br/>vite/npm run build]
-    G --> H[Manual Approval<br/>GitHub Environment Protection]
-    H --> I{Approved?}
-    I -- Tidak --> FAIL
-    I -- Ya --> J[Deploy Production]
-
-    J --> J1[Backup DB otomatis]
-    J1 --> J2[php artisan down --retry=60]
-    J2 --> J3[Migration --force]
-    J3 --> J4[Cache: config/route/view]
-    J4 --> J5[Queue Restart]
-    J5 --> J6[php artisan up]
-    J6 --> K[Smoke Test]
-
-    K --> K1[GET /api/health]
-    K1 --> K2[POST /api/login]
-    K2 --> K3[GET /api/series]
-    K3 --> L{Smoke test pass?}
-
-    L -- Ya --> DONE[Done - Log deployment]
-    L -- Tidak --> ROLLBACK[Auto Rollback]
-    ROLLBACK --> R1[git reset --hard previous_release]
-    R1 --> R2[Migration rollback jika perlu]
-    R2 --> R3[Queue Restart]
-    R3 --> R4[php artisan up]
-    R4 --> NOTIFY[Notifikasi tim: rollback terjadi]
+    A[Push ke GitHub] --> B[GitHub Actions: CI Job]
+    B --> C[Setup PHP 8.x]
+    C --> D[composer install]
+    D --> E[cp .env.ci ke .env]
+    E --> F[php artisan key:generate]
+    F --> G[php artisan migrate --seed]
+    G --> H[npm install && npm run build]
+    H --> I[php artisan test / phpunit]
+    I --> J{Test lulus?}
+    J -- Tidak --> FAIL[Pipeline gagal]
+    J -- Ya --> OK[Pipeline berhasil]
 ```
 
-## Penjelasan Setiap Stage
+## Deployment Manual
 
-### 1. Test
-Dijalankan setiap push ke `develop`/`main` atau saat ada Pull Request ke `main`. Stage ini menyiapkan environment lengkap (PHP 8.3, PostgreSQL 16, Redis), menjalankan migration dengan seeder, lalu mengeksekusi:
-- **PHPUnit/Pest**: unit test (DeduplicationService, SourceNormalizer, LoanOverdueChecker) dan feature test (API endpoints).
-- **Laravel Pint**: pengecekan code style.
-- **PHPStan level 5+**: static analysis untuk menangkap bug potensial sebelum runtime.
+Karena tidak ada server production aktif, deployment dilakukan manual:
 
-Jika salah satu gagal, pipeline berhenti dan developer dinotifikasi.
+```mermaid
+flowchart TD
+    A[Code siap di main branch] --> B[Pull di server / mesin target]
+    B --> C[composer install --no-dev --optimize-autoloader]
+    C --> D[npm install && npm run build]
+    D --> E[php artisan migrate --force]
+    E --> F[php artisan config:cache]
+    F --> G[php artisan route:cache]
+    G --> H[php artisan view:cache]
+    H --> I[php artisan queue:restart]
+    I --> J[Setup cron: * * * * * php artisan schedule:run]
+    J --> K[Verifikasi: buka /admin, cek login]
+```
 
-### 2. Build
-Dijalankan saat push ke `main`. Mengompilasi asset frontend (`vite`/`npm run build`) dan menyiapkan artifact untuk deployment.
+## Environment Variables Wajib
 
-### 3. Deploy Staging
-Dijalankan otomatis saat push ke `develop` dan semua test lulus. Deploy ke `staging.malas.example.com` menggunakan database staging terpisah (bisa di-restore dari backup production mingguan) dan Redis terpisah untuk queue.
+Lihat [env-setup.md](./env-setup.md) untuk daftar lengkap. Variabel kritis:
 
-### 4. Manual Approve
-Khusus untuk deploy ke production (branch `main` atau tag release `v*`), wajib ada persetujuan manual minimal 1 orang melalui GitHub Actions "environment protection rule". Tanpa approval, pipeline berhenti di sini.
+| Variable | Keterangan |
+|---|---|
+| `APP_KEY` | Generate via `php artisan key:generate` |
+| `DB_*` | Koneksi MariaDB |
+| `FILESYSTEM_DISK=r2` | Default disk ke Cloudflare R2 |
+| `AWS_ACCESS_KEY_ID` | R2 Access Key ID |
+| `AWS_SECRET_ACCESS_KEY` | R2 Secret Access Key |
+| `AWS_ENDPOINT` | R2 endpoint URL |
+| `FILESYSTEM_URL` | R2 public URL untuk generate public links |
+| `QUEUE_CONNECTION=database` | Queue via database, bukan Redis |
 
-### 5. Deploy Production
-Setelah disetujui, dilakukan:
-1. Backup database otomatis sebelum migrasi.
-2. Maintenance mode (`php artisan down --retry=60`).
-3. Migration (`php artisan migrate --force`).
-4. Cache ulang config, route, dan view.
-5. Restart queue worker (`php artisan queue:restart`).
-6. Matikan maintenance mode (`php artisan up`).
+## Checklist Sebelum Deploy
 
-Production menggunakan strategi **zero-downtime** (blue-green dengan load balancer, atau Laravel Envoy dengan symlink release).
-
-### 6. Smoke Test
-Dijalankan otomatis setelah deploy production selesai, menguji minimal 3 endpoint kritis:
-- `GET /api/health` → harus 200 OK
-- `POST /api/login` → harus 200 + token
-- `GET /api/series` → harus 200 + JSON
-
-### 7. Rollback
-Jika smoke test gagal, sistem otomatis melakukan rollback:
-- `git reset --hard [previous_release_hash]`
-- Migration rollback jika diperlukan (`php artisan migrate:rollback --step=1`)
-- Restart queue
-- Matikan maintenance mode
-
-Target waktu rollback: maksimal 10 menit. Tim dinotifikasi setiap kali rollback terjadi.
-
-## Estimasi Waktu Maksimal per Skenario
-
-| Skenario | Action | Waktu Maksimal |
-|---|---|---|
-| Migration gagal | `php artisan migrate:rollback --step=1` | 5 menit |
-| Queue job gagal massal | Deploy ulang versi sebelumnya + restart queue | 10 menit |
-| API error rate > 5% | Auto rollback ke release sebelumnya | 15 menit |
+- [ ] `.env` sudah dikonfigurasi (terutama DB dan R2 credentials)
+- [ ] `php artisan migrate` berjalan tanpa error
+- [ ] `npm run build` menghasilkan asset di `public/build/`
+- [ ] `php artisan config:cache` + `route:cache` bersih (tanpa error)
+- [ ] Queue worker berjalan: `php artisan queue:work --daemon`
+- [ ] Cron scheduler aktif: `* * * * * cd /path/to/project && php artisan schedule:run`
+- [ ] Login admin berfungsi: `/login` → `/admin`
+- [ ] Upload cover series berfungsi (verifikasi file muncul di R2)

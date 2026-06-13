@@ -6,142 +6,114 @@
 app/Modules/
 ├── Core/
 │   ├── Models/
-│   │   ├── Series.php              # Entitas penghubung Tracking & Collection
-│   │   └── User.php
-│   ├── Repositories/
-│   │   └── SeriesRepository.php    # Query series, search trigram
-│   ├── Services/
-│   │   ├── SeriesService.php       # CRUD series, cache invalidation
-│   │   └── CacheService.php        # Helper untuk tagged cache
-│   ├── Traits/
-│   │   └── HasSoftDeletesWithActor.php  # deleted_by, deletion_reason, activity_log
-│   └── Observers/
-│       └── ActivityLogObserver.php # Catat deleted/restored ke activity_log
-│
-├── Tracking/
-│   ├── Models/
-│   │   ├── UserTracking.php
-│   │   └── Chapter.php
-│   ├── Repositories/
-│   │   └── UserTrackingRepository.php
-│   ├── Services/
-│   │   └── TrackingService.php     # Update progress, status, score
-│   └── Http/
-│       ├── Controllers/
-│       │   └── TrackingController.php
-│       └── Resources/
-│           └── UserTrackingResource.php
+│   │   ├── Series.php              # Entitas utama: UUID PK, soft deletes, mal_id unique
+│   │   ├── User.php                # UUID PK, role enum, is_banned, HasSoftDeletesWithActor
+│   │   └── ActivityLog.php         # Audit trail semua aksi admin
+│   └── Traits/
+│       └── HasSoftDeletesWithActor.php  # deleted_by, deletion_reason, auto-log ke activity_logs
 │
 ├── Collection/
 │   ├── Models/
-│   │   ├── Volume.php
-│   │   ├── UserCollection.php
-│   │   ├── Loan.php
-│   │   └── LoanEvent.php           # Immutable, tanpa SoftDeletes
-│   ├── Repositories/
-│   │   └── UserCollectionRepository.php
-│   ├── Services/
-│   │   ├── CollectionService.php   # Manage owned/missing/wishlist
-│   │   └── LoanService.php         # Peminjaman, validasi double-loan
-│   ├── Jobs/
-│   │   └── CheckOverdueLoans.php
-│   └── Http/
-│       ├── Controllers/
-│       │   ├── CollectionController.php
-│       │   └── LoanController.php
-│       └── Resources/
-│           ├── UserCollectionResource.php
-│           └── LoanResource.php
+│   │   ├── Volume.php              # UUID PK, series_id FK, volume_number decimal, cover R2
+│   │   ├── UserLibrary.php         # Bridge users ↔ series (UUID PK)
+│   │   ├── UserCollection.php      # Kepemilikan volume (UUID PK, condition, is_for_loan)
+│   │   ├── Loan.php                # Header peminjaman (UUID PK, status enum)
+│   │   └── LoanItem.php            # Detail volume dalam satu loan
+│   └── (Services jika ada)
 │
-├── Sources/
-│   ├── Models/
-│   │   └── Source.php
-│   ├── Contracts/
-│   │   └── SourceAdapterInterface.php  # getId, searchSeries, fetchChapters, normalizeChapter
-│   ├── Adapters/
-│   │   ├── MangaDexAdapter.php
-│   │   └── AniListAdapter.php
-│   ├── Normalizers/
-│   │   └── ChapterNormalizer.php
-│   ├── Services/
-│   │   ├── SourceRegistry.php      # Registrasi adapter aktif
-│   │   └── DeduplicationService.php
-│   └── Jobs/
-│       ├── FetchChaptersFromSource.php
-│       ├── UpdateAllSeriesFromSource.php
-│       ├── HealthCheckSource.php
-│       └── DeduplicateNewSeries.php
+├── Admin/
+│   ├── Http/
+│   │   └── Controllers/
+│   │       ├── AdminDashboardController.php
+│   │       ├── AdminApiController.php      # AJAX: series search, volumes per series
+│   │       ├── SeriesController.php        # CRUD + AJAX DataTable + batchDestroy
+│   │       ├── VolumeController.php        # CRUD per series
+│   │       ├── CollectionController.php    # CRUD + bulkStore JSON endpoint
+│   │       ├── LoanController.php          # CRUD + markReturned + markLost
+│   │       ├── UserManagementController.php # CRUD + ban/unban + AJAX DataTable
+│   │       ├── JikanController.php         # Multi-schedule + scrape-now + cancel
+│   │       └── ActivityLogController.php   # List activity log
+│   └── routes/
+│       └── admin.php               # Semua route prefix: admin/, middleware: auth + role:super_admin
 │
-└── Admin/
-    └── Filament/
-        ├── Resources/
-        │   ├── SeriesResource.php
-        │   ├── VolumeResource.php
-        │   ├── ChapterResource.php
-        │   ├── SourceResource.php
-        │   ├── LoanResource.php
-        │   ├── UserResource.php
-        │   ├── TrashedDataResource.php   # onlyTrashed + restore form
-        │   └── ActivityLogResource.php   # super_admin only
-        └── Pages/
-            └── MergeSeries.php           # Preview & merge duplikat
+└── Jikan/
+    ├── Models/
+    │   ├── JikanSchedule.php       # Konfigurasi jadwal scraping (name, hour, minute, sort_order)
+    │   └── JikanScrapeSession.php  # Log satu sesi (status, pages, year filter)
+    └── JikanService.php            # HTTP client ke Jikan API v4
 ```
 
-## Tanggung Jawab Setiap Module
+## app/Jobs/
+
+```
+app/Jobs/
+└── ScrapeJikanPageJob.php  # Queue job: scrape 1 halaman Jikan, dispatch next page / next queued schedule
+```
+
+## resources/
+
+```
+resources/
+├── css/
+│   └── app.css             # @import Tailwind directives + TomSelect styles
+├── js/
+│   └── app.js              # Import: Alpine, Flowbite, TomSelect, SortableJS, DataTables.net
+└── views/
+    ├── admin/
+    │   ├── layouts/
+    │   │   └── app.blade.php       # Layout admin: sidebar, nav, @stack('scripts')
+    │   ├── series/
+    │   │   ├── index.blade.php     # AJAX DataTable + batch mode (checkbox + batch delete)
+    │   │   ├── create.blade.php
+    │   │   ├── show.blade.php
+    │   │   └── edit.blade.php
+    │   ├── volumes/
+    │   │   └── (index per series, create, edit)
+    │   ├── collections/
+    │   │   ├── index.blade.php
+    │   │   ├── create.blade.php    # Alpine.js: TomSelect + AJAX volumes + per-entry details
+    │   │   ├── show.blade.php
+    │   │   └── edit.blade.php
+    │   ├── loans/
+    │   │   └── (index, create, show, edit)
+    │   ├── users/
+    │   │   ├── index.blade.php     # AJAX DataTable + ban modal
+    │   │   ├── create.blade.php
+    │   │   └── show.blade.php
+    │   ├── jikan/
+    │   │   └── index.blade.php     # Multi-schedule + SortableJS + Alpine.js modal + status polling
+    │   └── activity-log/
+    │       └── index.blade.php
+    └── auth/                       # Login/register views
+```
+
+## Tanggung Jawab Setiap Modul
 
 ### Core
-Modul fondasi yang dipakai modul lain. Berisi model `Series` (penghubung Tracking dan Collection) dan `User`. Menyediakan trait `HasSoftDeletesWithActor` yang dipakai hampir semua model di sistem untuk mengelola `deleted_by`, `deletion_reason`, dan pencatatan ke `activity_log` melalui `ActivityLogObserver`. Juga menyediakan `CacheService` sebagai helper tagged cache yang dipakai modul lain.
-
-### Tracking
-Mengelola progress bacaan digital user: `UserTracking` (status, current_chapter, score) dan `Chapter` (data chapter dari sumber eksternal). Tidak boleh mengandung logika terkait kepemilikan fisik atau peminjaman. Endpoint utama: update progress, ubah status baca, hitung chapters-read secara dinamis.
+Fondasi bersama. `HasSoftDeletesWithActor` menambah `deleted_by`, `deletion_reason` ke model, dan auto-mencatat ke `activity_logs` saat `delete()`. Semua model utama extend trait ini.
 
 ### Collection
-Mengelola koleksi fisik: `Volume`, `UserCollection` (kepemilikan), `Loan`, dan `LoanEvent` (log immutable). `LoanService` bertanggung jawab memvalidasi agar satu volume tidak dipinjam dua orang sekaligus (partial unique index). `CheckOverdueLoans` job berjalan tiap jam untuk mendeteksi pinjaman terlambat.
-
-### Sources
-Mengelola integrasi sumber eksternal melalui `SourceAdapterInterface` (kontrak yang wajib diimplementasikan tiap adapter seperti MangaDex, AniList). `SourceRegistry` mendaftarkan adapter aktif. `DeduplicationService` mendeteksi series duplikat berdasarkan confidence score. Semua operasi ke sumber eksternal dijalankan via queue job, tidak pernah sinkron (kecuali search).
+Murni domain fisik: buku, kepemilikan, peminjaman. `UserLibrary` adalah bridge yang dibuat otomatis saat pertama kali user memiliki volume dari suatu series. `UserCollection` terhubung ke volume melalui `user_library_id`, bukan langsung ke `user_id`.
 
 ### Admin
-Berisi seluruh Filament resource untuk panel admin: CRUD series/volumes/chapters/sources/loans/users, halaman `TrashedDataResource` untuk melihat dan restore data soft-deleted, `ActivityLogResource` (khusus super_admin), serta halaman `MergeSeries` untuk preview dan eksekusi merge series duplikat.
+Panel super_admin murni. Tidak ada Filament — semua controller Blade custom. Pattern AJAX DataTable: controller cek `$request->ajax()` → return JSON `{draw, recordsTotal, recordsFiltered, data[]}`. 
 
-## tests/
+### Jikan
+Scraping asinkron. `JikanSchedule` mendefinisikan kapan scrape, `JikanScrapeSession` mencatat apa yang terjadi. `ScrapeJikanPageJob` berjalan di queue (database driver), dispatch dirinya sendiri ke halaman berikutnya, atau dispatch session dari schedule berikutnya (ordered by `sort_order`) saat selesai.
+
+## routes/
 
 ```
-tests/
-├── Unit/
-│   ├── Core/
-│   │   └── HasSoftDeletesWithActorTest.php
-│   ├── Tracking/
-│   │   └── UserTrackingServiceTest.php
-│   ├── Collection/
-│   │   ├── LoanServiceTest.php          # validasi double-loan
-│   │   └── LoanOverdueCheckerTest.php
-│   └── Sources/
-│       ├── SourceNormalizerTest.php
-│       └── DeduplicationServiceTest.php
-│
-├── Feature/
-│   ├── Auth/
-│   │   ├── RegisterTest.php
-│   │   └── LoginTest.php
-│   ├── Series/
-│   │   ├── SeriesCrudTest.php
-│   │   └── SeriesSearchTest.php
-│   ├── Collection/
-│   │   ├── UserCollectionTest.php
-│   │   └── LoanFlowTest.php             # full flow: pinjam -> overdue -> return
-│   ├── Tracking/
-│   │   └── UserTrackingTest.php
-│   └── Admin/
-│       ├── SoftDeleteRestoreTest.php    # delete -> trashed -> restore -> activity_log
-│       └── ActivityLogAccessTest.php    # super_admin only
-│
-├── Integration/
-│   └── Sources/
-│       └── FetchChaptersFromSourceJobTest.php  # mock MangaDex adapter
-│
-└── Fixtures/
-    ├── mangadex_search_response.json
-    ├── mangadex_chapters_response.json
-    └── csv_import_sample.csv
+routes/
+├── web.php         # Route publik / user (minimal)
+├── console.php     # Scheduler: loop jikan_schedules, buat session jika jadwal cocok
+└── (admin routes di app/Modules/Admin/routes/admin.php, di-load via ServiceProvider)
+```
+
+## Konfigurasi Penting
+
+```
+config/
+├── filesystems.php     # Disk 'r2' (S3 driver, R2 endpoint, use_path_style_endpoint=true)
+└── app.php             # APP_TIMEZONE, locale 'id'
 ```

@@ -1,28 +1,33 @@
-# Glossary - Istilah Teknis MALAS
+# Glossary — Istilah Teknis MALAS
 
 | Istilah | Definisi |
 |---|---|
-| **MALAS** | Manga Library System. Nama proyek yang menggabungkan pelacakan bacaan digital dan manajemen koleksi fisik manga/manhwa. |
-| **Series** | Entitas utama yang merepresentasikan satu judul manga/manhwa/manhua/novel, menjadi penghubung antara lapisan Tracking dan Collection. |
-| **Volume** | Buku fisik manga/manhwa yang bisa dipegang dan dikoleksi, mendukung nomor desimal (mis. volume 0.5). |
-| **Chapter** | Unit bacaan digital dari sumber eksternal (mis. MangaDex), terkait ke satu `series` dan satu `source`. |
-| **SoftDeletes** | Fitur Laravel yang mengganti operasi DELETE dengan pengisian kolom `deleted_at`, sehingga data tidak benar-benar hilang dari database. |
-| **HasSoftDeletesWithActor** | Trait custom di MALAS yang memperluas SoftDeletes Laravel dengan pencatatan `deleted_by` (siapa yang menghapus) dan `deletion_reason` (alasan penghapusan). |
-| **Partial Unique Index** | Index unik PostgreSQL dengan kondisi `WHERE`, sehingga constraint hanya berlaku untuk subset data tertentu (mis. hanya data yang belum di-soft-delete). |
-| **Source Adapter** | Implementasi `SourceAdapterInterface` untuk satu sumber eksternal tertentu (mis. `MangaDexAdapter`), bertugas mencari series dan mengambil chapter dari sumber tersebut. |
-| **Queue** | Mekanisme Laravel untuk menjalankan tugas secara asynchronous di background, menggunakan Redis sebagai driver di MALAS. |
-| **Horizon** | Dashboard dan manajer queue Laravel berbasis Redis, digunakan untuk memantau dan mengatur job dengan berbagai tingkat prioritas (critical, high, default, low). |
-| **Filament** | Framework admin panel berbasis Laravel (versi 3.x) yang digunakan untuk membangun seluruh antarmuka admin MALAS. |
-| **R2 (Cloudflare R2)** | Layanan object storage dari Cloudflare, digunakan untuk menyimpan cover image series, dipilih karena biaya egress lebih rendah dibanding S3. |
-| **Activity Log** | Tabel audit trail yang mencatat setiap aksi `deleted` dan `restored` di seluruh tabel ber-SoftDeletes, termasuk siapa, kapan, dan alasannya. |
-| **Loan Events** | Tabel log immutable (append-only) yang mencatat riwayat siklus hidup satu peminjaman (created, returned, overdue_notified, lost, extended). |
-| **Deduplication** | Proses mendeteksi dan menggabungkan entri `series` yang merupakan judul yang sama dari sumber berbeda, berdasarkan `external_ids`, judul exact, atau kemiripan trigram. |
-| **Confidence Score** | Skor kepercayaan hasil deduplikasi (0-100%). Skor ≥95% di-auto-merge, skor 70-94% masuk antrian moderasi admin. |
-| **User Tracking** | Data progress baca digital seorang user terhadap satu series: `current_chapter`, `status`, `score`, dan timestamp terkait. |
-| **User Collection** | Data kepemilikan satu volume fisik oleh user, termasuk status kepemilikan (owned/missing/wishlist/preordered), kondisi, dan lokasi penyimpanan. |
-| **Trashed Data** | Halaman khusus di admin panel yang menampilkan record dengan `deleted_at IS NOT NULL` menggunakan scope `onlyTrashed()`, dengan opsi restore. |
-| **Trigram Index** | Index PostgreSQL (GIN, ekstensi `pg_trgm`) yang memungkinkan pencarian teks fuzzy/case-insensitive berdasarkan kemiripan substring tiga karakter. |
-| **External IDs** | Kolom JSONB di tabel `series` yang menyimpan ID series tersebut di berbagai sumber eksternal, contoh `{"mangadex": "123", "anilist": 456}`. |
-| **Sanctum** | Paket autentikasi resmi Laravel berbasis token, digunakan untuk mengamankan REST API MALAS. |
-| **Zero-Downtime Deployment** | Strategi deploy (blue-green atau symlink release) yang memastikan aplikasi tetap dapat diakses selama proses deployment berlangsung. |
-| **Smoke Test** | Pengujian otomatis ringan terhadap beberapa endpoint kritis (health, login, series) setelah deployment, untuk memastikan sistem berjalan normal sebelum dianggap sukses. |
+| **MALAS** | Manga Library System. Platform manajemen koleksi fisik manga/manhwa dengan fitur peminjaman dan scraping data dari Jikan. |
+| **Series** | Entitas utama yang merepresentasikan satu judul manga/manhwa. Penghubung antara `volumes` (fisik) dan `user_libraries`. UUID primary key. |
+| **Volume** | Buku fisik manga/manhwa yang bisa dikoleksi. Terhubung ke satu series, mendukung nomor volume desimal (mis. 0.5, 1.5). Cover disimpan di R2. |
+| **UserLibrary** | Tabel bridge antara `users` dan `series`. Dibuat otomatis via `firstOrCreate()` saat user pertama kali memiliki volume dari suatu series. |
+| **UserCollection** | Kepemilikan satu volume fisik oleh user (via `user_library_id`). Berisi kondisi, harga beli, tanggal beli, flag `is_for_loan`. |
+| **Loan** | Header peminjaman — ke siapa volume dipinjamkan, tanggal, due date, status (active/returned/overdue/lost). |
+| **LoanItem** | Detail baris dalam satu peminjaman: volume mana yang ikut dipinjamkan. |
+| **SoftDeletes** | Fitur Laravel yang mengganti DELETE dengan pengisian `deleted_at`. Data tidak benar-benar hilang dari database. |
+| **HasSoftDeletesWithActor** | Trait custom MALAS yang menambah `deleted_by` (UUID user yang menghapus) dan `deletion_reason` (alasan) ke soft deletes, serta auto-catat ke `activity_logs`. |
+| **ActivityLog** | Tabel audit trail yang mencatat semua aksi admin (create, update, delete). Berisi: `action`, `entity_type`, `entity_id`, `reason`, `ip_address`. |
+| **HasUuids** | Trait Laravel bawaan yang membuat UUID otomatis sebagai primary key saat model dibuat. Digunakan di semua model utama MALAS. |
+| **$guarded = []** | Pola di MALAS: semua model menggunakan `$guarded = []` (bukan `$fillable`), artinya semua kolom bisa mass-assigned. Validasi dilakukan di controller/request. |
+| **R2 (Cloudflare R2)** | Layanan object storage dari Cloudflare, S3-compatible. Digunakan untuk cover image series dan volume. Public URL: `https://pub-da18e323b0e64eadadb3ac8e6a28064b.r2.dev`. |
+| **FILESYSTEM_DISK=r2** | Konfigurasi Laravel: disk default (`Storage::disk()`) diarahkan ke Cloudflare R2. |
+| **Jikan API** | Wrapper tidak resmi untuk MyAnimeList API (jikan.moe/v4). Digunakan untuk scraping metadata manga. |
+| **JikanSchedule** | Konfigurasi jadwal scraping Jikan: nama, jam/menit eksekusi, rentang tahun (start/end), urutan (sort_order). |
+| **JikanScrapeSession** | Log satu sesi scraping Jikan. Status: `pending` → `queued` → `running` → `completed`/`failed`. |
+| **Queue** | Mekanisme Laravel untuk menjalankan job asinkron di background. MALAS menggunakan driver `database` (bukan Redis). |
+| **ScrapeJikanPageJob** | Job queue yang memproses satu halaman hasil Jikan API, upsert ke tabel `series`, lalu dispatch dirinya sendiri ke halaman berikutnya. |
+| **AJAX DataTable** | Pola custom di panel admin: tabel data di-render via JavaScript dari endpoint AJAX (bukan server-side HTML). Controller detect `$request->ajax()` untuk return JSON. |
+| **TomSelect** | Library JavaScript untuk dropdown/autocomplete yang dapat melakukan search AJAX. Digunakan untuk pilih series (di form tambah koleksi). |
+| **SortableJS** | Library JavaScript drag-and-drop. Digunakan di halaman Jikan untuk mengubah urutan schedules. |
+| **Alpine.js** | Framework JavaScript reaktif ringan. Digunakan di semua halaman admin yang membutuhkan interaktivitas (form tambah koleksi, Jikan schedules, dll). |
+| **Flowbite** | Library komponen UI berbasis Tailwind CSS. Digunakan untuk modal, badge, dan komponen form. |
+| **Vite** | Build tool frontend. `npm run dev` untuk development dengan HMR, `npm run build` untuk production. |
+| **Trashed** | Record dengan `deleted_at IS NOT NULL` — sudah di-soft-delete. Ditampilkan di DataTable dengan `withTrashed()`, biasanya dengan opacity lebih rendah. |
+| **BatchDestroy** | Fitur di SeriesController: hapus banyak series sekaligus via POST `/admin/series/batch-destroy` dengan array `ids` dan `reason`. |
+| **BulkStore** | Fitur di CollectionController: tambah banyak volume dari berbagai series sekaligus via POST `/admin/collections/bulk` dengan array `entries`. |
+| **Super Admin** | Role tertinggi di MALAS (`role = 'super_admin'`). Memiliki akses ke semua halaman admin. |

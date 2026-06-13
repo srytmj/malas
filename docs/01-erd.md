@@ -2,166 +2,166 @@
 
 ## Penjelasan Skema
 
-Database MALAS terbagi menjadi dua kelompok entitas yang dihubungkan oleh `series`:
+Database MALAS menggunakan MySQL (MariaDB 10.4.32 via XAMPP) dengan dua kelompok entitas utama:
 
-- **Kelompok Digital**: `chapters`, `sources`, `user_tracking` - mengelola progress bacaan dan sumber eksternal.
-- **Kelompok Fisik**: `volumes`, `user_collections`, `loans`, `loan_events` - mengelola koleksi fisik dan peminjaman.
-- **Kelompok Audit**: `activity_log` - mencatat semua aksi soft delete dan restore di seluruh tabel.
+- **Kelompok Fisik**: `series`, `volumes`, `user_libraries`, `user_collections`, `loans`, `loan_items` — inti sistem koleksi dan peminjaman.
+- **Kelompok Jikan**: `jikan_schedules`, `jikan_scrape_sessions` — manajemen scraping dari MyAnimeList API.
+- **Kelompok Sistem**: `users`, `activity_logs`, `jobs`, `failed_jobs` — autentikasi, audit trail, dan queue.
 
-Semua tabel (kecuali `loan_events`) menggunakan UUID sebagai primary key dan memiliki kolom `deleted_at`, `deleted_by`, `deletion_reason` untuk SoftDeletes dengan actor tracking.
+Semua tabel utama menggunakan UUID sebagai primary key (via `HasUuids` trait) dan memiliki kolom `deleted_at`, `deleted_by`, `deletion_reason` untuk soft deletes dengan actor tracking (via `HasSoftDeletesWithActor`).
 
 ## Diagram ERD
 
 ```mermaid
 erDiagram
-    USERS ||--o{ USER_COLLECTIONS : "owns"
-    USERS ||--o{ USER_TRACKING : "tracks"
-    USERS ||--o{ ACTIVITY_LOG : "performs"
+    USERS ||--o{ USER_LIBRARIES : "owns"
+    USERS ||--o{ LOANS : "borrows"
+    USERS ||--o{ ACTIVITY_LOGS : "creates"
 
     SERIES ||--o{ VOLUMES : "has"
-    SERIES ||--o{ CHAPTERS : "has"
-    SERIES ||--o{ USER_TRACKING : "tracked_by"
+    SERIES ||--o{ USER_LIBRARIES : "tracked_in"
 
-    SOURCES ||--o{ CHAPTERS : "provides"
+    USER_LIBRARIES ||--o{ USER_COLLECTIONS : "contains"
+    VOLUMES ||--o{ USER_COLLECTIONS : "owned_as"
 
-    VOLUMES ||--o{ USER_COLLECTIONS : "collected_as"
+    USER_COLLECTIONS ||--o{ LOAN_ITEMS : "loaned_via"
+    LOANS ||--o{ LOAN_ITEMS : "includes"
 
-    USER_COLLECTIONS ||--o{ LOANS : "loaned_via"
-
-    LOANS ||--o{ LOAN_EVENTS : "logs"
+    JIKAN_SCHEDULES ||--o{ JIKAN_SCRAPE_SESSIONS : "spawns"
 
     SERIES {
         uuid id PK
-        text title_canonical "GIN trigram idx_series_title_trgm"
-        text title_original
-        text title_en
-        jsonb alternative_titles
-        enum type "manga|manhwa|manhua|novel"
-        enum status "ongoing|completed|hiatus|cancelled"
-        text synopsis
-        text cover_url
-        jsonb external_ids "GIN idx_series_external"
-        timestamp created_at
-        timestamp updated_at
-        timestamp deleted_at
-        uuid deleted_by FK
-        text deletion_reason
+        varchar title_romaji
+        varchar title_english "nullable"
+        varchar title_japanese "nullable"
+        text synopsis "nullable"
+        enum status "publishing|finished|on_hiatus|discontinued|not_yet_published"
+        int total_volumes "nullable"
+        date published_from "nullable"
+        date published_to "nullable"
+        decimal score "nullable, 0-10"
+        int rank "nullable"
+        int mal_id "nullable, unique"
+        varchar cover_image_path "nullable, R2 path"
+        timestamp last_synced_at "nullable"
+        timestamps created_at_updated_at
+        timestamp deleted_at "nullable"
+        uuid deleted_by "nullable, FK users"
+        varchar deletion_reason "nullable"
     }
 
     VOLUMES {
         uuid id PK
         uuid series_id FK
-        numeric volume_number "supports 0.5, 1, 1.5"
-        text title
-        integer total_chapters
-        text isbn "indexed"
-        text publisher
-        date release_date
-        timestamp created_at
-        timestamp updated_at
-        timestamp deleted_at
-        uuid deleted_by FK
-        text deletion_reason
+        decimal volume_number "supports 0.5, 1.5"
+        varchar title "nullable"
+        varchar isbn "nullable"
+        varchar publisher "nullable"
+        date release_date "nullable"
+        varchar cover_image_path "nullable, R2 path"
+        timestamps created_at_updated_at
+        timestamp deleted_at "nullable"
+        uuid deleted_by "nullable, FK users"
+        varchar deletion_reason "nullable"
     }
 
-    CHAPTERS {
+    USER_LIBRARIES {
         uuid id PK
+        uuid user_id FK
         uuid series_id FK
-        uuid source_id FK
-        numeric chapter_number "supports decimal"
-        text title
-        timestamp release_date
-        text url
-        char_2 language "default 'en'"
-        text group_name
-        timestamp created_at
-        timestamp updated_at
-        timestamp deleted_at
-        uuid deleted_by FK
-        text deletion_reason
-    }
-
-    SOURCES {
-        uuid id PK
-        text name
-        text key "unique"
-        text base_url
-        integer rate_limit_per_second "default 1"
-        timestamp health_check_at
-        integer failure_count "default 0"
-        jsonb config
-        timestamp deleted_at
-        uuid deleted_by FK
-        text deletion_reason
+        timestamps created_at_updated_at
     }
 
     USER_COLLECTIONS {
         uuid id PK
-        uuid user_id FK
+        uuid user_library_id FK
         uuid volume_id FK
-        enum ownership_status "owned|missing|wishlist|preordered"
-        enum condition "mint|very_good|good|acceptable|poor"
-        text storage_location
-        date purchase_date
-        decimal purchase_price
-        text notes
-        timestamp deleted_at
-        uuid deleted_by FK
-        text deletion_reason
+        enum condition "mint|very_good|good|fair|poor"
+        bool is_for_loan "default true"
+        decimal purchase_price "nullable"
+        date purchase_date "nullable"
+        text notes "nullable"
+        timestamps created_at_updated_at
+        timestamp deleted_at "nullable"
+        uuid deleted_by "nullable, FK users"
+        varchar deletion_reason "nullable"
     }
 
     LOANS {
         uuid id PK
-        uuid user_collection_id FK
-        text borrower_name
-        text borrower_contact
-        date loan_date "default today"
-        date due_date
-        date return_date
-        enum status "active|overdue|returned|lost"
-        timestamp reminder_sent_at
-        timestamp deleted_at
-        uuid deleted_by FK
-        text deletion_reason
+        uuid user_id FK
+        varchar borrower_name
+        varchar borrower_contact "nullable"
+        date loan_date
+        date due_date "nullable"
+        date return_date "nullable"
+        enum status "active|returned|overdue|lost"
+        text notes "nullable"
+        timestamps created_at_updated_at
+        timestamp deleted_at "nullable"
+        uuid deleted_by "nullable, FK users"
+        varchar deletion_reason "nullable"
     }
 
-    LOAN_EVENTS {
+    LOAN_ITEMS {
         uuid id PK
         uuid loan_id FK
-        enum event_type "created|returned|overdue_notified|lost|extended"
-        jsonb metadata
-        timestamp created_at
-    }
-
-    USER_TRACKING {
-        uuid id PK
-        uuid user_id FK
-        uuid series_id FK
-        decimal current_chapter "default 0"
-        timestamp last_read_at
-        date started_at
-        date completed_at
-        integer score "1-10"
-        enum status "reading|completed|paused|dropped|plan_to_read"
-        timestamp deleted_at
-        uuid deleted_by FK
-        text deletion_reason
-    }
-
-    ACTIVITY_LOG {
-        uuid id PK
-        uuid user_id FK
-        text entity_type
-        uuid entity_id
-        enum action "deleted|restored"
-        text reason
-        jsonb metadata
-        timestamp created_at
+        uuid user_collection_id FK
+        timestamps created_at_updated_at
+        timestamp deleted_at "nullable"
+        uuid deleted_by "nullable, FK users"
+        varchar deletion_reason "nullable"
     }
 
     USERS {
         uuid id PK
-        enum role "user|admin|super_admin"
+        varchar name
+        varchar email "unique"
+        varchar password
+        enum role "user|super_admin"
+        bool is_banned "default false"
+        text ban_reason "nullable"
+        timestamps created_at_updated_at
+        timestamp deleted_at "nullable"
+        uuid deleted_by "nullable"
+        varchar deletion_reason "nullable"
+    }
+
+    ACTIVITY_LOGS {
+        uuid id PK
+        uuid user_id "nullable, FK users"
+        varchar action "e.g. series.created, series.deleted"
+        varchar entity_type
+        varchar entity_id
+        varchar reason "nullable"
+        varchar ip_address "nullable"
+        timestamp created_at
+    }
+
+    JIKAN_SCHEDULES {
+        bigint id PK
+        varchar name "100 chars"
+        tinyint hour "0-23"
+        tinyint minute "0-59"
+        smallint start_year "nullable"
+        smallint end_year "nullable"
+        int sort_order "default 0"
+        timestamp last_run_at "nullable"
+        timestamps created_at_updated_at
+    }
+
+    JIKAN_SCRAPE_SESSIONS {
+        bigint id PK
+        bigint schedule_id "nullable, FK jikan_schedules"
+        enum status "pending|queued|running|completed|failed"
+        int current_page "default 0"
+        int total_pages "nullable"
+        smallint start_year "nullable"
+        smallint end_year "nullable"
+        timestamp started_at "nullable"
+        timestamp completed_at "nullable"
+        text error_message "nullable"
+        timestamps created_at_updated_at
     }
 ```
 
@@ -169,26 +169,21 @@ erDiagram
 
 | Tabel | Fungsi |
 |---|---|
-| `series` | Entitas utama, menyimpan metadata judul manga/manhwa/manhua/novel. Penghubung antara lapisan Tracking dan Collection. |
-| `volumes` | Representasi buku fisik per series, mendukung nomor volume desimal (mis. 0.5, 1.5). |
-| `chapters` | Unit bacaan digital dari sumber eksternal, terkait ke `sources`. |
-| `sources` | Registry sumber eksternal (mis. MangaDex), menyimpan konfigurasi, rate limit, status health check. |
-| `user_collections` | Kepemilikan volume fisik oleh user (owned/missing/wishlist/preordered) beserta kondisi dan lokasi penyimpanan. |
-| `loans` | Data peminjaman volume fisik ke pihak luar (nama peminjam, due date, status). |
-| `loan_events` | Log event immutable (append-only) untuk riwayat peminjaman (created, returned, overdue_notified, lost, extended). |
-| `user_tracking` | Progress bacaan digital user per series (chapter saat ini, status, skor). |
-| `activity_log` | Audit trail untuk semua aksi soft delete dan restore di seluruh tabel. |
-| `users` | Data pengguna, termasuk kolom `role` untuk pembagian akses (user/admin/super_admin). |
+| `users` | Data pengguna: nama, email, role (`user`/`super_admin`), status ban. UUID PK. |
+| `series` | Entitas utama — metadata judul manga/manhwa. Penghubung antara volumes dan user_libraries. UUID PK, unique `mal_id`. |
+| `volumes` | Buku fisik per series. Mendukung `volume_number` desimal. UUID PK. Cover disimpan di R2. |
+| `user_libraries` | Tabel bridge `users` ↔ `series`. Dibuat saat user pertama kali memiliki/mendaftarkan koleksi dari series ini. |
+| `user_collections` | Kepemilikan satu volume fisik oleh user (via `user_library_id`), beserta kondisi, harga beli, dan status pinjam. |
+| `loans` | Header peminjaman satu sesi — ke siapa, kapan, due date, status. |
+| `loan_items` | Baris detail peminjaman: volume mana yang masuk dalam loan ini. |
+| `jikan_schedules` | Konfigurasi jadwal scraping otomatis: jam, menit, rentang tahun, urutan eksekusi. |
+| `jikan_scrape_sessions` | Log satu sesi scraping — halaman saat ini, status, error, waktu mulai/selesai. |
+| `activity_logs` | Audit trail: setiap aksi CRUD/delete oleh admin dicatat di sini. |
+| `jobs` | Antrian pekerjaan background (queue driver: database). |
+| `failed_jobs` | Pekerjaan background yang gagal setelah semua retry. |
 
-## Catatan Partial Unique Index
+## Catatan Penting
 
-Partial unique index tidak dapat direpresentasikan langsung dalam Mermaid ERD, sehingga dicatat secara terpisah:
-
-| Tabel | Partial Unique Index | Kondisi | Tujuan |
-|---|---|---|---|
-| `user_collections` | `(user_id, volume_id)` | `WHERE deleted_at IS NULL` | Satu user tidak boleh punya entri aktif duplikat untuk volume yang sama |
-| `loans` | `(user_collection_id)` | `WHERE deleted_at IS NULL AND status IN ('active','overdue')` | Satu volume tidak boleh dipinjam dua orang sekaligus |
-| `user_tracking` | `(user_id, series_id)` | `WHERE deleted_at IS NULL` | Satu user hanya boleh punya satu tracking aktif per series |
-| `chapters` | `(series_id, source_id, chapter_number, language)` | unique constraint biasa (non-partial) | Mencegah duplikasi chapter dari sumber yang sama |
-
-**Catatan khusus**: `loan_events` adalah tabel append-only (immutable). Tidak memiliki `deleted_at`, `deleted_by`, atau `deletion_reason`. Tidak ada operasi UPDATE atau DELETE yang diperbolehkan pada tabel ini.
+- `user_libraries` adalah entitas implisit: dibuat otomatis via `UserLibrary::firstOrCreate()` saat menambah koleksi.
+- Cover image (series dan volume) disimpan sebagai path relatif di R2. URL publik: `https://pub-da18e323b0e64eadadb3ac8e6a28064b.r2.dev/{path}`.
+- Tidak ada tabel `chapters`, `sources`, `user_tracking`, atau `loan_events` — fitur tracking digital belum diimplementasi.

@@ -1,102 +1,133 @@
 # Arsitektur Sistem
 
-## Dua Lapisan Logika
+## Stack Teknologi
 
-MALAS dibangun di atas dua lapisan logika utama yang terhubung melalui entitas `Series`:
-
-1. **Lapisan Tracking** (digital): mengelola progress baca user terhadap chapter, termasuk status (reading/completed/dll), skor, dan waktu terakhir baca. Modul ini berinteraksi dengan tabel `chapters` dan `user_tracking`.
-
-2. **Lapisan Collection** (fisik): mengelola kepemilikan fisik volume, kondisi barang, lokasi penyimpanan, dan sistem peminjaman antar pengguna. Modul ini berinteraksi dengan tabel `volumes`, `user_collections`, `loans`, dan `loan_events`.
-
-Kedua lapisan ini **tidak boleh saling mencampur logika bisnis** dalam satu service. Mereka hanya bertemu melalui referensi `series_id` yang sama.
+| Layer | Teknologi |
+|---|---|
+| **Backend** | Laravel 12, PHP 8.x |
+| **Database** | MySQL / MariaDB 10.4.32 (XAMPP lokal) |
+| **Queue Driver** | Database (`QUEUE_CONNECTION=database`) |
+| **Object Storage** | Cloudflare R2 (`FILESYSTEM_DISK=r2`) |
+| **Frontend** | Blade + Alpine.js 3.x + Tailwind CSS + Flowbite |
+| **Build Tool** | Vite + Laravel Plugin |
+| **UI Components** | TomSelect (autocomplete), SortableJS (drag-drop), DataTables.net (custom AJAX) |
+| **Font** | Inter (Google Fonts) |
+| **Autentikasi** | Laravel session + middleware `auth` + `role:super_admin` |
 
 ## Diagram Arsitektur
 
 ```mermaid
 flowchart TB
-    subgraph CLIENT["Client Layer"]
-        WEB["Web App"]
-        MOBILE["Mobile App"]
+    subgraph BROWSER["Browser"]
+        BLADE["Blade Templates"]
+        ALPINE["Alpine.js 3.x"]
+        VITE["Vite Assets (CSS/JS)"]
     end
 
-    subgraph EDGE["Edge"]
-        LB["Load Balancer / Reverse Proxy"]
-    end
+    subgraph LARAVEL["Laravel 12 Backend"]
+        ROUTER["Router"]
+        MIDDLEWARE["Middleware: auth, role:super_admin"]
 
-    subgraph BACKEND["Laravel Backend"]
-        SANCTUM["Sanctum Auth Middleware"]
-
-        subgraph MODULES["app/Modules"]
-            CORE["Core Module<br/>Series, User, base caching"]
-            TRACKING["Tracking Module<br/>UserTracking, Chapter progress"]
-            COLLECTION["Collection Module<br/>Volume, UserCollection, Loan"]
-            SOURCES_MOD["Sources Module<br/>Adapter, Normalizer, Scraper"]
-            ADMIN["Admin Module<br/>Filament Resources"]
+        subgraph MODULES["app/Modules/"]
+            CORE["Core\nSeries, User, ActivityLog\nHasSoftDeletesWithActor"]
+            COLLECTION["Collection\nVolume, UserLibrary\nUserCollection, Loan, LoanItem"]
+            ADMIN["Admin\nControllers + routes\nAJAX DataTables, Bulk API"]
+            JIKAN["Jikan\nJikanSchedule\nJikanScrapeSession\nJikanService"]
         end
+
+        JOBS["app/Jobs/\nScrapeJikanPageJob"]
+        CONSOLE["routes/console.php\nScheduler (per-minute cron)"]
     end
 
-    subgraph QUEUE_LAYER["Queue Layer"]
-        REDIS_QUEUE["Redis (Queue Driver)"]
-        HORIZON["Laravel Horizon<br/>(critical/high/default/low)"]
-    end
-
-    subgraph CACHE_LAYER["Cache Layer"]
-        REDIS_CACHE["Redis (Cache, tagged)"]
-    end
-
-    subgraph DATA["Data Layer"]
-        PG["PostgreSQL 16<br/>(series, volumes, tracking, etc.)"]
+    subgraph QUEUE["Queue Layer"]
+        JOBS_TABLE["jobs table\n(database driver)"]
+        WORKER["php artisan queue:work"]
     end
 
     subgraph STORAGE["Object Storage"]
-        R2["Cloudflare R2<br/>(cover images)"]
+        R2["Cloudflare R2\ncover images (series & volume)\npublic bucket"]
     end
 
-    subgraph EXTERNAL["External Source Adapters"]
-        MANGADEX["MangaDex API"]
-        ANILIST["AniList API"]
-        BAKAUPDATES["Baka-Updates Scraper"]
+    subgraph DB["Database"]
+        MYSQL["MariaDB 10.4.32\n(XAMPP)"]
     end
 
-    WEB --> LB
-    MOBILE --> LB
-    LB --> SANCTUM
-    SANCTUM --> CORE
-    SANCTUM --> TRACKING
-    SANCTUM --> COLLECTION
-    SANCTUM --> ADMIN
-
-    CORE --> PG
-    TRACKING --> PG
-    COLLECTION --> PG
-    ADMIN --> PG
-
-    CORE --> REDIS_CACHE
-    TRACKING --> REDIS_CACHE
-    COLLECTION --> REDIS_CACHE
-
-    TRACKING -- "dispatch job" --> REDIS_QUEUE
-    SOURCES_MOD -- "dispatch job" --> REDIS_QUEUE
-    REDIS_QUEUE --> HORIZON
-    HORIZON --> SOURCES_MOD
-
-    SOURCES_MOD --> MANGADEX
-    SOURCES_MOD --> ANILIST
-    SOURCES_MOD --> BAKAUPDATES
-    SOURCES_MOD --> PG
-
-    CORE -- "upload cover" --> R2
-    ADMIN -- "upload cover" --> R2
+    BROWSER --> ROUTER
+    ROUTER --> MIDDLEWARE --> MODULES
+    MODULES --> MYSQL
+    MODULES --> R2
+    ADMIN --> JOBS_TABLE
+    CONSOLE --> JOBS_TABLE
+    JOBS_TABLE --> WORKER
+    WORKER --> JOBS
+    JOBS --> MYSQL
+    JOBS --> R2
 ```
 
-## Alur Data: Client ke Database
+## Struktur Modul
 
-1. **Request masuk** dari Web atau Mobile App menuju Load Balancer / Reverse Proxy.
-2. **Autentikasi** dilakukan oleh middleware Sanctum. Untuk endpoint publik (`GET /api/series`, dll), middleware ini dilewati dan diganti dengan rate limiting per IP.
-3. **Routing ke modul**: request diteruskan ke controller di modul terkait (Core, Tracking, Collection, atau Admin) berdasarkan endpoint.
-4. **Cache check**: untuk request read-heavy (series detail, chapters list, user dashboard), service terlebih dahulu memeriksa Redis cache bertag sebelum query ke PostgreSQL.
-5. **Query ke PostgreSQL**: jika cache miss, service melakukan query melalui Repository, lalu menyimpan hasil ke cache dengan TTL sesuai jenis data (series 1 jam, chapters 6 jam, dashboard 15 menit).
-6. **Operasi async**: operasi yang melibatkan sumber eksternal (fetch chapter, health check, deduplikasi) tidak dieksekusi langsung, melainkan di-dispatch sebagai job ke Redis queue dan diproses oleh Horizon worker sesuai prioritas (critical/high/default/low).
-7. **Source Adapter**: worker memanggil adapter sumber eksternal (MangaDex, AniList, dll) sesuai `SourceAdapterInterface`, menormalisasi response, lalu menyimpan ke PostgreSQL.
-8. **Object storage**: upload cover image (oleh user/admin via Core atau Admin module) disimpan langsung ke Cloudflare R2, bukan local storage. Hanya URL yang disimpan di kolom `cover_url`.
-9. **Response**: hasil dikembalikan ke client dalam format JSON konsisten (`success`, `data`, `message`, `errors`).
+### Core
+Fondasi yang dipakai modul lain. Berisi:
+- `Series` — entitas utama (UUID PK, soft deletes with actor, `mal_id` unique)
+- `User` — autentikasi + role (`user`/`super_admin`) + ban/unban
+- `ActivityLog` — audit trail semua aksi admin
+- `HasSoftDeletesWithActor` — trait yang menambah `deleted_by`, `deletion_reason`, dan auto-log ke `activity_logs`
+
+### Collection
+Manajemen koleksi fisik:
+- `Volume` — buku fisik per series (cover di R2)
+- `UserLibrary` — bridge `users` ↔ `series` (auto-created via `firstOrCreate`)
+- `UserCollection` — kepemilikan volume (kondisi, harga, flag pinjam)
+- `Loan` + `LoanItem` — peminjaman volume ke pihak luar
+
+### Admin
+Seluruh panel admin. Tidak ada Filament — murni custom MVC:
+- Controller per resource: Series, Volume, Collection, Loan, User, Jikan, ActivityLog
+- `AdminApiController` — endpoint AJAX internal (series search, volumes per series)
+- Route prefix `admin/`, protected `auth` + `role:super_admin`
+- AJAX DataTable pattern: controller detect `$request->ajax()` → return JSON
+
+### Jikan
+Scraping data dari Jikan API (wrapper MyAnimeList):
+- `JikanSchedule` — konfigurasi jadwal (jam, menit, rentang tahun, sort_order)
+- `JikanScrapeSession` — log satu sesi (status: pending → queued → running → completed/failed)
+- `JikanService` — HTTP calls ke Jikan API dengan year filter
+- `ScrapeJikanPageJob` — job queue yang memproses satu halaman; dispatch next-queued setelah selesai
+- `routes/console.php` — loop semua schedules setiap menit, buat session jika jadwal cocok
+
+## Alur Data: Tambah Koleksi Bulk
+
+```
+Browser (Alpine.js)
+  → POST /admin/api/series/search?q=...   (TomSelect autocomplete)
+  → GET  /admin/api/series/{id}/volumes?user_id=...  (load volumes per entry)
+  → POST /admin/collections/bulk  (JSON: user_id + entries[])
+      → CollectionController::bulkStore()
+          → UserLibrary::firstOrCreate()
+          → UserCollection::create() per volume
+          → return JSON {message, count}
+  → redirect ke collections.index setelah 1.2 detik
+```
+
+## Alur Data: Scraping Jikan
+
+```
+routes/console.php (tiap menit)
+  → loop JikanSchedule aktif
+  → jika hour:minute cocok:
+      → jika ada session running/queued → buat session 'queued'
+      → otherwise → buat session 'pending', dispatch ScrapeJikanPageJob
+
+ScrapeJikanPageJob (queue worker)
+  → GET jikan.moe/v4/manga?page=N&order_by=...&start_date=...
+  → upsert ke tabel series berdasarkan mal_id
+  → jika ada halaman berikutnya → dispatch job halaman N+1
+  → jika selesai → dispatchNextQueued() berdasarkan sort_order jikan_schedules
+```
+
+## Catatan Penting
+
+- **Tidak ada Redis** — queue pakai driver `database`, bukan Redis/Horizon.
+- **Tidak ada Filament** — admin panel custom (Blade + Alpine.js).
+- **R2 sebagai default disk** — semua `Storage::disk()` (tanpa arg) mengarah ke R2 via `FILESYSTEM_DISK=r2`.
+- **Asset build**: `npm run build` → output ke `public/build/`. Tidak perlu hot reload di production.
