@@ -3,113 +3,92 @@ name: Deploy to Production
 on:
   push:
     tags:
-      - 'v*'  # Trigger on tags like v1.0.0, v1.0.1, etc.
-  workflow_dispatch:  # Allow manual trigger with tag input
+      - "v*.*.*"
+  workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to deploy (e.g., v1.0.0)'
+        description: "Tag to deploy (e.g., v1.0.0)"
         required: true
         type: string
 
 jobs:
-  test:
-    name: Test Before Deploy
+  ci:
+    name: CI
     uses: ./.github/workflows/01-test.yml
     secrets: inherit
-  
+
   deploy-production:
-    name: Deploy to Production Server
+    name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: test
+    needs: ci
     environment:
       name: production
-      url: https://malas.example.com
-    
+      url: ${{ secrets.PRODUCTION_URL }}
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.tag || github.ref_name }}
-      
+          ref: ${{ inputs.tag || github.ref_name }}
+
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
-          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
-      
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
       - name: Add host to known_hosts
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
-      
-      - name: Create backup before deploy
-        run: |
-          ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
-            cd /var/www/malas
-            php artisan backup:run --only-db
-            echo "Database backup completed"
-          EOF
-      
+
       - name: Enable maintenance mode
         run: |
-          ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
-            cd /var/www/malas
-            php artisan down --retry=60 --message="MALAS sedang maintenance. Akan kembali dalam beberapa menit."
-          EOF
-      
+          ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} \
+            "cd ${{ secrets.PRODUCTION_PATH }} && php artisan down --retry=60"
+
       - name: Deploy via SSH
+        id: deploy
         run: |
-          ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
-            cd /var/www/malas
+          ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+            set -e
+            cd ${{ secrets.PRODUCTION_PATH }}
+
             git fetch --tags
-            git checkout ${{ github.event.inputs.tag || github.ref_name }}
+            git checkout ${{ inputs.tag || github.ref_name }}
+
             composer install --no-dev --optimize-autoloader
+            npm ci && npm run build
+
             php artisan migrate --force
+
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
+            php artisan icons:cache
+            php artisan filament:cache-components
+            php artisan optimize
+
             php artisan queue:restart
-            php artisan optimize:clear
-          EOF
-      
+            sudo supervisorctl restart malas-worker:*
+          ENDSSH
+
       - name: Disable maintenance mode
+        if: always()
         run: |
-          ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
-            cd /var/www/malas
-            php artisan up
-          EOF
-      
-      - name: Wait for app to boot
-        run: sleep 15
-      
-      - name: Run Smoke Tests
+          ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} \
+            "cd ${{ secrets.PRODUCTION_PATH }} && php artisan up"
+
+      - name: Health check
         run: |
-          # Health check
-          curl -f https://malas.example.com/api/health || exit 1
-          
-          # Auth check (will return 401 for invalid login, but that's fine)
-          curl -f https://malas.example.com/api/series || exit 1
-          
-          echo "✅ All smoke tests passed"
-      
-      - name: Notify success
-        if: success()
-        run: |
-          curl -X POST -H "Content-Type: application/json" \
-            -d '{"text":"✅ MALAS Production deployed successfully! Version: ${{ github.event.inputs.tag || github.ref_name }}"}' \
-            ${{ secrets.SLACK_WEBHOOK_URL }}
-        continue-on-error: true
-      
+          sleep 15
+          curl -f ${{ secrets.PRODUCTION_URL }}/up || exit 1
+          echo "Health check passed"
+
       - name: Rollback on failure
-        if: failure()
+        if: failure() && steps.deploy.conclusion == 'failure'
         run: |
-          ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
-            cd /var/www/malas
-            php artisan up
-            # Rollback migration if needed
+          ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'ENDSSH'
+            set -e
+            cd ${{ secrets.PRODUCTION_PATH }}
             php artisan migrate:rollback --step=1 --force
-          EOF
-          
-          curl -X POST -H "Content-Type: application/json" \
-            -d '{"text":"🚨 MALAS Production deploy FAILED! Rollback initiated."}' \
-            ${{ secrets.SLACK_WEBHOOK_URL }}
-        continue-on-error: true
+            php artisan up
+          ENDSSH

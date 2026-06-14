@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 200" width="600" height="200">
+  <defs>
+    <linearGradient id="pastelGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#fbcfe8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#fed7aa;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="pastelGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#bfdbfe;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e9d5ff;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="pastelGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#a7f3d0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d1fae5;stop-opacity:1" />
+    </linearGradient>
+    <filter id="softShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#cbd5e1" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <rect x="15" y="15" width="570" height="170" rx="30" fill="#fefce8" filter="url(#softShadow)"/>
+
+  <g transform="translate(55, 40)">
+    <path d="M0,55 L0,20 Q40,0 80,20 L80,55 Q40,35 0,55 Z" fill="url(#pastelGrad1)"/>
+    <path d="M80,55 L80,20 Q120,0 160,20 L160,55 Q120,35 80,55 Z" fill="url(#pastelGrad2)"/>
+    <line x1="40" y1="28" x2="40" y2="45" stroke="#f472b6" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+    <line x1="120" y1="28" x2="120" y2="45" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+    <line x1="55" y1="35" x2="25" y2="42" stroke="#f472b6" stroke-width="1.8" stroke-linecap="round" opacity="0.5"/>
+    <line x1="55" y1="45" x2="30" y2="48" stroke="#f472b6" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+    <line x1="105" y1="35" x2="135" y2="42" stroke="#60a5fa" stroke-width="1.8" stroke-linecap="round" opacity="0.5"/>
+    <line x1="105" y1="45" x2="130" y2="48" stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+    <circle cx="20" cy="12" r="3" fill="#fde047" opacity="0.7"/>
+    <circle cx="140" cy="12" r="3" fill="#fde047" opacity="0.7"/>
+    <circle cx="80" cy="8" r="2.5" fill="#fbcfe8" opacity="0.6"/>
+  </g>
+
+  <text x="230" y="82" font-family="'Inter', 'Segoe UI', 'Poppins', Arial, sans-serif" font-size="48" font-weight="800" fill="#78716c" letter-spacing="2">MANGA</text>
+  <text x="230" y="130" font-family="'Inter', 'Segoe UI', 'Poppins', Arial, sans-serif" font-size="48" font-weight="800" fill="url(#pastelGrad1)" letter-spacing="2">LIBRARY</text>
+  <rect x="230" y="145" width="70" height="3" rx="1.5" fill="url(#pastelGrad3)"/>
+  <text x="230" y="168" font-family="'Inter', 'Segoe UI', Arial, sans-serif" font-size="12" font-weight="500" fill="#a8a29e" letter-spacing="3">PRIVATE MANGA MANAGEMENT</text>
+
+  <g transform="translate(530, 45)" opacity="0.6">
+    <circle cx="0" cy="-6" r="4" fill="#fbcfe8"/>
+    <circle cx="6" cy="-3" r="4" fill="#fbcfe8"/>
+    <circle cx="4" cy="4" r="4" fill="#fbcfe8"/>
+    <circle cx="-4" cy="4" r="4" fill="#fbcfe8"/>
+    <circle cx="-6" cy="-3" r="4" fill="#fbcfe8"/>
+    <circle cx="0" cy="0" r="2.5" fill="#fde047"/>
+  </g>
+  <g transform="translate(545, 140)" opacity="0.5">
+    <circle cx="0" cy="-4" r="3" fill="#a7f3d0"/>
+    <circle cx="4" cy="-2" r="3" fill="#a7f3d0"/>
+    <circle cx="3" cy="3" r="3" fill="#a7f3d0"/>
+    <circle cx="-3" cy="3" r="3" fill="#a7f3d0"/>
+    <circle cx="-4" cy="-2" r="3" fill="#a7f3d0"/>
+    <circle cx="0" cy="0" r="2" fill="#fde047"/>
+  </g>
+</svg>

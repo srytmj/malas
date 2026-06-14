@@ -1,92 +1,150 @@
-name: Test MALAS
+name: CI
 
 on:
   push:
-    branches: [ develop, main ]
+    branches: ["**"]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+  workflow_call:
 
 jobs:
-  test:
-    name: Run Tests
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
-    
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: malas
-          POSTGRES_PASSWORD: malas123
-          POSTGRES_DB: malas_testing
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd="pg_isready -U malas"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-      
-      redis:
-        image: redis:7
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd="redis-cli ping"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
+      - uses: actions/checkout@v4
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: 8.3
-          extensions: pdo_pgsql, pgsql, redis, zip, curl, json, mbstring, xml, bcmath
+          php-version: "8.3"
+          extensions: mbstring, xml, curl, gd, intl, zip, bcmath, pdo_mysql
           coverage: none
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+
+      - name: Cache Composer
+        uses: actions/cache@v4
         with:
-          node-version: 20
-      
-      - name: Copy environment file
-        run: |
-          cp .env.ci .env
-          php artisan key:generate
-      
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
       - name: Install Composer dependencies
-        run: |
-          composer install --no-interaction --no-progress --prefer-dist
-      
-      - name: Install NPM dependencies
-        run: |
-          npm ci
-          npm run build
-      
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Run Laravel Pint
+        run: ./vendor/bin/pint --test
+
+  security:
+    name: Security Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, xml, curl
+          coverage: none
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Composer audit
+        run: composer audit
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ""
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+          MYSQL_DATABASE: malas_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, xml, curl, gd, intl, zip, bcmath, pdo_mysql
+          coverage: none
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Cache NPM
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: npm-
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Install NPM dependencies & build
+        run: npm ci && npm run build
+
+      - name: Copy environment file
+        run: cp .env.testing .env
+
+      - name: Generate app key
+        run: php artisan key:generate
+
       - name: Run migrations
-        run: |
-          php artisan migrate --force --seed
-      
-      - name: Run PHPUnit tests
-        run: |
-          php artisan test --testsuite=Unit,Feature --stop-on-failure
-      
-      - name: Run Laravel Pint (code style)
-        run: |
-          ./vendor/bin/pint --test
-        continue-on-error: true  # Tidak gagalkan pipeline, hanya notifikasi
-      
-      - name: Run PHPStan (static analysis)
-        run: |
-          ./vendor/bin/phpstan analyse --level=5 app/Modules
-        continue-on-error: true
-      
-      - name: Upload test logs (if failed)
+        run: php artisan migrate --force
+
+      - name: Run Pest tests
+        run: ./vendor/bin/pest --ci
+
+      - name: Upload logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: test-logs
           path: storage/logs/
+
+  build-assets:
+    name: Build Assets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Cache NPM
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: npm-
+
+      - name: Install & build
+        run: npm ci && npm run build
