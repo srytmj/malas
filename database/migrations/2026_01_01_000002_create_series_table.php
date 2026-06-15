@@ -29,6 +29,7 @@ return new class extends Migration
             $table->unsignedInteger('total_volumes')->nullable();
             $table->decimal('score', 4, 2)->nullable()->comment('0.00 – 10.00');
             $table->unsignedInteger('rank')->nullable();
+            $table->decimal('price_per_volume', 10, 2)->nullable()->comment('Harga referensi per volume (Rupiah)');
             $table->softDeletes();
             $table->text('deleted_reason')->nullable();
             $table->uuid('deleted_by')->nullable();

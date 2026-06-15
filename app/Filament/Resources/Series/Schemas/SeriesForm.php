@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Series\Schemas;
 
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
@@ -17,6 +18,13 @@ class SeriesForm
             ->components([
                 Section::make('Informasi Utama')
                     ->schema([
+                        FileUpload::make('cover_path')
+                            ->label('Cover')
+                            ->image()
+                            ->disk(config('filesystems.cover_disk', 'public'))
+                            ->directory('covers')
+                            ->imagePreviewHeight('200')
+                            ->columnSpanFull(),
                         TextInput::make('title_romaji')
                             ->label('Judul (Romaji)')
                             ->required()
@@ -71,6 +79,12 @@ class SeriesForm
                             ->label('Rank MAL')
                             ->numeric()
                             ->minValue(1),
+                        TextInput::make('price_per_volume')
+                            ->label('Harga Referensi / Volume')
+                            ->numeric()
+                            ->prefix('Rp')
+                            ->minValue(0)
+                            ->helperText('Harga default per volume (bisa di-override per koleksi)'),
                     ])
                     ->columns(2),
             ]);

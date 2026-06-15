@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Volumes\Schemas;
 
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
@@ -29,6 +30,13 @@ class VolumeForm
                     ->maxLength(20),
                 DatePicker::make('published_at')
                     ->label('Tanggal Terbit'),
+                FileUpload::make('cover_path')
+                    ->label('Cover Volume')
+                    ->image()
+                    ->disk(config('filesystems.cover_disk', 'public'))
+                    ->directory('covers/volumes')
+                    ->imagePreviewHeight('200')
+                    ->columnSpanFull(),
             ]);
     }
 }

@@ -8,6 +8,7 @@ use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -61,9 +62,9 @@ class User extends Authenticatable implements FilamentUser
         return in_array($this->role, ['super_admin', 'admin']) && ! $this->is_banned;
     }
 
-    public function collections(): HasMany
+    public function ownedCollections(): BelongsToMany
     {
-        return $this->hasMany(Collection::class);
+        return $this->belongsToMany(Collection::class, 'collection_user');
     }
 
     public function loans(): HasMany

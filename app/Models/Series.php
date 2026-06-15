@@ -27,6 +27,7 @@ class Series extends Model
         'total_volumes',
         'score',
         'rank',
+        'price_per_volume',
     ];
 
     protected function casts(): array
@@ -35,6 +36,7 @@ class Series extends Model
             'published_from' => 'date',
             'published_to' => 'date',
             'score' => 'decimal:2',
+            'price_per_volume' => 'decimal:2',
             'deleted_at' => 'datetime',
         ];
     }

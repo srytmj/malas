@@ -10,18 +10,21 @@ return new class extends Migration
     {
         Schema::create('collections', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignUuid('volume_id')->constrained()->cascadeOnDelete();
+            $table->foreignUuid('series_id')->constrained()->cascadeOnDelete();
+            // edition_id FK added after editions table in a later migration
+            $table->uuid('edition_id')->nullable()->index();
             $table->enum('condition', ['mint', 'good', 'fair', 'poor'])->default('good');
+            $table->decimal('price_per_volume', 10, 2)->nullable()
+                  ->comment('Override harga per volume untuk edisi ini');
             $table->string('location')->nullable()->comment('Lokasi rak, contoh: Rak A Baris 2');
-            $table->text('notes')->nullable();
             $table->date('acquired_at')->nullable();
+            $table->text('notes')->nullable();
             $table->softDeletes();
+            $table->text('deleted_reason')->nullable();
+            $table->uuid('deleted_by')->nullable();
             $table->timestamps();
 
-            $table->unique(['user_id', 'volume_id']);
-            $table->index('user_id');
-            $table->index('volume_id');
+            $table->index('series_id');
         });
     }
 

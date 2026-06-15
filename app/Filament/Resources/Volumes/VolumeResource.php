@@ -26,6 +26,8 @@ class VolumeResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $recordTitleAttribute = 'volume_number';
 
     protected static ?string $modelLabel = 'Volume';

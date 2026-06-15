@@ -2,8 +2,12 @@
 
 namespace App\Providers\Filament;
 
+use Althinect\FilamentSpatieRolesPermissions\FilamentSpatieRolesPermissionsPlugin;
 use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
+use CharrafiMed\GlobalSearchModal\GlobalSearchModalPlugin;
 use Cocosmos\FilamentStickySaveBar\StickySaveBarPlugin;
+use App\Http\Middleware\EnsureUserIsNotBanned;
+use Emuniq\FilamentBrowserNotifications\BrowserNotificationsPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -20,6 +24,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Jeffgreco13\FilamentBreezy\BreezyCore;
+use Leandrocfe\FilamentApexCharts\FilamentApexChartsPlugin;
 use pxlrbt\FilamentSpotlight\SpotlightPlugin;
 
 class AdminPanelProvider extends PanelProvider
@@ -62,6 +67,14 @@ class AdminPanelProvider extends PanelProvider
                 SpotlightPlugin::make(),
 
                 StickySaveBarPlugin::make(),
+
+                FilamentApexChartsPlugin::make(),
+
+                BrowserNotificationsPlugin::make(),
+
+                GlobalSearchModalPlugin::make(),
+
+                FilamentSpatieRolesPermissionsPlugin::make(),
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -76,6 +89,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                EnsureUserIsNotBanned::class,
             ]);
     }
 }
