@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -43,8 +43,8 @@ class Volume extends Model
         return $this->belongsTo(Series::class);
     }
 
-    public function collections(): HasMany
+    public function collections(): BelongsToMany
     {
-        return $this->hasMany(Collection::class);
+        return $this->belongsToMany(Collection::class, 'collection_volumes');
     }
 }

@@ -28,6 +28,7 @@ class Series extends Model
         'score',
         'rank',
         'price_per_volume',
+        'jikan_data',
     ];
 
     protected function casts(): array
@@ -37,6 +38,7 @@ class Series extends Model
             'published_to' => 'date',
             'score' => 'decimal:2',
             'price_per_volume' => 'decimal:2',
+            'jikan_data' => 'array',
             'deleted_at' => 'datetime',
         ];
     }

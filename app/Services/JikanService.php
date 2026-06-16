@@ -102,6 +102,36 @@ class JikanService
         ];
     }
 
+    public function getMangaFull(int $malId): array
+    {
+        $response = Http::timeout(15)
+            ->retry(2, 1000)
+            ->get(self::BASE_URL . "/manga/{$malId}/full");
+
+        if ($response->status() === 404) {
+            throw new \Exception("Manga dengan MAL ID {$malId} tidak ditemukan di MyAnimeList.");
+        }
+
+        if (! $response->successful()) {
+            throw new \Exception("Jikan API error: HTTP {$response->status()}");
+        }
+
+        return $response->json('data') ?? [];
+    }
+
+    public function getMangaPictures(int $malId): array
+    {
+        $response = Http::timeout(15)
+            ->retry(2, 1000)
+            ->get(self::BASE_URL . "/manga/{$malId}/pictures");
+
+        if (! $response->successful()) {
+            return [];
+        }
+
+        return $response->json('data') ?? [];
+    }
+
     public function downloadCover(string $url, string $filename): ?string
     {
         try {

@@ -48,8 +48,7 @@ class InstalledPlugins extends Page implements HasTable
                 TextColumn::make('label')
                     ->label('Plugin')
                     ->description(fn (array $record): string => $record['name'])
-                    ->icon(fn (array $record): string => $record['icon'])
-                    ->searchable(query: false),
+                    ->icon(fn (array $record): string => $record['icon']),
                 TextColumn::make('version')
                     ->label('Versi')
                     ->badge()
