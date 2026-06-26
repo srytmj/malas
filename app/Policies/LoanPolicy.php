@@ -1,75 +1,34 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Policies;
 
-use Illuminate\Foundation\Auth\User as AuthUser;
 use App\Models\Loan;
-use Illuminate\Auth\Access\HandlesAuthorization;
+use App\Models\User;
 
 class LoanPolicy
 {
-    use HandlesAuthorization;
-    
-    public function viewAny(AuthUser $authUser): bool
+    public function viewAny(User $user): bool
     {
-        return $authUser->can('ViewAny:Loan');
+        return true;
     }
 
-    public function view(AuthUser $authUser, Loan $loan): bool
+    public function view(User $user, Loan $loan): bool
     {
-        return $authUser->can('View:Loan');
+        return $user->isAdmin() || $loan->collection->user_id === $user->id;
     }
 
-    public function create(AuthUser $authUser): bool
+    public function create(User $user): bool
     {
-        return $authUser->can('Create:Loan');
+        return true;
     }
 
-    public function update(AuthUser $authUser, Loan $loan): bool
+    public function update(User $user, Loan $loan): bool
     {
-        return $authUser->can('Update:Loan');
+        return $user->isAdmin() || $loan->collection->user_id === $user->id;
     }
 
-    public function delete(AuthUser $authUser, Loan $loan): bool
+    public function delete(User $user, Loan $loan): bool
     {
-        return $authUser->can('Delete:Loan');
+        return $user->isAdmin() || $loan->collection->user_id === $user->id;
     }
-
-    public function deleteAny(AuthUser $authUser): bool
-    {
-        return $authUser->can('DeleteAny:Loan');
-    }
-
-    public function restore(AuthUser $authUser, Loan $loan): bool
-    {
-        return $authUser->can('Restore:Loan');
-    }
-
-    public function forceDelete(AuthUser $authUser, Loan $loan): bool
-    {
-        return $authUser->can('ForceDelete:Loan');
-    }
-
-    public function forceDeleteAny(AuthUser $authUser): bool
-    {
-        return $authUser->can('ForceDeleteAny:Loan');
-    }
-
-    public function restoreAny(AuthUser $authUser): bool
-    {
-        return $authUser->can('RestoreAny:Loan');
-    }
-
-    public function replicate(AuthUser $authUser, Loan $loan): bool
-    {
-        return $authUser->can('Replicate:Loan');
-    }
-
-    public function reorder(AuthUser $authUser): bool
-    {
-        return $authUser->can('Reorder:Loan');
-    }
-
 }

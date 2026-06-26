@@ -2,71 +2,41 @@
 
 namespace App\Policies;
 
-use Illuminate\Foundation\Auth\User as AuthUser;
-use Illuminate\Auth\Access\HandlesAuthorization;
+use App\Models\User;
 
 class UserPolicy
 {
-    use HandlesAuthorization;
-    
-    public function viewAny(AuthUser $authUser): bool
+    public function viewAny(User $user): bool
     {
-        return $authUser->can('ViewAny:User');
+        return $user->isAdmin();
     }
 
-    public function view(AuthUser $authUser): bool
+    public function view(User $user, User $target): bool
     {
-        return $authUser->can('View:User');
+        return $user->isAdmin() || $user->id === $target->id;
     }
 
-    public function create(AuthUser $authUser): bool
+    public function update(User $user, User $target): bool
     {
-        return $authUser->can('Create:User');
+        return $user->isAdmin();
     }
 
-    public function update(AuthUser $authUser): bool
+    public function ban(User $user, User $target): bool
     {
-        return $authUser->can('Update:User');
+        if ($target->isSuperAdmin()) {
+            return false;
+        }
+
+        return $user->isAdmin();
     }
 
-    public function delete(AuthUser $authUser): bool
+    public function changeRole(User $user, User $target): bool
     {
-        return $authUser->can('Delete:User');
+        return $user->isSuperAdmin() && ! $target->isSuperAdmin();
     }
 
-    public function deleteAny(AuthUser $authUser): bool
+    public function delete(User $user, User $target): bool
     {
-        return $authUser->can('DeleteAny:User');
+        return $user->isSuperAdmin() && ! $target->isSuperAdmin();
     }
-
-    public function restore(AuthUser $authUser): bool
-    {
-        return $authUser->can('Restore:User');
-    }
-
-    public function forceDelete(AuthUser $authUser): bool
-    {
-        return $authUser->can('ForceDelete:User');
-    }
-
-    public function forceDeleteAny(AuthUser $authUser): bool
-    {
-        return $authUser->can('ForceDeleteAny:User');
-    }
-
-    public function restoreAny(AuthUser $authUser): bool
-    {
-        return $authUser->can('RestoreAny:User');
-    }
-
-    public function replicate(AuthUser $authUser): bool
-    {
-        return $authUser->can('Replicate:User');
-    }
-
-    public function reorder(AuthUser $authUser): bool
-    {
-        return $authUser->can('Reorder:User');
-    }
-
 }

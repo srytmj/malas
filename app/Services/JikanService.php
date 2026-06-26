@@ -46,11 +46,6 @@ class JikanService
             }
         }
 
-        if (empty($params['order_by'])) {
-            $params['order_by'] = 'popularity';
-            $params['sort'] = 'asc';
-        }
-
         $response = Http::timeout(15)
             ->retry(2, 1000)
             ->get(self::BASE_URL . '/manga', $params);
