@@ -16,7 +16,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        //
+        $middleware->alias([
+            'not_banned' => \App\Http\Middleware\EnsureNotBanned::class,
+            'check.menu' => \App\Http\Middleware\CheckMenuAccess::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
