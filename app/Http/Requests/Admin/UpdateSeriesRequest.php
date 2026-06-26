@@ -21,7 +21,7 @@ class UpdateSeriesRequest extends FormRequest
             'synopsis'       => ['nullable', 'string'],
             'status'         => ['required', Rule::in(['publishing', 'finished', 'on_hiatus', 'discontinued', 'not_yet_published'])],
             'type'           => ['required', Rule::in(['manga', 'manhwa', 'manhua', 'novel', 'one_shot', 'doujinshi'])],
-            'cover'          => ['nullable', 'image', 'max:2048'],
+            'cover'          => ['nullable', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
             'published_from' => ['nullable', 'date'],
             'published_to'   => ['nullable', 'date', 'after_or_equal:published_from'],
             'total_volumes'  => ['nullable', 'integer', 'min:1'],

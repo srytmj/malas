@@ -16,6 +16,8 @@ class VolumeController extends Controller
 {
     public function store(StoreVolumeRequest $request, Series $series): RedirectResponse
     {
+        $this->authorize('create', Volume::class);
+
         $data              = $request->validated();
         $data['series_id'] = $series->id;
         $data['cover_path'] = $request->hasFile('cover')
@@ -49,6 +51,8 @@ class VolumeController extends Controller
 
     public function update(UpdateVolumeRequest $request, Volume $volume): RedirectResponse
     {
+        $this->authorize('update', $volume);
+
         $data = $request->validated();
 
         if ($request->hasFile('cover')) {

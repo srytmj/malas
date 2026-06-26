@@ -55,6 +55,8 @@ class SeriesController extends Controller
 
     public function store(StoreSeriesRequest $request): RedirectResponse
     {
+        $this->authorize('create', Series::class);
+
         $data              = $request->validated();
         $data['cover_path'] = $this->storeCover($request->file('cover'));
         unset($data['cover']);
@@ -119,6 +121,8 @@ class SeriesController extends Controller
 
     public function update(UpdateSeriesRequest $request, Series $series): RedirectResponse
     {
+        $this->authorize('update', $series);
+
         $data = $request->validated();
 
         if ($request->hasFile('cover')) {
