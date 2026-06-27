@@ -104,7 +104,7 @@ class MenuSeeder extends Seeder
                 'key'         => 'user.loans',
                 'label'       => 'Pinjaman Saya',
                 'icon'        => 'hand-coins',
-                'route_name'  => 'my-loans.index',
+                'route_name'  => 'loans.index',
                 'sort_order'  => 4,
                 'role_access' => ['user'],
             ],
