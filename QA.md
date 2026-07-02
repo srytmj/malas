@@ -28,17 +28,33 @@ Kamu mendapat konteks berupa: diff kode, file baru, atau deskripsi fase yang sel
 
 ---
 
+## Setup PATH (wajib sebelum jalankan commands)
+
+Node.js dan PHP tidak otomatis ada di PATH. Jalankan ini dulu di setiap sesi PowerShell baru:
+
+```powershell
+$env:Path += ";C:\Program Files\nodejs;$env:USERPROFILE\.config\herd\bin"
+```
+
+Verifikasi:
+```powershell
+node --version   # harus muncul v26.x.x
+php --version    # harus muncul PHP 8.4.x (Herd)
+```
+
+---
+
 ## Commands Wajib Dijalankan
 
-```bash
-# 1. TypeScript — harus 0 error
+```powershell
+# 1. TypeScript — harus 0 error (output kosong = pass)
 npx tsc --noEmit
 
 # 2. Database — pastikan migration bisa fresh
 php artisan migrate:fresh --seed
 
 # 3. Route check
-php artisan route:list --columns=method,uri,name,middleware
+php artisan route:list
 
 # 4. Clear cache (agar tidak ada cache stale)
 php artisan optimize:clear

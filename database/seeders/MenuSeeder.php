@@ -96,7 +96,7 @@ class MenuSeeder extends Seeder
                 'key'         => 'user.collection',
                 'label'       => 'Koleksiku',
                 'icon'        => 'library',
-                'route_name'  => 'my-collection.index',
+                'route_name'  => 'collection.index',
                 'sort_order'  => 3,
                 'role_access' => ['user'],
             ],

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\Series;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -14,8 +16,10 @@ class SeriesController extends Controller
     {
         $series = Series::query()
             ->when(request('search'), fn ($q, $s) =>
-                $q->where('title_romaji', 'like', "%{$s}%")
-                  ->orWhere('title_english', 'like', "%{$s}%"))
+                $q->where(fn ($sub) =>
+                    $sub->where('title_romaji', 'like', "%{$s}%")
+                        ->orWhere('title_english', 'like', "%{$s}%")
+                ))
             ->when(request('status'), fn ($q, $s) => $q->where('status', $s))
             ->when(request('type'),   fn ($q, $t) => $q->where('type', $t))
             ->withCount('volumes')
@@ -44,6 +48,36 @@ class SeriesController extends Controller
             'series'              => $series,
             'collectionSeriesIds' => $collectionSeriesIds,
             'filters'             => request()->only(['search', 'status', 'type']),
+        ]);
+    }
+
+    public function search(Request $request): JsonResponse
+    {
+        $q = trim((string) $request->get('q', ''));
+
+        $series = Series::when($q, fn ($query) =>
+            $query->where(fn ($sub) =>
+                $sub->where('title_romaji', 'like', "%{$q}%")
+                    ->orWhere('title_english', 'like', "%{$q}%")
+            )
+        )
+        ->latest()
+        ->limit(24)
+        ->get(['id', 'title_romaji', 'title_english', 'cover_path', 'type', 'status'])
+        ->map(fn ($s) => [
+            'id'            => $s->id,
+            'title_romaji'  => $s->title_romaji,
+            'title_english' => $s->title_english,
+            'cover_url'     => $s->cover_path ? Storage::url($s->cover_path) : null,
+            'type'          => $s->type,
+            'status'        => $s->status,
+        ]);
+
+        $collectionSeriesIds = auth()->user()->collections()->pluck('series_id')->toArray();
+
+        return response()->json([
+            'results'             => $series->toArray(),
+            'collection_series_ids' => $collectionSeriesIds,
         ]);
     }
 

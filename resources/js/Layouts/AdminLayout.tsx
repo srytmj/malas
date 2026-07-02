@@ -9,6 +9,7 @@ import { Button } from '@/Components/ui/button';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
 import { useFlash } from '@/hooks/useFlash';
+import AnnouncementBanner from '@/Components/app/AnnouncementBanner';
 import { type MenuItem } from '@/types';
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -156,6 +157,8 @@ export default function AdminLayout({ children, header }: AdminLayoutProps) {
                     </Button>
                     <span className="text-base font-bold">MALAS</span>
                 </header>
+
+                <AnnouncementBanner />
 
                 {header && (
                     <div className="border-b bg-background px-6 py-4">

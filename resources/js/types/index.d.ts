@@ -18,6 +18,13 @@ export interface MenuItem {
     is_maintenance: boolean;
 }
 
+export interface SharedAnnouncement {
+    id: string;
+    title: string;
+    body: string;
+    type: 'info' | 'warning' | 'danger' | 'success';
+}
+
 export type PageProps<
     T extends Record<string, unknown> = Record<string, unknown>,
 > = T & {
@@ -28,5 +35,7 @@ export type PageProps<
     flash: {
         success: string | null;
         error: string | null;
+        info: string | null;
     };
+    announcements: SharedAnnouncement[];
 };

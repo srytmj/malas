@@ -8,6 +8,7 @@ import {
 import { Button } from '@/Components/ui/button';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
+import AnnouncementBanner from '@/Components/app/AnnouncementBanner';
 import { type MenuItem } from '@/types';
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -142,6 +143,8 @@ export default function UserLayout({ children, header }: UserLayoutProps) {
                     </Button>
                     <span className="text-base font-bold">MALAS</span>
                 </header>
+
+                <AnnouncementBanner />
 
                 {header && (
                     <div className="border-b bg-background px-6 py-4">

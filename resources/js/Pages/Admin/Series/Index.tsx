@@ -167,7 +167,11 @@ export default function SeriesIndex({ series, filters }: Props) {
                                 </TableCell>
                             </TableRow>
                         ) : series.data.map((s) => (
-                            <TableRow key={s.id}>
+                            <TableRow
+                                key={s.id}
+                                className="cursor-pointer"
+                                onClick={() => router.visit(route('admin.series.show', s.id))}
+                            >
                                 <TableCell>
                                     {s.cover_url ? (
                                         <img src={s.cover_url} alt={s.title_romaji} className="h-10 w-7 rounded object-cover" />
@@ -176,12 +180,7 @@ export default function SeriesIndex({ series, filters }: Props) {
                                     )}
                                 </TableCell>
                                 <TableCell>
-                                    <Link
-                                        href={route('admin.series.show', s.id)}
-                                        className="font-medium hover:underline"
-                                    >
-                                        {s.title_romaji}
-                                    </Link>
+                                    <p className="font-medium">{s.title_romaji}</p>
                                     {s.title_english && (
                                         <p className="text-xs text-muted-foreground">{s.title_english}</p>
                                     )}
@@ -194,7 +193,7 @@ export default function SeriesIndex({ series, filters }: Props) {
                                 <TableCell className="text-right">
                                     {s.score !== null ? Number(s.score).toFixed(1) : '—'}
                                 </TableCell>
-                                <TableCell>
+                                <TableCell onClick={(e) => e.stopPropagation()}>
                                     <DropdownMenu>
                                         <DropdownMenuTrigger
                                             className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'h-8 w-8')}

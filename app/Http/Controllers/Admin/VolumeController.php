@@ -8,12 +8,38 @@ use App\Http\Requests\Admin\UpdateVolumeRequest;
 use App\Models\Series;
 use App\Models\Volume;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class VolumeController extends Controller
 {
+    public function generate(Series $series): RedirectResponse
+    {
+        $this->authorize('create', Volume::class);
+
+        if (! $series->total_volumes) {
+            return redirect()->back()->with('error', 'Total volume belum diset untuk series ini.');
+        }
+
+        $existing = $series->volumes()->pluck('volume_number')->all();
+        $created  = 0;
+
+        for ($i = 1; $i <= $series->total_volumes; $i++) {
+            if (! in_array($i, $existing)) {
+                $series->volumes()->create(['volume_number' => $i, 'type' => 'regular']);
+                $created++;
+            }
+        }
+
+        $message = $created > 0
+            ? "{$created} volume berhasil dibuat otomatis."
+            : 'Semua volume sudah ada, tidak ada yang perlu dibuat.';
+
+        return redirect()->back()->with($created > 0 ? 'success' : 'info', $message);
+    }
+
     public function store(StoreVolumeRequest $request, Series $series): RedirectResponse
     {
         $this->authorize('create', Volume::class);
@@ -27,7 +53,7 @@ class VolumeController extends Controller
 
         $series->volumes()->create($data);
 
-        return redirect()->route('admin.series.show', $series)
+        return redirect()->back()
             ->with('success', 'Volume berhasil ditambahkan.');
     }
 
@@ -60,12 +86,20 @@ class VolumeController extends Controller
                 Storage::disk('public')->delete($volume->cover_path);
             }
             $data['cover_path'] = $request->file('cover')->store('covers/volumes', 'public');
+        } elseif ($request->filled('cover_url')) {
+            $fetched = $this->fetchCoverFromUrl($request->cover_url);
+            if ($fetched) {
+                if ($volume->cover_path) {
+                    Storage::disk('public')->delete($volume->cover_path);
+                }
+                $data['cover_path'] = $fetched;
+            }
         }
 
-        unset($data['cover']);
+        unset($data['cover'], $data['cover_url']);
         $volume->update($data);
 
-        return redirect()->route('admin.series.show', $volume->series_id)
+        return redirect()->back()
             ->with('success', 'Volume berhasil diperbarui.');
     }
 
@@ -81,7 +115,24 @@ class VolumeController extends Controller
 
         $volume->delete();
 
-        return redirect()->route('admin.series.show', $seriesId)
+        return redirect()->back()
             ->with('success', 'Volume berhasil dihapus.');
+    }
+
+    private function fetchCoverFromUrl(string $url): ?string
+    {
+        try {
+            $response = Http::timeout(20)->get($url);
+            if (! $response->successful()) return null;
+
+            $ext  = pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
+            $path = 'covers/volumes/url_' . uniqid() . '.' . $ext;
+
+            Storage::disk(config('filesystems.cover_disk', 'public'))->put($path, $response->body());
+
+            return $path;
+        } catch (\Exception) {
+            return null;
+        }
     }
 }

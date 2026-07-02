@@ -56,4 +56,7 @@ Route::middleware('auth')->group(function () {
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
+
+    // Fallback: stale GET /logout (bookmark, browser history) → redirect home
+    Route::get('logout', fn () => redirect('/'))->name('logout.get');
 });

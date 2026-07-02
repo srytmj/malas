@@ -1,10 +1,11 @@
 // Domain types shared across admin and user pages.
 // Inertia page props / auth types live in @/types/index.d.ts.
 
-export type SeriesStatus = 'publishing' | 'finished' | 'on_hiatus' | 'discontinued' | 'not_yet_published';
-export type SeriesType   = 'manga' | 'manhwa' | 'manhua' | 'novel' | 'one_shot' | 'doujinshi';
-export type VolumeType   = 'regular' | 'digital' | 'bind_up';
-export type CollectionCondition = 'mint' | 'good' | 'fair' | 'poor';
+export type SeriesStatus          = 'publishing' | 'finished' | 'on_hiatus' | 'discontinued' | 'not_yet_published';
+export type SeriesType            = 'manga' | 'manhwa' | 'manhua' | 'novel' | 'one_shot' | 'doujinshi';
+export type VolumeType            = 'regular' | 'digital' | 'bind_up';
+export type CollectionCondition   = 'mint' | 'good' | 'fair' | 'poor';
+export type CollectionVolumeFormat = 'physical' | 'ebook' | 'online' | 'webtoon';
 
 export interface Series {
     id: string;
@@ -53,7 +54,7 @@ export interface Collection {
 export interface Loan {
     id: string;
     collection_id: string;
-    volume_id: string;
+    collection_volume_id: string;
     borrower_name: string;
     loaned_at: string;
     due_at: string | null;

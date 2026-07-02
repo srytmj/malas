@@ -13,7 +13,7 @@ class Loan extends Model
 
     protected $fillable = [
         'collection_id',
-        'volume_id',
+        'collection_volume_id',
         'borrower_name',
         'loaned_at',
         'due_at',
@@ -35,9 +35,9 @@ class Loan extends Model
         return $this->belongsTo(Collection::class);
     }
 
-    public function volume(): BelongsTo
+    public function collectionVolume(): BelongsTo
     {
-        return $this->belongsTo(Volume::class);
+        return $this->belongsTo(CollectionVolume::class, 'collection_volume_id');
     }
 
     public function isOverdue(): bool

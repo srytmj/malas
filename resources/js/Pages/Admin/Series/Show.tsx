@@ -3,11 +3,11 @@ import { Link, router } from '@inertiajs/react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Pencil, Trash2, Plus, BookOpen } from 'lucide-react';
+import { Pencil, Trash2, Plus, BookOpen, Users } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import EmptyState from '@/Components/app/EmptyState';
-import { SeriesStatusBadge, SeriesTypeBadge, VolumeTypeBadge } from '@/Components/app/StatusBadge';
+import { SeriesStatusBadge, SeriesTypeBadge, VolumeTypeBadge, VolumeFormatBadge } from '@/Components/app/StatusBadge';
 import { Button, buttonVariants } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
@@ -22,7 +22,7 @@ import {
 } from '@/Components/ui/table';
 import { cn } from '@/lib/utils';
 import { PageProps } from '@/types';
-import { type SeriesStatus, type SeriesType, type VolumeType } from '@/lib/types';
+import { type SeriesStatus, type SeriesType, type VolumeType, type CollectionVolumeFormat } from '@/lib/types';
 
 interface VolumeRow {
     id: string;
@@ -49,10 +49,19 @@ interface SeriesDetail {
     cover_url: string | null;
 }
 
+interface OwnershipRow {
+    id: string;
+    volume_number: number;
+    format: CollectionVolumeFormat;
+    user_name: string;
+    active_loan: { borrower_name: string } | null;
+}
+
 interface Props extends PageProps {
     series: SeriesDetail;
     volumes: VolumeRow[];
     can: { update: boolean; delete: boolean; createVolume: boolean };
+    ownerships: OwnershipRow[];
 }
 
 const volumeSchema = z.object({
@@ -69,12 +78,13 @@ function FieldError({ message }: { message?: string }) {
     return <p className="text-sm text-destructive">{message}</p>;
 }
 
-export default function SeriesShow({ series, volumes, can }: Props) {
+export default function SeriesShow({ series, volumes, can, ownerships }: Props) {
     const [addVolumeOpen, setAddVolumeOpen] = useState(false);
     const [deleteVolume, setDeleteVolume]   = useState<VolumeRow | null>(null);
     const [deleteSeries, setDeleteSeries]   = useState(false);
     const [submitting, setSubmitting]       = useState(false);
     const [deletingVol, setDeletingVol]     = useState(false);
+    const [deletingSeries, setDeletingSeries] = useState(false);
     const [coverFile, setCoverFile]         = useState<File | null>(null);
     const fileRef = useRef<HTMLInputElement>(null);
 
@@ -123,8 +133,10 @@ export default function SeriesShow({ series, volumes, can }: Props) {
     }
 
     function handleDeleteSeries() {
+        setDeletingSeries(true);
         router.delete(route('admin.series.destroy', series.id), {
             onSuccess: () => router.visit(route('admin.series.index')),
+            onFinish: () => setDeletingSeries(false),
         });
     }
 
@@ -282,6 +294,46 @@ export default function SeriesShow({ series, volumes, can }: Props) {
                 )}
             </div>
 
+            {/* Ownership section */}
+            {ownerships.length > 0 && (
+                <div className="mt-8">
+                    <div className="mb-3 flex items-center gap-2">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <h2 className="text-base font-semibold">Kepemilikan Volume ({ownerships.length})</h2>
+                    </div>
+                    <div className="rounded-lg border">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-20">Vol.</TableHead>
+                                    <TableHead>Pemilik</TableHead>
+                                    <TableHead className="w-28">Format</TableHead>
+                                    <TableHead className="w-40">Status</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {ownerships.map((o) => (
+                                    <TableRow key={o.id}>
+                                        <TableCell className="font-medium">#{o.volume_number}</TableCell>
+                                        <TableCell className="text-sm">{o.user_name}</TableCell>
+                                        <TableCell><VolumeFormatBadge format={o.format} /></TableCell>
+                                        <TableCell>
+                                            {o.active_loan ? (
+                                                <span className="text-xs text-yellow-600 dark:text-yellow-400">
+                                                    Dipinjam → {o.active_loan.borrower_name}
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs text-muted-foreground">Bebas</span>
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </div>
+            )}
+
             {/* Add Volume Dialog */}
             <Dialog open={addVolumeOpen} onOpenChange={(open) => { setAddVolumeOpen(open); if (!open) reset({ type: 'regular' }); }}>
                 <DialogContent>
@@ -364,7 +416,9 @@ export default function SeriesShow({ series, volumes, can }: Props) {
                     </p>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setDeleteSeries(false)}>Batal</Button>
-                        <Button variant="destructive" onClick={handleDeleteSeries}>Hapus</Button>
+                        <Button variant="destructive" disabled={deletingSeries} onClick={handleDeleteSeries}>
+                            {deletingSeries ? 'Menghapus...' : 'Hapus'}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

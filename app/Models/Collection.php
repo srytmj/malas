@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Collection extends Model
@@ -38,18 +37,9 @@ class Collection extends Model
         return $this->belongsTo(Series::class);
     }
 
-    public function volumes(): BelongsToMany
+    public function collectionVolumes(): HasMany
     {
-        return $this->belongsToMany(Volume::class, 'collection_volumes')
-                    ->withPivot('is_owned')
-                    ->withTimestamps();
-    }
-
-    public function ownedVolumes(): BelongsToMany
-    {
-        return $this->belongsToMany(Volume::class, 'collection_volumes')
-                    ->wherePivot('is_owned', true)
-                    ->withTimestamps();
+        return $this->hasMany(CollectionVolume::class);
     }
 
     public function loans(): HasMany

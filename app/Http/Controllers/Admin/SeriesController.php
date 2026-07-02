@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreSeriesRequest;
 use App\Http\Requests\Admin\UpdateSeriesRequest;
+use App\Models\CollectionVolume;
 use App\Models\Series;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -20,8 +23,10 @@ class SeriesController extends Controller
 
         $series = Series::query()
             ->when(request('search'), fn ($q, $s) =>
-                $q->where('title_romaji', 'like', "%{$s}%")
-                  ->orWhere('title_english', 'like', "%{$s}%"))
+                $q->where(fn ($sub) =>
+                    $sub->where('title_romaji', 'like', "%{$s}%")
+                        ->orWhere('title_english', 'like', "%{$s}%")
+                ))
             ->when(request('status'), fn ($q, $s) => $q->where('status', $s))
             ->when(request('type'),   fn ($q, $t) => $q->where('type', $t))
             ->withCount('volumes')
@@ -67,7 +72,7 @@ class SeriesController extends Controller
             ->with('success', 'Series berhasil ditambahkan.');
     }
 
-    public function show(Series $series): Response
+    public function show(Request $request, Series $series): Response
     {
         $this->authorize('view', $series);
 
@@ -99,6 +104,19 @@ class SeriesController extends Controller
                 'delete'       => $request->user()->can('delete', $series),
                 'createVolume' => $request->user()->can('create', \App\Models\Volume::class),
             ],
+            'ownerships' => CollectionVolume::whereHas('collection', fn ($q) => $q->where('series_id', $series->id))
+                ->with(['collection.user', 'activeLoans'])
+                ->orderBy('volume_number')
+                ->get()
+                ->map(fn ($cv) => [
+                    'id'            => $cv->id,
+                    'volume_number' => $cv->volume_number,
+                    'format'        => $cv->format,
+                    'user_name'     => $cv->collection->user->name,
+                    'active_loan'   => $cv->activeLoans->first()
+                        ? ['borrower_name' => $cv->activeLoans->first()->borrower_name]
+                        : null,
+                ]),
         ]);
     }
 
@@ -106,16 +124,29 @@ class SeriesController extends Controller
     {
         $this->authorize('update', $series);
 
+        $volumes = $series->volumes()
+            ->orderBy('volume_number')
+            ->get(['id', 'volume_number', 'type', 'isbn', 'published_at', 'cover_path'])
+            ->map(fn ($v) => [
+                'id'            => $v->id,
+                'volume_number' => $v->volume_number,
+                'type'          => $v->type,
+                'isbn'          => $v->isbn,
+                'published_at'  => $v->published_at?->toDateString(),
+                'cover_url'     => $v->cover_path ? Storage::url($v->cover_path) : null,
+            ]);
+
         return Inertia::render('Admin/Series/Edit', [
             'series' => [
                 ...$series->only([
-                    'id', 'title_romaji', 'title_english', 'title_japanese',
+                    'id', 'mal_id', 'title_romaji', 'title_english', 'title_japanese',
                     'synopsis', 'status', 'type', 'total_volumes', 'score', 'rank',
                 ]),
                 'published_from' => $series->published_from?->toDateString(),
                 'published_to'   => $series->published_to?->toDateString(),
                 'cover_url'      => $series->cover_path ? Storage::url($series->cover_path) : null,
             ],
+            'volumes' => $volumes,
         ]);
     }
 
@@ -130,9 +161,17 @@ class SeriesController extends Controller
                 Storage::disk('public')->delete($series->cover_path);
             }
             $data['cover_path'] = $this->storeCover($request->file('cover'));
+        } elseif ($request->filled('cover_url')) {
+            $fetched = $this->fetchCoverFromUrl($request->cover_url);
+            if ($fetched) {
+                if ($series->cover_path) {
+                    Storage::disk('public')->delete($series->cover_path);
+                }
+                $data['cover_path'] = $fetched;
+            }
         }
 
-        unset($data['cover']);
+        unset($data['cover'], $data['cover_url']);
         $series->update($data);
 
         return redirect()->route('admin.series.show', $series)
@@ -151,5 +190,22 @@ class SeriesController extends Controller
     private function storeCover(?UploadedFile $file): ?string
     {
         return $file?->store('covers', 'public');
+    }
+
+    private function fetchCoverFromUrl(string $url): ?string
+    {
+        try {
+            $response = Http::timeout(20)->get($url);
+            if (! $response->successful()) return null;
+
+            $ext  = pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
+            $path = 'covers/url_' . uniqid() . '.' . $ext;
+
+            Storage::disk(config('filesystems.cover_disk', 'public'))->put($path, $response->body());
+
+            return $path;
+        } catch (\Exception) {
+            return null;
+        }
     }
 }

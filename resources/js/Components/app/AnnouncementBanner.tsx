@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { router, usePage } from '@inertiajs/react';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { type Announcement } from '@/lib/types';
+import { type SharedAnnouncement } from '@/types';
 
 const TYPE_STYLES: Record<string, string> = {
     info:    'bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-950 dark:text-blue-200 dark:border-blue-800',
@@ -10,15 +11,10 @@ const TYPE_STYLES: Record<string, string> = {
     success: 'bg-green-50 text-green-800 border-green-200 dark:bg-green-950 dark:text-green-200 dark:border-green-800',
 };
 
-interface AnnouncementBannerProps {
-    announcement: Announcement;
-}
-
-export default function AnnouncementBanner({ announcement }: AnnouncementBannerProps) {
-    const [dismissed, setDismissed] = useState(false);
-
-    if (dismissed) return null;
-
+function SingleBanner({ announcement, onDismiss }: {
+    announcement: SharedAnnouncement;
+    onDismiss: (id: string) => void;
+}) {
     return (
         <div
             className={cn(
@@ -35,11 +31,36 @@ export default function AnnouncementBanner({ announcement }: AnnouncementBannerP
             <button
                 type="button"
                 className="shrink-0 rounded-sm opacity-70 hover:opacity-100 transition-opacity"
-                onClick={() => setDismissed(true)}
+                onClick={() => onDismiss(announcement.id)}
                 aria-label="Tutup pengumuman"
             >
                 <X className="h-4 w-4" />
             </button>
+        </div>
+    );
+}
+
+export default function AnnouncementBanner() {
+    const { announcements } = usePage().props;
+    const [localDismissed, setLocalDismissed] = useState<Set<string>>(new Set());
+
+    const visible = announcements.filter((a) => !localDismissed.has(a.id));
+
+    if (visible.length === 0) return null;
+
+    function handleDismiss(id: string) {
+        setLocalDismissed((prev) => new Set([...prev, id]));
+        router.post(route('announcements.dismiss', id), {}, {
+            preserveScroll: true,
+            preserveState: true,
+        });
+    }
+
+    return (
+        <div>
+            {visible.map((a) => (
+                <SingleBanner key={a.id} announcement={a} onDismiss={handleDismiss} />
+            ))}
         </div>
     );
 }

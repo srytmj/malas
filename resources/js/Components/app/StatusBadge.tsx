@@ -1,5 +1,5 @@
 import { Badge } from '@/Components/ui/badge';
-import { type SeriesStatus, type SeriesType, type VolumeType } from '@/lib/types';
+import { type SeriesStatus, type SeriesType, type VolumeType, type CollectionVolumeFormat } from '@/lib/types';
 
 const STATUS_MAP: Record<SeriesStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
     publishing:        { label: 'Publishing',    variant: 'default' },
@@ -35,4 +35,16 @@ export function SeriesTypeBadge({ type }: { type: SeriesType }) {
 
 export function VolumeTypeBadge({ type }: { type: VolumeType }) {
     return <Badge variant="secondary">{VOLUME_TYPE_MAP[type] ?? type}</Badge>;
+}
+
+const FORMAT_MAP: Record<CollectionVolumeFormat, { label: string; className: string }> = {
+    physical: { label: 'Fisik',    className: 'border-blue-500 text-blue-600 dark:text-blue-400' },
+    ebook:    { label: 'Ebook',    className: 'border-purple-500 text-purple-600 dark:text-purple-400' },
+    online:   { label: 'Online',   className: 'border-green-500 text-green-600 dark:text-green-400' },
+    webtoon:  { label: 'Webtoon',  className: 'border-orange-500 text-orange-600 dark:text-orange-400' },
+};
+
+export function VolumeFormatBadge({ format }: { format: CollectionVolumeFormat }) {
+    const config = FORMAT_MAP[format] ?? { label: format, className: '' };
+    return <Badge variant="outline" className={`text-xs ${config.className}`}>{config.label}</Badge>;
 }

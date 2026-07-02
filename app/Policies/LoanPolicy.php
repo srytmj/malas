@@ -14,7 +14,7 @@ class LoanPolicy
 
     public function view(User $user, Loan $loan): bool
     {
-        return $user->isAdmin() || $loan->collection->user_id === $user->id;
+        return $user->isAdmin() || ($loan->collection && $loan->collection->user_id === $user->id);
     }
 
     public function create(User $user): bool
@@ -24,11 +24,11 @@ class LoanPolicy
 
     public function update(User $user, Loan $loan): bool
     {
-        return $user->isAdmin() || $loan->collection->user_id === $user->id;
+        return $user->isAdmin() || ($loan->collection && $loan->collection->user_id === $user->id);
     }
 
     public function delete(User $user, Loan $loan): bool
     {
-        return $user->isAdmin() || $loan->collection->user_id === $user->id;
+        return $user->isAdmin() || ($loan->collection && $loan->collection->user_id === $user->id);
     }
 }

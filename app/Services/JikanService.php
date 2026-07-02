@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 
@@ -12,16 +13,10 @@ class JikanService
 
     public function getManga(int $malId): array
     {
-        $response = Http::timeout(15)
-            ->retry(2, 1000)
-            ->get(self::BASE_URL . "/manga/{$malId}");
+        $response = $this->request(self::BASE_URL . "/manga/{$malId}");
 
         if ($response->status() === 404) {
             throw new \Exception("Manga dengan MAL ID {$malId} tidak ditemukan di MyAnimeList.");
-        }
-
-        if (! $response->successful()) {
-            throw new \Exception("Jikan API error: HTTP {$response->status()}");
         }
 
         return $response->json('data') ?? [];
@@ -46,13 +41,7 @@ class JikanService
             }
         }
 
-        $response = Http::timeout(15)
-            ->retry(2, 1000)
-            ->get(self::BASE_URL . '/manga', $params);
-
-        if (! $response->successful()) {
-            throw new \Exception("Jikan API error: HTTP {$response->status()}");
-        }
+        $response = $this->request(self::BASE_URL . '/manga', $params);
 
         return [
             'data'       => $response->json('data') ?? [],
@@ -83,13 +72,7 @@ class JikanService
             }
         }
 
-        $response = Http::timeout(15)
-            ->retry(2, 1000)
-            ->get(self::BASE_URL . '/manga', $params);
-
-        if (! $response->successful()) {
-            throw new \Exception("Jikan API error: HTTP {$response->status()}");
-        }
+        $response = $this->request(self::BASE_URL . '/manga', $params);
 
         return [
             'data'       => $response->json('data') ?? [],
@@ -99,16 +82,10 @@ class JikanService
 
     public function getMangaFull(int $malId): array
     {
-        $response = Http::timeout(15)
-            ->retry(2, 1000)
-            ->get(self::BASE_URL . "/manga/{$malId}/full");
+        $response = $this->request(self::BASE_URL . "/manga/{$malId}/full");
 
         if ($response->status() === 404) {
             throw new \Exception("Manga dengan MAL ID {$malId} tidak ditemukan di MyAnimeList.");
-        }
-
-        if (! $response->successful()) {
-            throw new \Exception("Jikan API error: HTTP {$response->status()}");
         }
 
         return $response->json('data') ?? [];
@@ -116,15 +93,39 @@ class JikanService
 
     public function getMangaPictures(int $malId): array
     {
-        $response = Http::timeout(15)
-            ->retry(2, 1000)
-            ->get(self::BASE_URL . "/manga/{$malId}/pictures");
-
-        if (! $response->successful()) {
+        try {
+            $response = $this->request(self::BASE_URL . "/manga/{$malId}/pictures");
+            return $response->json('data') ?? [];
+        } catch (\Exception) {
             return [];
         }
+    }
 
-        return $response->json('data') ?? [];
+    private function request(string $url, array $params = []): \Illuminate\Http\Client\Response
+    {
+        try {
+            $response = Http::timeout(15)->retry(2, 1000)->get($url, $params);
+        } catch (ConnectionException) {
+            throw new \Exception('Tidak dapat terhubung ke Jikan API. Periksa koneksi internet.');
+        } catch (RequestException $e) {
+            throw new \Exception($this->friendlyError($e->response->status()));
+        }
+
+        if (! $response->successful()) {
+            throw new \Exception($this->friendlyError($response->status()));
+        }
+
+        return $response;
+    }
+
+    private function friendlyError(int $status): string
+    {
+        return match (true) {
+            $status === 404 => 'Data tidak ditemukan di MyAnimeList.',
+            $status === 429 => 'Terlalu banyak request ke Jikan API. Tunggu beberapa detik lalu coba lagi.',
+            $status >= 500  => 'MyAnimeList sedang bermasalah atau tidak dapat diakses. Coba lagi beberapa saat.',
+            default         => "Jikan API mengembalikan error HTTP {$status}.",
+        };
     }
 
     public function downloadCover(string $url, string $filename): ?string

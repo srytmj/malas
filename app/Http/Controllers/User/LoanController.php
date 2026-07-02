@@ -4,6 +4,7 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\Collection;
+use App\Models\CollectionVolume;
 use App\Models\Loan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,20 +20,20 @@ class LoanController extends Controller
         $collectionIds = $user->collections()->pluck('id');
 
         $loans = Loan::whereIn('collection_id', $collectionIds)
-            ->with(['collection.series', 'volume'])
+            ->with(['collection.series', 'collectionVolume'])
             ->latest('loaned_at')
             ->paginate(20)
             ->through(fn ($l) => [
-                'id'             => $l->id,
-                'collection_id'  => $l->collection_id,
-                'series_title'   => $l->collection->series->title_romaji,
-                'volume_number'  => $l->volume->volume_number,
-                'borrower_name'  => $l->borrower_name,
-                'loaned_at'      => $l->loaned_at?->toDateString(),
-                'due_at'         => $l->due_at?->toDateString(),
-                'returned_at'    => $l->returned_at?->toDateString(),
-                'notes'          => $l->notes,
-                'is_overdue'     => $l->isOverdue(),
+                'id'            => $l->id,
+                'collection_id' => $l->collection_id,
+                'series_title'  => $l->collection->series->title_romaji,
+                'volume_number' => $l->collectionVolume?->volume_number,
+                'borrower_name' => $l->borrower_name,
+                'loaned_at'     => $l->loaned_at?->toDateString(),
+                'due_at'        => $l->due_at?->toDateString(),
+                'returned_at'   => $l->returned_at?->toDateString(),
+                'notes'         => $l->notes,
+                'is_overdue'    => $l->isOverdue(),
             ]);
 
         return Inertia::render('User/Loans/Index', [
@@ -45,25 +46,26 @@ class LoanController extends Controller
         $this->authorize('update', $collection);
 
         $data = $request->validate([
-            'volume_id'     => ['required', 'uuid', 'exists:volumes,id'],
-            'borrower_name' => ['required', 'string', 'max:255'],
-            'loaned_at'     => ['required', 'date'],
-            'due_at'        => ['nullable', 'date', 'after:loaned_at'],
-            'notes'         => ['nullable', 'string', 'max:1000'],
+            'collection_volume_id' => ['required', 'uuid', 'exists:collection_volumes,id'],
+            'borrower_name'        => ['required', 'string', 'max:255'],
+            'loaned_at'            => ['required', 'date'],
+            'due_at'               => ['nullable', 'date', 'after:loaned_at'],
+            'notes'                => ['nullable', 'string', 'max:1000'],
         ]);
 
-        // Cegah duplikat pinjaman aktif untuk volume yang sama
-        $alreadyLoaned = $collection->loans()
-            ->where('volume_id', $data['volume_id'])
-            ->whereNull('returned_at')
-            ->exists();
+        $cv = CollectionVolume::findOrFail($data['collection_volume_id']);
+        abort_if($cv->collection_id !== $collection->id, 403, 'Volume tidak ada di koleksi ini.');
+
+        $alreadyLoaned = $cv->activeLoans()->exists();
 
         if ($alreadyLoaned) {
             return redirect()->back()->with('error', 'Volume ini masih dalam status dipinjam.');
         }
 
-        $data['collection_id'] = $collection->id;
-        Loan::create($data);
+        Loan::create([
+            ...$data,
+            'collection_id' => $collection->id,
+        ]);
 
         return redirect()->back()->with('success', 'Pinjaman berhasil dicatat.');
     }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Announcement;
 use App\Models\Menu;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -33,6 +34,7 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => session('success'),
                 'error'   => session('error'),
+                'info'    => session('info'),
             ],
             'auth' => [
                 'user' => $user ? [
@@ -44,7 +46,14 @@ class HandleInertiaRequests extends Middleware
                     'ban_reason' => $user->ban_reason,
                 ] : null,
             ],
-            'menus' => $menus,
+            'menus'         => $menus,
+            'announcements' => $user
+                ? Announcement::active()
+                    ->whereDoesntHave('dismissedByUsers', fn ($q) => $q->where('users.id', $user->id))
+                    ->orderBy('created_at', 'desc')
+                    ->get(['id', 'title', 'body', 'type'])
+                    ->toArray()
+                : [],
         ];
     }
 }

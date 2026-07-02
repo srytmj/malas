@@ -12,7 +12,7 @@ interface LoanRow {
     id: string;
     user_name: string;
     series_title: string;
-    volume_number: number;
+    volume_number: number | null;
     borrower_name: string;
     loaned_at: string | null;
     due_at: string | null;
@@ -69,7 +69,7 @@ export default function AdminLoansIndex({ loans }: Props) {
                                 <TableCell className="text-sm font-medium">{l.user_name}</TableCell>
                                 <TableCell>
                                     <p className="font-medium">{l.series_title}</p>
-                                    <p className="text-xs text-muted-foreground">Vol. {l.volume_number}</p>
+                                    <p className="text-xs text-muted-foreground">Vol. {l.volume_number ?? '-'}</p>
                                 </TableCell>
                                 <TableCell>{l.borrower_name}</TableCell>
                                 <TableCell><LoanBadge loan={l} /></TableCell>

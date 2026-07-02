@@ -15,7 +15,7 @@ interface LoanRow {
     id: string;
     collection_id: string;
     series_title: string;
-    volume_number: number;
+    volume_number: number | null;
     borrower_name: string;
     loaned_at: string | null;
     due_at: string | null;
@@ -78,7 +78,7 @@ export default function LoansIndex({ loans }: Props) {
                                             >
                                                 {l.series_title}
                                             </Link>
-                                            <p className="text-xs text-muted-foreground">Vol. {l.volume_number}</p>
+                                            <p className="text-xs text-muted-foreground">Vol. {l.volume_number ?? '-'}</p>
                                         </TableCell>
                                         <TableCell>
                                             {l.borrower_name}

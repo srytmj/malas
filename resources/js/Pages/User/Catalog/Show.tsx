@@ -48,7 +48,7 @@ export default function CatalogShow({ series, volumes, collection }: Props) {
         setAdding(true);
         router.post(
             route('collection.store'),
-            { series_id: series.id },
+            { series_ids: [series.id] },
             {
                 onFinish: () => setAdding(false),
             },

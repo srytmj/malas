@@ -1,10 +1,13 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, router } from '@inertiajs/react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { BookOpen, Save, X, Plus, Pencil, Trash2, ImageIcon, RefreshCw, Loader2, Search, Wand2 } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
+import EmptyState from '@/Components/app/EmptyState';
+import { VolumeTypeBadge } from '@/Components/app/StatusBadge';
 import { Button, buttonVariants } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Textarea } from '@/Components/ui/textarea';
@@ -12,12 +15,69 @@ import { Label } from '@/Components/ui/label';
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/Components/ui/select';
+import {
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/Components/ui/dialog';
+import {
+    Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter,
+} from '@/Components/ui/sheet';
+import { ScrollArea } from '@/Components/ui/scroll-area';
+import {
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/Components/ui/table';
 import { cn } from '@/lib/utils';
 import { PageProps } from '@/types';
-import { type SeriesStatus, type SeriesType } from '@/lib/types';
+import { type SeriesStatus, type SeriesType, type VolumeType } from '@/lib/types';
+
+interface JikanResult {
+    mal_id: number;
+    title: string;
+    title_english: string | null;
+    cover_url: string | null;
+    type: string | null;
+    status: string | null;
+    volumes: number | null;
+    score: number | null;
+    synopsis: string | null;
+    published_from: string | null;
+    already_imported: boolean;
+}
+
+function mapJikanStatus(s: string | null): SeriesStatus {
+    switch (s) {
+        case 'Publishing':        return 'publishing';
+        case 'Finished':          return 'finished';
+        case 'On Hiatus':         return 'on_hiatus';
+        case 'Discontinued':      return 'discontinued';
+        case 'Not yet published': return 'not_yet_published';
+        default:                  return 'publishing';
+    }
+}
+
+function mapJikanType(t: string | null): SeriesType {
+    switch (t) {
+        case 'Manhwa':      return 'manhwa';
+        case 'Manhua':      return 'manhua';
+        case 'Novel':
+        case 'Light Novel': return 'novel';
+        case 'One-shot':    return 'one_shot';
+        case 'Doujinshi':   return 'doujinshi';
+        default:            return 'manga';
+    }
+}
+
+interface VolumeRow {
+    id: string;
+    volume_number: number;
+    type: VolumeType;
+    isbn: string | null;
+    published_at: string | null;
+    cover_url: string | null;
+}
 
 interface SeriesData {
     id: string;
+    mal_id: number | null;
     title_romaji: string;
     title_english: string | null;
     title_japanese: string | null;
@@ -34,9 +94,10 @@ interface SeriesData {
 
 interface Props extends PageProps {
     series: SeriesData;
+    volumes: VolumeRow[];
 }
 
-const schema = z.object({
+const seriesSchema = z.object({
     title_romaji:   z.string().min(1, 'Wajib diisi'),
     title_english:  z.string().optional(),
     title_japanese: z.string().optional(),
@@ -50,26 +111,76 @@ const schema = z.object({
     rank:           z.string().optional(),
 });
 
-type FormValues = z.infer<typeof schema>;
+const volumeSchema = z.object({
+    volume_number: z.string().min(1, 'Wajib diisi'),
+    type:          z.enum(['regular', 'digital', 'bind_up']),
+    isbn:          z.string().optional(),
+    published_at:  z.string().optional(),
+});
+
+type SeriesFormValues = z.infer<typeof seriesSchema>;
+type VolumeFormValues = z.infer<typeof volumeSchema>;
 
 function FieldError({ message }: { message?: string }) {
     if (!message) return null;
-    return <p className="text-sm text-destructive">{message}</p>;
+    return <p className="text-xs text-destructive">{message}</p>;
 }
 
-export default function SeriesEdit({ series }: Props) {
-    const [coverFile, setCoverFile] = useState<File | null>(null);
-    const [submitting, setSubmitting] = useState(false);
+export default function SeriesEdit({ series, volumes }: Props) {
+    // Series form state
+    const [coverMode, setCoverMode]         = useState<'local' | 'url'>('local');
+    const [coverFile, setCoverFile]         = useState<File | null>(null);
+    const [coverPreview, setCoverPreview]   = useState<string | null>(null);
+    const [coverUrlInput, setCoverUrlInput] = useState('');
+    const [submitting, setSubmitting]       = useState(false);
     const fileRef = useRef<HTMLInputElement>(null);
 
+    // Cover image search dialog state
+    const [coverSearchOpen, setCoverSearchOpen]       = useState(false);
+    const [coverSearchQuery, setCoverSearchQuery]     = useState('');
+    const [coverSearchResults, setCoverSearchResults] = useState<Array<{ thumbnail: string | null; image: string | null; title: string }>>([]);
+    const [coverSearchLoading, setCoverSearchLoading] = useState(false);
+    const [coverSearchError, setCoverSearchError]     = useState<string | null>(null);
+
+    // Jikan sync dialog state
+    const [syncOpen, setSyncOpen]           = useState(false);
+    const [syncQuery, setSyncQuery]         = useState('');
+    const [syncResults, setSyncResults]     = useState<JikanResult[]>([]);
+    const [syncLoading, setSyncLoading]     = useState(false);
+    const [syncError, setSyncError]         = useState<string | null>(null);
+
+    // Volume — add dialog
+    const [addVolumeOpen, setAddVolumeOpen] = useState(false);
+    const [addingVolume, setAddingVolume]   = useState(false);
+    const [volCoverFile, setVolCoverFile]   = useState<File | null>(null);
+    const volFileRef = useRef<HTMLInputElement>(null);
+
+    // Volume — edit sheet
+    const [editVolume, setEditVolume]               = useState<VolumeRow | null>(null);
+    const [updatingVolume, setUpdatingVolume]       = useState(false);
+    const [evCoverMode, setEvCoverMode]             = useState<'local' | 'url'>('local');
+    const [evCoverFile, setEvCoverFile]             = useState<File | null>(null);
+    const [evCoverPreview, setEvCoverPreview]       = useState<string | null>(null);
+    const [evCoverUrlInput, setEvCoverUrlInput]     = useState('');
+    const evFileRef = useRef<HTMLInputElement>(null);
+
+    // Volume — delete dialog
+    const [deleteVolume, setDeleteVolume] = useState<VolumeRow | null>(null);
+    const [deletingVol, setDeletingVol]   = useState(false);
+
+    // Volume — generate dialog
+    const [generateOpen, setGenerateOpen]       = useState(false);
+    const [generatingVolumes, setGeneratingVolumes] = useState(false);
+
+    // Cover search — shared between series and edit-volume sheet
+    const [coverSearchTarget, setCoverSearchTarget] = useState<'series' | 'volume'>('series');
+
+    // Series form
     const {
-        register,
-        control,
-        handleSubmit,
-        setError,
+        register, control, handleSubmit, setError, watch, setValue,
         formState: { errors },
-    } = useForm<FormValues>({
-        resolver: zodResolver(schema),
+    } = useForm<SeriesFormValues>({
+        resolver: zodResolver(seriesSchema),
         defaultValues: {
             title_romaji:   series.title_romaji,
             title_english:  series.title_english  ?? '',
@@ -85,20 +196,71 @@ export default function SeriesEdit({ series }: Props) {
         },
     });
 
-    function onSubmit(values: FormValues) {
+    // Volume — add form
+    const {
+        register: vReg, control: vCtrl, handleSubmit: vSubmit,
+        setError: vSetError, reset: vReset,
+        formState: { errors: vErrors },
+    } = useForm<VolumeFormValues>({
+        resolver: zodResolver(volumeSchema),
+        defaultValues: { type: 'regular' },
+    });
+
+    // Volume — edit form
+    const {
+        register: evReg, control: evCtrl, handleSubmit: evSubmit,
+        setError: evSetError, reset: evReset,
+        formState: { errors: evErrors },
+    } = useForm<VolumeFormValues>({
+        resolver: zodResolver(volumeSchema),
+        defaultValues: { type: 'regular' },
+    });
+
+    // Reset edit volume form when sheet opens
+    useEffect(() => {
+        if (editVolume) {
+            evReset({
+                volume_number: String(editVolume.volume_number),
+                type:          editVolume.type,
+                isbn:          editVolume.isbn          ?? '',
+                published_at:  editVolume.published_at  ?? '',
+            });
+            setEvCoverMode('local');
+            setEvCoverFile(null);
+            setEvCoverPreview(null);
+            setEvCoverUrlInput('');
+        }
+    }, [editVolume]);
+
+    // Cover preview: local blob or pasted URL
+    const displayCover = coverMode === 'local'
+        ? (coverPreview ?? series.cover_url)
+        : (coverUrlInput.trim() || series.cover_url);
+
+    function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0] ?? null;
+        setCoverFile(file);
+        setCoverPreview(file ? URL.createObjectURL(file) : null);
+    }
+
+    function onSubmit(values: SeriesFormValues) {
         setSubmitting(true);
         const fd = new FormData();
         fd.append('_method', 'PUT');
         Object.entries(values).forEach(([k, v]) => {
             if (v !== undefined && v !== '') fd.append(k, v);
         });
-        if (coverFile) fd.append('cover', coverFile);
+        if (coverMode === 'local' && coverFile) {
+            fd.append('cover', coverFile);
+        } else if (coverMode === 'url' && coverUrlInput.trim()) {
+            fd.append('cover_url', coverUrlInput.trim());
+        }
 
         router.post(route('admin.series.update', series.id), fd, {
             forceFormData: true,
             onError: (errs) => {
                 Object.entries(errs).forEach(([k, msg]) => {
-                    setError(k as keyof FormValues, { message: msg });
+                    setError(k as keyof SeriesFormValues, { message: msg });
                 });
                 setSubmitting(false);
             },
@@ -106,139 +268,893 @@ export default function SeriesEdit({ series }: Props) {
         });
     }
 
+    function onAddVolume(values: VolumeFormValues) {
+        setAddingVolume(true);
+        const fd = new FormData();
+        Object.entries(values).forEach(([k, v]) => {
+            if (v !== undefined && v !== '') fd.append(k, v);
+        });
+        if (volCoverFile) fd.append('cover', volCoverFile);
+
+        router.post(route('admin.series.volumes.store', series.id), fd, {
+            forceFormData: true,
+            onSuccess: () => {
+                vReset({ type: 'regular' });
+                setVolCoverFile(null);
+                setAddVolumeOpen(false);
+            },
+            onError: (errs) => {
+                Object.entries(errs).forEach(([k, msg]) => {
+                    vSetError(k as keyof VolumeFormValues, { message: msg });
+                });
+            },
+            onFinish: () => setAddingVolume(false),
+        });
+    }
+
+    function handleDeleteVolume() {
+        if (!deleteVolume) return;
+        setDeletingVol(true);
+        router.delete(route('admin.volumes.destroy', deleteVolume.id), {
+            onFinish: () => { setDeletingVol(false); setDeleteVolume(null); },
+        });
+    }
+
+    function handleGenerateVolumes() {
+        setGeneratingVolumes(true);
+        router.post(route('admin.series.volumes.generate', series.id), {}, {
+            onFinish: () => { setGeneratingVolumes(false); setGenerateOpen(false); },
+        });
+    }
+
+    const titleRomaji = watch('title_romaji');
+
+    // Cover image search — debounced fetch
+    useEffect(() => {
+        if (!coverSearchOpen || !coverSearchQuery.trim()) {
+            setCoverSearchResults([]);
+            return;
+        }
+        setCoverSearchLoading(true);
+        const t = setTimeout(async () => {
+            try {
+                const url = new URL(route('admin.images.search'), window.location.origin);
+                url.searchParams.set('q', coverSearchQuery.trim());
+                const res  = await fetch(url.toString(), { credentials: 'same-origin' });
+                const data: { results: typeof coverSearchResults; error: string | null } = await res.json();
+                setCoverSearchResults(data.results);
+                setCoverSearchError(data.error);
+            } catch {
+                setCoverSearchError('Gagal menghubungi server.');
+                setCoverSearchResults([]);
+            } finally {
+                setCoverSearchLoading(false);
+            }
+        }, 450);
+        return () => clearTimeout(t);
+    }, [coverSearchQuery, coverSearchOpen]);
+
+    function openCoverSearch() {
+        setCoverSearchTarget('series');
+        setCoverSearchQuery(`manga cover ${titleRomaji}`);
+        setCoverSearchResults([]);
+        setCoverSearchError(null);
+        setCoverSearchOpen(true);
+    }
+
+    async function openVolumeCoverSearch() {
+        setCoverSearchTarget('volume');
+        setCoverSearchError(null);
+        setCoverSearchOpen(true);
+
+        if (series.mal_id) {
+            // Punya MAL ID → langsung ambil semua gambar manga ini dari Jikan
+            setCoverSearchQuery('');
+            setCoverSearchResults([]);
+            setCoverSearchLoading(true);
+            try {
+                const url = new URL(route('admin.jikan.pictures'), window.location.origin);
+                url.searchParams.set('mal_id', String(series.mal_id));
+                const res  = await fetch(url.toString(), { credentials: 'same-origin' });
+                const data: { results: typeof coverSearchResults; error: string | null } = await res.json();
+                setCoverSearchResults(data.results);
+                setCoverSearchError(data.error);
+            } catch {
+                setCoverSearchError('Gagal memuat gambar dari Jikan.');
+            } finally {
+                setCoverSearchLoading(false);
+            }
+        } else {
+            // Tidak ada MAL ID → buka dengan query search biasa
+            setCoverSearchQuery(`manga cover ${titleRomaji}`);
+            setCoverSearchResults([]);
+        }
+    }
+
+    function applyCoverImage(imageUrl: string) {
+        if (coverSearchTarget === 'series') {
+            setCoverMode('url');
+            setCoverUrlInput(imageUrl);
+        } else {
+            setEvCoverMode('url');
+            setEvCoverUrlInput(imageUrl);
+        }
+        setCoverSearchOpen(false);
+    }
+
+    function onUpdateVolume(values: VolumeFormValues) {
+        if (!editVolume) return;
+        setUpdatingVolume(true);
+        const fd = new FormData();
+        fd.append('_method', 'PUT');
+        Object.entries(values).forEach(([k, v]) => {
+            if (v !== undefined && v !== '') fd.append(k, v);
+        });
+        if (evCoverMode === 'local' && evCoverFile) {
+            fd.append('cover', evCoverFile);
+        } else if (evCoverMode === 'url' && evCoverUrlInput.trim()) {
+            fd.append('cover_url', evCoverUrlInput.trim());
+        }
+
+        router.post(route('admin.volumes.update', editVolume.id), fd, {
+            forceFormData: true,
+            onSuccess: () => setEditVolume(null),
+            onError: (errs) => {
+                Object.entries(errs).forEach(([k, msg]) => {
+                    evSetError(k as keyof VolumeFormValues, { message: msg });
+                });
+            },
+            onFinish: () => setUpdatingVolume(false),
+        });
+    }
+
+    // Open sync dialog pre-filled with current title
+    function openSync() {
+        setSyncQuery(titleRomaji);
+        setSyncResults([]);
+        setSyncError(null);
+        setSyncOpen(true);
+    }
+
+    // Debounced Jikan search via JSON endpoint
+    useEffect(() => {
+        if (!syncOpen || !syncQuery.trim()) {
+            setSyncResults([]);
+            return;
+        }
+        setSyncLoading(true);
+        const t = setTimeout(async () => {
+            try {
+                const url = new URL(route('admin.jikan.search'), window.location.origin);
+                url.searchParams.set('q', syncQuery.trim());
+                const res = await fetch(url.toString(), { credentials: 'same-origin' });
+                const data: { results: JikanResult[]; error: string | null } = await res.json();
+                setSyncResults(data.results);
+                setSyncError(data.error);
+            } catch {
+                setSyncError('Gagal menghubungi server.');
+                setSyncResults([]);
+            } finally {
+                setSyncLoading(false);
+            }
+        }, 450);
+        return () => clearTimeout(t);
+    }, [syncQuery, syncOpen]);
+
+    // Apply Jikan result to form
+    function applySync(item: JikanResult) {
+        setValue('title_romaji',   item.title);
+        setValue('title_english',  item.title_english  ?? '');
+        setValue('status',         mapJikanStatus(item.status));
+        setValue('type',           mapJikanType(item.type));
+        setValue('total_volumes',  item.volumes ? String(item.volumes) : '');
+        setValue('score',          item.score   ? String(item.score)   : '');
+        setValue('synopsis',       item.synopsis       ?? '');
+        setValue('published_from', item.published_from ?? '');
+        if (item.cover_url) {
+            setCoverMode('url');
+            setCoverUrlInput(item.cover_url);
+        }
+        setSyncOpen(false);
+    }
+
     return (
         <AdminLayout
             header={
                 <PageHeader
-                    title="Edit Series"
+                    title={series.title_romaji}
                     breadcrumbs={[
                         { label: 'Series', href: route('admin.series.index') },
                         { label: series.title_romaji, href: route('admin.series.show', series.id) },
                         { label: 'Edit' },
                     ]}
+                    actions={
+                        <div className="flex gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={openSync}
+                            >
+                                <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                                Sync Jikan
+                            </Button>
+                            <Button
+                                form="series-edit-form"
+                                type="submit"
+                                size="sm"
+                                disabled={submitting}
+                            >
+                                <Save className="mr-1.5 h-3.5 w-3.5" />
+                                {submitting ? 'Menyimpan...' : 'Simpan'}
+                            </Button>
+                            <Link
+                                href={route('admin.series.show', series.id)}
+                                className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+                            >
+                                <X className="mr-1.5 h-3.5 w-3.5" />
+                                Batal
+                            </Link>
+                        </div>
+                    }
                 />
             }
         >
-            <form onSubmit={handleSubmit(onSubmit)} className="max-w-2xl space-y-5">
-                <div className="space-y-1.5">
-                    <Label htmlFor="title_romaji">Judul Romaji <span className="text-destructive">*</span></Label>
-                    <Input id="title_romaji" {...register('title_romaji')} />
-                    <FieldError message={errors.title_romaji?.message} />
-                </div>
+            <form id="series-edit-form" onSubmit={handleSubmit(onSubmit)}>
+                {/* Same grid layout as Show */}
+                <div className="grid gap-6 lg:grid-cols-[auto_1fr]">
 
-                <div className="space-y-1.5">
-                    <Label htmlFor="title_english">Judul Inggris</Label>
-                    <Input id="title_english" {...register('title_english')} />
-                </div>
+                    {/* Left — cover */}
+                    <div className="shrink-0 space-y-2">
+                        {/* Preview */}
+                        {displayCover ? (
+                            <img
+                                src={displayCover}
+                                alt={series.title_romaji}
+                                className="w-32 rounded-lg object-cover shadow-sm"
+                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            />
+                        ) : (
+                            <div className="flex h-44 w-32 items-center justify-center rounded-lg bg-muted">
+                                <BookOpen className="h-8 w-8 text-muted-foreground" />
+                            </div>
+                        )}
 
-                <div className="space-y-1.5">
-                    <Label htmlFor="title_japanese">Judul Jepang</Label>
-                    <Input id="title_japanese" {...register('title_japanese')} />
-                </div>
+                        {/* Mode tabs */}
+                        <div className="flex w-32 overflow-hidden rounded-md border text-xs">
+                            <button
+                                type="button"
+                                onClick={() => setCoverMode('local')}
+                                className={cn(
+                                    'flex-1 py-1 transition-colors',
+                                    coverMode === 'local'
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'hover:bg-muted',
+                                )}
+                            >
+                                Lokal
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setCoverMode('url')}
+                                className={cn(
+                                    'flex-1 py-1 transition-colors',
+                                    coverMode === 'url'
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'hover:bg-muted',
+                                )}
+                            >
+                                URL
+                            </button>
+                        </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                        <Label>Status <span className="text-destructive">*</span></Label>
-                        <Controller<FormValues, 'status'>
-                            control={control}
-                            name="status"
-                            render={({ field }) => (
-                                <Select value={field.value} onValueChange={field.onChange}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="publishing">Publishing</SelectItem>
-                                        <SelectItem value="finished">Selesai</SelectItem>
-                                        <SelectItem value="on_hiatus">Hiatus</SelectItem>
-                                        <SelectItem value="discontinued">Discontinued</SelectItem>
-                                        <SelectItem value="not_yet_published">Belum Terbit</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            )}
-                        />
-                        <FieldError message={errors.status?.message} />
+                        {/* Local mode */}
+                        {coverMode === 'local' && (
+                            <>
+                                <input
+                                    ref={fileRef}
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    className="hidden"
+                                    onChange={handleCoverChange}
+                                />
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-32 text-xs"
+                                    onClick={() => fileRef.current?.click()}
+                                >
+                                    Pilih File
+                                </Button>
+                                {coverFile && (
+                                    <p className="w-32 truncate text-xs text-muted-foreground">{coverFile.name}</p>
+                                )}
+                            </>
+                        )}
+
+                        {/* URL mode */}
+                        {coverMode === 'url' && (
+                            <div className="w-32 space-y-1.5">
+                                <Input
+                                    className="h-7 text-xs"
+                                    placeholder="Tempel URL gambar"
+                                    value={coverUrlInput}
+                                    onChange={(e) => setCoverUrlInput(e.target.value)}
+                                />
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full text-xs"
+                                    onClick={openCoverSearch}
+                                >
+                                    <ImageIcon className="mr-1 h-3 w-3" />
+                                    Cari Gambar
+                                </Button>
+                            </div>
+                        )}
                     </div>
 
-                    <div className="space-y-1.5">
-                        <Label>Tipe <span className="text-destructive">*</span></Label>
-                        <Controller<FormValues, 'type'>
-                            control={control}
-                            name="type"
-                            render={({ field }) => (
-                                <Select value={field.value} onValueChange={field.onChange}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="manga">Manga</SelectItem>
-                                        <SelectItem value="manhwa">Manhwa</SelectItem>
-                                        <SelectItem value="manhua">Manhua</SelectItem>
-                                        <SelectItem value="novel">Novel</SelectItem>
-                                        <SelectItem value="one_shot">One Shot</SelectItem>
-                                        <SelectItem value="doujinshi">Doujinshi</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            )}
+                    {/* Right — fields (same positions as Show) */}
+                    <div className="space-y-3">
+                        <div>
+                            <Input
+                                className="h-8 text-base font-semibold"
+                                placeholder="Judul Romaji *"
+                                {...register('title_romaji')}
+                            />
+                            <FieldError message={errors.title_romaji?.message} />
+                        </div>
+                        <Input
+                            className="text-sm text-muted-foreground"
+                            placeholder="Judul Inggris (opsional)"
+                            {...register('title_english')}
                         />
-                        <FieldError message={errors.type?.message} />
+                        <Input
+                            className="text-sm text-muted-foreground"
+                            placeholder="Judul Jepang (opsional)"
+                            {...register('title_japanese')}
+                        />
+
+                        {/* Status + Type — same position as badges in Show */}
+                        <div className="flex flex-wrap gap-2">
+                            <Controller<SeriesFormValues, 'status'>
+                                control={control}
+                                name="status"
+                                render={({ field }) => (
+                                    <Select value={field.value} onValueChange={field.onChange}>
+                                        <SelectTrigger className="h-7 w-44 text-xs">
+                                            <SelectValue placeholder="Status" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="publishing">Publishing</SelectItem>
+                                            <SelectItem value="finished">Selesai</SelectItem>
+                                            <SelectItem value="on_hiatus">Hiatus</SelectItem>
+                                            <SelectItem value="discontinued">Discontinued</SelectItem>
+                                            <SelectItem value="not_yet_published">Belum Terbit</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
+                            <Controller<SeriesFormValues, 'type'>
+                                control={control}
+                                name="type"
+                                render={({ field }) => (
+                                    <Select value={field.value} onValueChange={field.onChange}>
+                                        <SelectTrigger className="h-7 w-36 text-xs">
+                                            <SelectValue placeholder="Tipe" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="manga">Manga</SelectItem>
+                                            <SelectItem value="manhwa">Manhwa</SelectItem>
+                                            <SelectItem value="manhua">Manhua</SelectItem>
+                                            <SelectItem value="novel">Novel</SelectItem>
+                                            <SelectItem value="one_shot">One Shot</SelectItem>
+                                            <SelectItem value="doujinshi">Doujinshi</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
+                        </div>
+
+                        {/* Stats grid — same 4-column layout as Show */}
+                        <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm sm:grid-cols-4">
+                            <div className="space-y-1">
+                                <p className="text-xs text-muted-foreground">Total Volume</p>
+                                <Input type="number" min={1} className="h-7 text-sm" {...register('total_volumes')} />
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-xs text-muted-foreground">Skor (0–10)</p>
+                                <Input type="number" step="0.01" min={0} max={10} className="h-7 text-sm" {...register('score')} />
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-xs text-muted-foreground">Rank</p>
+                                <Input type="number" min={1} className="h-7 text-sm" {...register('rank')} />
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-xs text-muted-foreground">Terbit</p>
+                                <div className="space-y-1">
+                                    <Input type="date" className="h-7 text-xs" {...register('published_from')} />
+                                    <Input type="date" className="h-7 text-xs" {...register('published_to')} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Synopsis */}
+                        <Textarea
+                            rows={4}
+                            placeholder="Sinopsis..."
+                            className="resize-none text-sm text-muted-foreground leading-relaxed"
+                            {...register('synopsis')}
+                        />
                     </div>
                 </div>
 
-                <div className="space-y-1.5">
-                    <Label htmlFor="synopsis">Sinopsis</Label>
-                    <Textarea id="synopsis" rows={4} className="resize-none" {...register('synopsis')} />
-                </div>
+                {/* Volumes — full management */}
+                <div className="mt-8">
+                    <div className="mb-3 flex items-center justify-between">
+                        <h2 className="text-base font-semibold">Volume ({volumes.length})</h2>
+                        <div className="flex gap-2">
+                            {series.status === 'finished' && series.total_volumes && (() => {
+                                const existing = new Set(volumes.map((v) => v.volume_number));
+                                const missing  = Array.from({ length: series.total_volumes }, (_, i) => i + 1)
+                                    .filter((n) => !existing.has(n)).length;
+                                return missing > 0 ? (
+                                    <Button size="sm" type="button" variant="outline" onClick={() => setGenerateOpen(true)}>
+                                        <Wand2 className="mr-1.5 h-3.5 w-3.5" />
+                                        Generate ({missing})
+                                    </Button>
+                                ) : null;
+                            })()}
+                            <Button size="sm" type="button" onClick={() => setAddVolumeOpen(true)}>
+                                <Plus className="mr-1.5 h-4 w-4" />
+                                Tambah Volume
+                            </Button>
+                        </div>
+                    </div>
 
-                <div className="space-y-1.5">
-                    <Label>Cover</Label>
-                    {series.cover_url && !coverFile && (
-                        <img src={series.cover_url} alt="Cover saat ini" className="h-24 w-16 rounded object-cover" />
+                    {volumes.length === 0 ? (
+                        <EmptyState
+                            title="Belum ada volume"
+                            description="Tambahkan volume pertama untuk series ini."
+                            icon={BookOpen}
+                            action={
+                                <Button size="sm" type="button" onClick={() => setAddVolumeOpen(true)}>
+                                    Tambah Volume
+                                </Button>
+                            }
+                        />
+                    ) : (
+                        <div className="rounded-lg border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-12" />
+                                        <TableHead className="w-24">Volume</TableHead>
+                                        <TableHead className="w-28">Tipe</TableHead>
+                                        <TableHead>ISBN</TableHead>
+                                        <TableHead className="w-32">Terbit</TableHead>
+                                        <TableHead className="w-20" />
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {volumes.map((v) => (
+                                        <TableRow key={v.id}>
+                                            <TableCell>
+                                                {v.cover_url
+                                                    ? <img src={v.cover_url} alt={`Vol ${v.volume_number}`} className="h-10 w-7 rounded object-cover" />
+                                                    : <div className="h-10 w-7 rounded bg-muted" />}
+                                            </TableCell>
+                                            <TableCell className="font-medium">#{v.volume_number}</TableCell>
+                                            <TableCell><VolumeTypeBadge type={v.type} /></TableCell>
+                                            <TableCell className="text-sm text-muted-foreground">{v.isbn ?? '—'}</TableCell>
+                                            <TableCell className="text-sm text-muted-foreground">{v.published_at ?? '—'}</TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-1">
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8"
+                                                        onClick={() => setEditVolume(v)}
+                                                    >
+                                                        <Pencil className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-destructive hover:text-destructive"
+                                                        onClick={() => setDeleteVolume(v)}
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
                     )}
-                    <Input
-                        ref={fileRef}
-                        type="file"
-                        accept="image/*"
-                        className="cursor-pointer"
-                        onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)}
-                    />
-                    {coverFile && <p className="text-xs text-muted-foreground">Baru: {coverFile.name}</p>}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                        <Label htmlFor="published_from">Terbit Mulai</Label>
-                        <Input id="published_from" type="date" {...register('published_from')} />
-                    </div>
-                    <div className="space-y-1.5">
-                        <Label htmlFor="published_to">Terbit Sampai</Label>
-                        <Input id="published_to" type="date" {...register('published_to')} />
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-1.5">
-                        <Label htmlFor="total_volumes">Total Volume</Label>
-                        <Input id="total_volumes" type="number" min={1} {...register('total_volumes')} />
-                    </div>
-                    <div className="space-y-1.5">
-                        <Label htmlFor="score">Skor (0–10)</Label>
-                        <Input id="score" type="number" step="0.01" min={0} max={10} {...register('score')} />
-                    </div>
-                    <div className="space-y-1.5">
-                        <Label htmlFor="rank">Rank</Label>
-                        <Input id="rank" type="number" min={1} {...register('rank')} />
-                    </div>
-                </div>
-
-                <div className="flex gap-3 pt-2">
-                    <Button type="submit" disabled={submitting}>
-                        {submitting ? 'Menyimpan...' : 'Simpan Perubahan'}
-                    </Button>
-                    <Link
-                        href={route('admin.series.show', series.id)}
-                        className={cn(buttonVariants({ variant: 'outline' }))}
-                    >
-                        Batal
-                    </Link>
                 </div>
             </form>
+
+            {/* Add Volume Dialog */}
+            <Dialog open={addVolumeOpen} onOpenChange={(open) => { setAddVolumeOpen(open); if (!open) vReset({ type: 'regular' }); }}>
+                <DialogContent>
+                    <DialogHeader><DialogTitle>Tambah Volume</DialogTitle></DialogHeader>
+                    <form onSubmit={vSubmit(onAddVolume)} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                                <Label htmlFor="volume_number">Nomor Volume <span className="text-destructive">*</span></Label>
+                                <Input id="volume_number" type="number" min={1} {...vReg('volume_number')} />
+                                <FieldError message={vErrors.volume_number?.message} />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Tipe <span className="text-destructive">*</span></Label>
+                                <Controller<VolumeFormValues, 'type'>
+                                    control={vCtrl}
+                                    name="type"
+                                    render={({ field }) => (
+                                        <Select value={field.value} onValueChange={field.onChange}>
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="regular">Regular</SelectItem>
+                                                <SelectItem value="digital">Digital</SelectItem>
+                                                <SelectItem value="bind_up">Bind-up</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="isbn">ISBN</Label>
+                            <Input id="isbn" {...vReg('isbn')} />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="published_at">Tanggal Terbit</Label>
+                            <Input id="published_at" type="date" {...vReg('published_at')} />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label>Cover</Label>
+                            <input
+                                ref={volFileRef}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => setVolCoverFile(e.target.files?.[0] ?? null)}
+                            />
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => volFileRef.current?.click()}
+                            >
+                                Pilih File
+                            </Button>
+                            {volCoverFile && (
+                                <p className="text-xs text-muted-foreground">{volCoverFile.name}</p>
+                            )}
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setAddVolumeOpen(false)}>Batal</Button>
+                            <Button type="submit" disabled={addingVolume}>
+                                {addingVolume ? 'Menyimpan...' : 'Simpan'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Cover Image Search Dialog */}
+            <Dialog open={coverSearchOpen} onOpenChange={(open) => { setCoverSearchOpen(open); if (!open) { setCoverSearchResults([]); } }}>
+                <DialogContent className="max-w-3xl">
+                    <DialogHeader>
+                        <DialogTitle>Cari Gambar Cover</DialogTitle>
+                    </DialogHeader>
+
+                    {/* Kalau volume + ada mal_id: tampilkan label, search tetap bisa dipakai untuk override */}
+                    {coverSearchTarget === 'volume' && series.mal_id && coverSearchResults.length > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                            Menampilkan semua gambar untuk <strong>{series.title_romaji}</strong> dari MyAnimeList.
+                            Ketik di bawah untuk mencari gambar lain.
+                        </p>
+                    )}
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            className="pl-9"
+                            placeholder="Cari gambar lain..."
+                            value={coverSearchQuery}
+                            onChange={(e) => setCoverSearchQuery(e.target.value)}
+                            autoFocus={!(coverSearchTarget === 'volume' && series.mal_id)}
+                        />
+                    </div>
+
+                    <div className="max-h-[420px] overflow-y-auto">
+                        {coverSearchLoading && (
+                            <div className="flex items-center justify-center py-12 text-muted-foreground">
+                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                Mencari gambar...
+                            </div>
+                        )}
+
+                        {!coverSearchLoading && coverSearchError && (
+                            <p className="py-8 text-center text-sm text-destructive">{coverSearchError}</p>
+                        )}
+
+                        {!coverSearchLoading && !coverSearchError && coverSearchQuery.trim() && coverSearchResults.length === 0 && (
+                            <p className="py-8 text-center text-sm text-muted-foreground">Tidak ada hasil.</p>
+                        )}
+
+                        {!coverSearchLoading && coverSearchResults.length > 0 && (
+                            <div className="grid grid-cols-4 gap-2 pb-1 sm:grid-cols-6">
+                                {coverSearchResults.map((img, i) => (
+                                    img.thumbnail && (
+                                        <button
+                                            key={i}
+                                            type="button"
+                                            title={img.title}
+                                            onClick={() => img.image && applyCoverImage(img.image)}
+                                            className="group relative aspect-[2/3] overflow-hidden rounded-md border bg-muted transition-all hover:ring-2 hover:ring-primary focus:outline-none focus:ring-2 focus:ring-ring"
+                                        >
+                                            <img
+                                                src={img.thumbnail}
+                                                alt={img.title}
+                                                className="h-full w-full object-cover transition-transform duration-150 group-hover:scale-105"
+                                                loading="lazy"
+                                            />
+                                        </button>
+                                    )
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <p className="text-xs text-muted-foreground">
+                        Klik gambar untuk menggunakannya sebagai cover. URL gambar akan diunduh saat Simpan.
+                    </p>
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit Volume Sheet */}
+            <Sheet open={!!editVolume} onOpenChange={(open) => !open && setEditVolume(null)}>
+                <SheetContent className="flex flex-col gap-0 p-0 sm:max-w-md">
+                    <SheetHeader className="border-b px-6 py-4">
+                        <SheetTitle>Edit Volume #{editVolume?.volume_number}</SheetTitle>
+                    </SheetHeader>
+
+                    <ScrollArea className="flex-1">
+                        <form id="ev-form" onSubmit={evSubmit(onUpdateVolume)} className="space-y-5 px-6 py-5">
+                            {/* Cover — sama persis dengan series edit */}
+                            <div className="flex gap-4">
+                                {/* Preview */}
+                                <div className="shrink-0 space-y-2">
+                                    {(() => {
+                                        const display = evCoverMode === 'local'
+                                            ? (evCoverPreview ?? editVolume?.cover_url)
+                                            : (evCoverUrlInput.trim() || editVolume?.cover_url);
+                                        return display ? (
+                                            <img
+                                                src={display}
+                                                alt="Cover"
+                                                className="w-20 rounded-lg object-cover shadow-sm"
+                                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                            />
+                                        ) : (
+                                            <div className="flex h-28 w-20 items-center justify-center rounded-lg bg-muted">
+                                                <BookOpen className="h-6 w-6 text-muted-foreground" />
+                                            </div>
+                                        );
+                                    })()}
+
+                                    {/* Mode tabs */}
+                                    <div className="flex w-20 overflow-hidden rounded-md border text-xs">
+                                        <button type="button" onClick={() => setEvCoverMode('local')}
+                                            className={cn('flex-1 py-1 transition-colors', evCoverMode === 'local' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted')}>
+                                            Lokal
+                                        </button>
+                                        <button type="button" onClick={() => setEvCoverMode('url')}
+                                            className={cn('flex-1 py-1 transition-colors', evCoverMode === 'url' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted')}>
+                                            URL
+                                        </button>
+                                    </div>
+
+                                    {evCoverMode === 'local' && (
+                                        <>
+                                            <input ref={evFileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+                                                onChange={(e) => {
+                                                    const f = e.target.files?.[0] ?? null;
+                                                    setEvCoverFile(f);
+                                                    setEvCoverPreview(f ? URL.createObjectURL(f) : null);
+                                                }} />
+                                            <Button type="button" variant="outline" size="sm" className="w-20 text-xs"
+                                                onClick={() => evFileRef.current?.click()}>
+                                                Pilih File
+                                            </Button>
+                                            {evCoverFile && <p className="w-20 truncate text-xs text-muted-foreground">{evCoverFile.name}</p>}
+                                        </>
+                                    )}
+
+                                    {evCoverMode === 'url' && (
+                                        <div className="w-20 space-y-1.5">
+                                            <Input className="h-7 text-xs" placeholder="URL gambar" value={evCoverUrlInput} onChange={(e) => setEvCoverUrlInput(e.target.value)} />
+                                            <Button type="button" variant="outline" size="sm" className="w-full text-xs" onClick={openVolumeCoverSearch}>
+                                                <ImageIcon className="mr-1 h-3 w-3" />
+                                                Cari
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Form fields */}
+                                <div className="flex-1 space-y-3">
+                                    <div>
+                                        <Label htmlFor="ev-volume_number">Nomor Volume <span className="text-destructive">*</span></Label>
+                                        <Input id="ev-volume_number" type="number" min={1} className="mt-1" {...evReg('volume_number')} />
+                                        <FieldError message={evErrors.volume_number?.message} />
+                                    </div>
+                                    <div>
+                                        <Label>Tipe <span className="text-destructive">*</span></Label>
+                                        <Controller<VolumeFormValues, 'type'>
+                                            control={evCtrl}
+                                            name="type"
+                                            render={({ field }) => (
+                                                <Select value={field.value} onValueChange={field.onChange}>
+                                                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="regular">Regular</SelectItem>
+                                                        <SelectItem value="digital">Digital</SelectItem>
+                                                        <SelectItem value="bind_up">Bind-up</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="ev-isbn">ISBN</Label>
+                                        <Input id="ev-isbn" className="mt-1" {...evReg('isbn')} />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="ev-published_at">Tanggal Terbit</Label>
+                                        <Input id="ev-published_at" type="date" className="mt-1" {...evReg('published_at')} />
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </ScrollArea>
+
+                    <SheetFooter className="border-t px-6 py-4">
+                        <Button type="button" variant="outline" onClick={() => setEditVolume(null)}>Batal</Button>
+                        <Button form="ev-form" type="submit" disabled={updatingVolume}>
+                            <Save className="mr-1.5 h-3.5 w-3.5" />
+                            {updatingVolume ? 'Menyimpan...' : 'Simpan'}
+                        </Button>
+                    </SheetFooter>
+                </SheetContent>
+            </Sheet>
+
+            {/* Jikan Sync Dialog */}
+            <Dialog open={syncOpen} onOpenChange={(open) => { setSyncOpen(open); if (!open) { setSyncQuery(''); setSyncResults([]); } }}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Sync dari Jikan / MyAnimeList</DialogTitle>
+                    </DialogHeader>
+
+                    {/* Search input */}
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            className="pl-9"
+                            placeholder="Cari judul manga, manhwa..."
+                            value={syncQuery}
+                            onChange={(e) => setSyncQuery(e.target.value)}
+                            autoFocus
+                        />
+                    </div>
+
+                    {/* States */}
+                    <div className="max-h-96 overflow-y-auto">
+                        {syncLoading && (
+                            <div className="flex items-center justify-center py-10 text-muted-foreground">
+                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                Mencari...
+                            </div>
+                        )}
+
+                        {!syncLoading && syncError && (
+                            <p className="py-6 text-center text-sm text-destructive">{syncError}</p>
+                        )}
+
+                        {!syncLoading && !syncError && syncQuery.trim() && syncResults.length === 0 && (
+                            <p className="py-6 text-center text-sm text-muted-foreground">Tidak ada hasil.</p>
+                        )}
+
+                        {!syncLoading && !syncError && syncResults.length > 0 && (
+                            <div className="grid grid-cols-3 gap-3 pb-1">
+                                {syncResults.map((item) => (
+                                    <button
+                                        key={item.mal_id}
+                                        type="button"
+                                        onClick={() => applySync(item)}
+                                        className="group flex flex-col overflow-hidden rounded-lg border bg-card text-left transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ring"
+                                    >
+                                        <div className="relative aspect-[2/3] overflow-hidden bg-muted">
+                                            {item.cover_url ? (
+                                                <img
+                                                    src={item.cover_url}
+                                                    alt={item.title}
+                                                    className="h-full w-full object-cover transition-transform duration-150 group-hover:scale-105"
+                                                />
+                                            ) : (
+                                                <div className="flex h-full items-center justify-center">
+                                                    <BookOpen className="h-6 w-6 text-muted-foreground/30" />
+                                                </div>
+                                            )}
+                                            {item.score && (
+                                                <div className="absolute right-1.5 top-1.5 rounded bg-black/60 px-1 py-0.5 text-xs font-medium text-white">
+                                                    ★ {item.score}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="p-2 text-xs">
+                                            <p className="line-clamp-2 font-medium leading-tight">{item.title}</p>
+                                            {item.type && (
+                                                <p className="mt-0.5 text-muted-foreground">{item.type}</p>
+                                            )}
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <p className="text-xs text-muted-foreground">
+                        Klik salah satu hasil untuk mengisi form dengan data dari MyAnimeList. Data belum disimpan sampai kamu klik Simpan.
+                    </p>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Volume Dialog */}
+            <Dialog open={!!deleteVolume} onOpenChange={(open) => !open && setDeleteVolume(null)}>
+                <DialogContent>
+                    <DialogHeader><DialogTitle>Hapus Volume #{deleteVolume?.volume_number}</DialogTitle></DialogHeader>
+                    <p className="text-sm text-muted-foreground">
+                        Yakin ingin menghapus volume ini? Aksi ini tidak dapat dibatalkan.
+                    </p>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteVolume(null)}>Batal</Button>
+                        <Button variant="destructive" disabled={deletingVol} onClick={handleDeleteVolume}>
+                            {deletingVol ? 'Menghapus...' : 'Hapus'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Generate Volumes Dialog */}
+            <Dialog open={generateOpen} onOpenChange={setGenerateOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Generate Volumes Otomatis</DialogTitle>
+                    </DialogHeader>
+                    <p className="text-sm text-muted-foreground">
+                        Buat semua volume yang belum ada dari{' '}
+                        <strong>Vol. 1</strong> hingga{' '}
+                        <strong>Vol. {series.total_volumes}</strong>.
+                        Volume yang sudah ada tidak akan ditimpa.
+                    </p>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setGenerateOpen(false)}>Batal</Button>
+                        <Button disabled={generatingVolumes} onClick={handleGenerateVolumes}>
+                            <Wand2 className="mr-1.5 h-3.5 w-3.5" />
+                            {generatingVolumes ? 'Membuat...' : 'Generate'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AdminLayout>
     );
 }

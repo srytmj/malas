@@ -56,11 +56,22 @@ export default function JikanIndex({ results, pagination, filters, error }: Prop
         return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
     }, [search]);
 
-    function handleImport(malId: number) {
+    function handleImport(item: JikanResult) {
         setImporting(true);
         router.post(
             route('admin.jikan.import'),
-            { mal_id: malId },
+            {
+                mal_id:         item.mal_id,
+                title:          item.title,
+                title_english:  item.title_english,
+                cover_url:      item.cover_url,
+                type:           item.type,
+                status:         item.status,
+                volumes:        item.volumes,
+                score:          item.score,
+                synopsis:       item.synopsis,
+                published_from: item.published_from,
+            },
             {
                 onFinish: () => { setImporting(false); setPreview(null); },
             },
@@ -258,7 +269,7 @@ export default function JikanIndex({ results, pagination, filters, error }: Prop
                         <Button variant="outline" onClick={() => setPreview(null)}>Batal</Button>
                         <Button
                             disabled={importing}
-                            onClick={() => preview && handleImport(preview.mal_id)}
+                            onClick={() => preview && handleImport(preview)}
                         >
                             <Download className="mr-1.5 h-4 w-4" />
                             {importing ? 'Mengimpor...' : preview?.already_imported ? 'Perbarui Data' : 'Import'}

@@ -26,7 +26,10 @@ const schema = z.object({
     total_volumes:  z.string().optional(),
     score:          z.string().optional(),
     rank:           z.string().optional(),
-});
+}).refine(
+    (data) => !data.published_from || !data.published_to || data.published_to >= data.published_from,
+    { message: 'Tanggal akhir tidak boleh sebelum tanggal mulai', path: ['published_to'] },
+);
 
 type FormValues = z.infer<typeof schema>;
 
