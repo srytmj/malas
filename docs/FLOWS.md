@@ -9,22 +9,20 @@
 
 ### Admin Sidebar
 ```
-Dashboard
+Dashboard             /admin/dashboard
 ├── Katalog
-│   ├── Series          /admin/series
-│   └── Volume          /admin/series/{id}/volumes  (nested, buka dari detail series)
-├── Koleksi
-│   └── Semua Koleksi   /admin/collections
-├── Peminjaman          /admin/loans
-├── Pengguna
-│   ├── Daftar User     /admin/users
-│   └── Role & Akses    /admin/roles          (super_admin only)
+│   ├── Series        /admin/series
+│   └── Volume        (nested di halaman detail series, bukan route sendiri)
+├── Koleksi           /admin/collections
+├── Peminjaman        /admin/loans
+├── Pengguna          /admin/users
 ├── Sistem
-│   ├── Menu            /admin/menus
-│   ├── Pengumuman      /admin/announcements
-│   └── Pengaturan      /admin/settings
-└── Jikan Search        /admin/jikan
+│   ├── Menu          /admin/menus
+│   └── Pengumuman    /admin/announcements
+└── Jikan Search      /admin/jikan
 ```
+
+Catatan: tidak ada `/admin/roles` dan `/admin/settings`. Role management bagian dari halaman detail user (`/admin/users/{id}`).
 
 ### User Sidebar
 ```
@@ -94,9 +92,11 @@ Request masuk
 ```
 /admin/series/{id} (halaman detail series)
   └─ Tab "Volume" → daftar volume
-        ├─ Tambah volume → form inline / modal
-        ├─ Edit volume → modal edit
-        └─ Hapus volume → konfirmasi dialog
+        ├─ Tambah volume → form inline
+        ├─ Edit volume → /admin/volumes/{id}/edit
+        ├─ Hapus volume → konfirmasi dialog
+        └─ Generate otomatis (jika status = finished & total_volumes diset)
+              └─ Tombol "Generate (N)" → buat volume 1 s/d total_volumes yang belum ada
 ```
 
 ### F-A4: Menu Management
@@ -143,30 +143,37 @@ Request masuk
 
 ### F-U2: Tambah Series ke Koleksi
 ```
-Dari /catalog/{slug} → klik "Tambah ke Koleksiku"
-  └─ Jika belum login → redirect /login, setelah login redirect balik
-  └─ Jika sudah di koleksi → toast "Sudah ada di koleksiku" + link ke koleksi
-  └─ Modal: pilih kondisi (mint/good/fair/poor), tanggal beli, catatan
-        └─ Submit → CollectionController@store
-              └─ Toast sukses + tombol "Lihat Koleksiku"
+Cara 1 — dari katalog:
+  /catalog/{slug} → klik "Tambah ke Koleksiku"
+    └─ POST CollectionController@store { series_ids: [id] }
+          └─ Toast sukses / info jika sudah ada
+
+Cara 2 — dari halaman koleksi:
+  /my-collection → klik "Tambah Series"
+    └─ Dialog: search series (debounce 350ms ke /catalog/search)
+          └─ Multi-select series (grid cover, checkmark overlay)
+                └─ Submit → CollectionController@store { series_ids: [...] }
+                      └─ Toast sukses + halaman refresh
 ```
 
 ### F-U3: Catat Volume yang Dimiliki
 ```
-/my-collection → daftar series di koleksi
-  └─ Klik series → halaman detail koleksi
-        └─ Grid volume dengan checkbox "Saya punya ini"
-              ├─ Centang → volume masuk ke collection_volumes (is_owned = true)
-              └─ Uncentang → hapus dari collection_volumes
-        └─ Edit info koleksi: kondisi, catatan, tanggal beli
+/my-collection/{id} → halaman detail koleksi
+  └─ Grid volume yang sudah dicatat (volume_number, format badge, status loan)
+  └─ Tombol "Tambah Volume"
+        └─ Dialog: input CSV nomor volume (misal: "1,2,3,5") + pilih format
+              └─ Submit → CollectionController@storeVolumes
+                    └─ Toast: "N volume ditambahkan, M dilewati (sudah ada)"
+  └─ Hapus volume → konfirmasi dialog → CollectionController@destroyVolume
 ```
 
 ### F-U4: Catat Peminjaman
 ```
-/my-collection/{id} → klik volume → "Pinjamkan"
+/my-collection/{id} → klik volume card yang belum dipinjam → "Pinjamkan"
   └─ Modal: nama peminjam, tanggal pinjam, tanggal kembali (opsional), catatan
-        └─ Submit → LoanController@store
-              └─ Muncul di /my-loans dengan status "Dipinjam"
+        └─ Submit → LoanController@store { collection_volume_id, ... }
+              └─ Volume card berubah status "Dipinjam"
+              └─ Muncul di /my-loans
 ```
 
 ### F-U5: Tandai Dikembalikan

@@ -89,22 +89,24 @@
 | created_at / updated_at | timestamp | |
 | **UNIQUE** | (user_id, series_id) | satu koleksi per series per user |
 
-### `collection_volumes` *(pivot)*
+### `collection_volumes`
 | Kolom | Tipe | Keterangan |
 |-------|------|-----------|
-| id | bigint PK | |
-| collection_id | uuid FK | |
-| volume_id | uuid FK | |
-| is_owned | boolean | default true |
+| id | uuid PK | |
+| collection_id | uuid FK | cascade delete |
+| volume_number | int | nomor volume yang dimiliki user |
+| format | enum | `physical`, `ebook`, `online`, `webtoon` |
 | created_at / updated_at | timestamp | |
-| **UNIQUE** | (collection_id, volume_id) | |
+| **UNIQUE** | (collection_id, volume_number) | |
+
+Catatan: tidak terikat ke tabel `volumes` (admin-defined). User input sendiri nomor volume yang mereka punya.
 
 ### `loans`
 | Kolom | Tipe | Keterangan |
 |-------|------|-----------|
 | id | uuid PK | |
 | collection_id | uuid FK | koleksi owner |
-| volume_id | uuid FK | volume yang dipinjam |
+| collection_volume_id | uuid FK | volume user yang dipinjam (cascade delete) |
 | borrower_name | string | nama peminjam (bebas) |
 | loaned_at | date | required |
 | due_at | date | nullable |
@@ -164,10 +166,11 @@ app/
 │   │   │   ├── LoanController.php
 │   │   │   ├── UserController.php
 │   │   │   ├── AnnouncementController.php
-│   │   │   └── JikanController.php
+│   │   │   ├── JikanController.php
+│   │   │   └── ImageSearchController.php
 │   │   ├── User/
 │   │   │   ├── DashboardController.php
-│   │   │   ├── SeriesController.php
+│   │   │   ├── SeriesController.php    (catalog + search endpoint)
 │   │   │   ├── CollectionController.php
 │   │   │   └── LoanController.php
 │   │   └── Auth/          (dari Laravel Breeze)
@@ -182,6 +185,7 @@ app/
 │   ├── Series.php
 │   ├── Volume.php
 │   ├── Collection.php
+│   ├── CollectionVolume.php
 │   ├── Loan.php
 │   ├── Menu.php
 │   └── Announcement.php
@@ -190,7 +194,9 @@ app/
 │   ├── VolumePolicy.php
 │   ├── CollectionPolicy.php
 │   ├── LoanPolicy.php
-│   └── MenuPolicy.php
+│   ├── MenuPolicy.php
+│   ├── UserPolicy.php
+│   └── AnnouncementPolicy.php
 └── Services/
     └── JikanService.php
 
@@ -199,33 +205,35 @@ resources/js/
 │   ├── Admin/
 │   │   ├── Dashboard.tsx
 │   │   ├── Menus/          Index.tsx, Edit.tsx
-│   │   ├── Series/         Index.tsx, Create.tsx, Edit.tsx, Show.tsx
-│   │   ├── Volumes/        (nested dalam Show.tsx Series)
-│   │   ├── Collections/    Index.tsx, Show.tsx
+│   │   ├── Series/         Index.tsx, Create.tsx, Edit.tsx, Show.tsx, EditVolume.tsx
+│   │   ├── Collections/    Index.tsx
 │   │   ├── Loans/          Index.tsx
 │   │   ├── Users/          Index.tsx, Show.tsx
-│   │   └── Announcements/  Index.tsx, Create.tsx, Edit.tsx
+│   │   ├── Announcements/  Index.tsx, Create.tsx, Edit.tsx
+│   │   └── Jikan/          Index.tsx
 │   ├── User/
 │   │   ├── Dashboard.tsx
 │   │   ├── Catalog/        Index.tsx, Show.tsx
 │   │   ├── Collection/     Index.tsx, Show.tsx
 │   │   └── Loans/          Index.tsx
 │   ├── Auth/               (dari Breeze)
-│   └── Maintenance.tsx     (halaman maintenance mode)
+│   ├── Error.tsx           (handle 403, 404, 500, 503)
+│   ├── Maintenance.tsx
+│   └── Welcome.tsx
 ├── Layouts/
 │   ├── AdminLayout.tsx     (sidebar + topbar admin)
 │   └── UserLayout.tsx      (sidebar + topbar user)
 ├── Components/
 │   ├── ui/                 (shadcn/ui — JANGAN MODIFIKASI)
 │   └── app/
-│       ├── SeriesCard.tsx
-│       ├── VolumeGrid.tsx
-│       ├── CollectionCard.tsx
+│       ├── VolumeGrid.tsx          (pure display, no toggle)
 │       ├── AnnouncementBanner.tsx
-│       └── ...
+│       ├── StatusBadge.tsx         (SeriesStatusBadge, VolumeTypeBadge, VolumeFormatBadge)
+│       ├── PageHeader.tsx
+│       ├── EmptyState.tsx
+│       └── Pagination.tsx
 ├── hooks/
-│   ├── useAuth.ts
-│   └── useMenus.ts
+│   └── useFlash.ts         (sonner toast dari flash session)
 └── lib/
     ├── utils.ts
     └── types.ts            (shared TypeScript interfaces)

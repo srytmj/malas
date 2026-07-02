@@ -157,6 +157,12 @@ class JikanController extends Controller
                 : 'Series berhasil diimpor dari MyAnimeList.';
         }
 
+        // Auto-generate volumes jika series selesai dan total_volumes diketahui
+        $generated = $this->generateVolumesIfFinished($series);
+        if ($generated > 0) {
+            $message .= " {$generated} volume dibuat otomatis.";
+        }
+
         return redirect()->route('admin.series.show', $series)
             ->with('success', $message);
     }
@@ -208,6 +214,25 @@ class JikanController extends Controller
             'score'          => $data['score'] ?: null,
             'rank'           => $data['rank'] ?: null,
         ];
+    }
+
+    private function generateVolumesIfFinished(Series $series): int
+    {
+        if ($series->status !== 'finished' || ! $series->total_volumes) {
+            return 0;
+        }
+
+        $existing = $series->volumes()->pluck('volume_number')->all();
+        $created  = 0;
+
+        for ($i = 1; $i <= $series->total_volumes; $i++) {
+            if (! in_array($i, $existing)) {
+                $series->volumes()->create(['volume_number' => $i, 'type' => 'regular']);
+                $created++;
+            }
+        }
+
+        return $created;
     }
 
     private function mapStatus(string $status): string

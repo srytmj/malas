@@ -111,24 +111,27 @@ Satu user punya satu koleksi per series.
 |-------|-----------|
 | `user_id` | FK |
 | `series_id` | FK |
-| `condition` | `mint` / `good` / `fair` / `poor` |
 | `acquired_at` | date, nullable |
 | `notes` | text, nullable |
 
-Di dalam koleksi, user bisa checklist volume yang dimiliki (pivot `collection_volumes`).
+Di dalam koleksi, user mencatat volume yang dimiliki via `collection_volumes`. User input nomor volume sebagai CSV (misal: `1,2,3,5`) dan memilih format per batch. Volume tidak terikat ke tabel `volumes` admin — user yang tentukan sendiri nomor apa yang mereka punya.
+
+**Format volume:** `physical` / `ebook` / `online` / `webtoon`
+
+**Cara tambah series:** dari halaman `/my-collection` via dialog search + multi-select. Bisa tambah lebih dari satu series sekaligus.
 
 Akses:
 - User: hanya bisa lihat & edit koleksi sendiri
-- Admin: bisa lihat semua koleksi semua user
+- Admin: bisa lihat semua koleksi semua user beserta detail kepemilikan per volume
 
 ### F-06 — Loans (Peminjaman)
 
-User mencatat volume yang dipinjamkan:
+User mencatat volume yang dipinjamkan dari koleksinya:
 
 | Field | Keterangan |
 |-------|-----------|
 | `collection_id` | FK ke koleksi owner |
-| `volume_id` | FK volume spesifik |
+| `collection_volume_id` | FK ke `collection_volumes` — volume user yang dipinjam |
 | `borrower_name` | string (tidak harus user terdaftar) |
 | `loaned_at` | date, required |
 | `due_at` | date, nullable |
