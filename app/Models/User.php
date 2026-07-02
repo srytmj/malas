@@ -2,10 +2,6 @@
 
 namespace App\Models;
 
-use App\Traits\HasSoftDeleteReason;
-use Database\Factories\UserFactory;
-use Filament\Models\Contracts\FilamentUser;
-use Filament\Panel;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -13,15 +9,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
-use Jeffgreco13\FilamentBreezy\Traits\TwoFactorAuthenticatable;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements FilamentUser
+class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
-    use HasFactory, HasRoles, HasSoftDeleteReason, HasUuids, LogsActivity, Notifiable, SoftDeletes, TwoFactorAuthenticatable;
+    use HasFactory, HasRoles, HasUuids, Notifiable, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -42,33 +34,31 @@ class User extends Authenticatable implements FilamentUser
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'is_banned' => 'boolean',
-            'banned_at' => 'datetime',
-            'deleted_at' => 'datetime',
+            'password'          => 'hashed',
+            'is_banned'         => 'boolean',
+            'banned_at'         => 'datetime',
+            'deleted_at'        => 'datetime',
         ];
     }
 
-    public function getActivitylogOptions(): LogOptions
+    public function isAdmin(): bool
     {
-        return LogOptions::defaults()
-            ->logOnly(['name', 'email', 'role', 'is_banned'])
-            ->logOnlyDirty()
-            ->dontSubmitEmptyLogs();
+        return in_array($this->role, ['admin', 'super_admin'], true);
     }
 
-    public function canAccessPanel(Panel $panel): bool
+    public function isSuperAdmin(): bool
     {
-        return in_array($this->role, ['super_admin', 'admin']) && ! $this->is_banned;
+        return $this->role === 'super_admin';
     }
 
-    public function ownedCollections(): BelongsToMany
+    public function collections(): HasMany
     {
-        return $this->belongsToMany(Collection::class, 'collection_user');
+        return $this->hasMany(Collection::class);
     }
 
-    public function loans(): HasMany
+    public function dismissedAnnouncements(): BelongsToMany
     {
-        return $this->hasMany(Loan::class, 'borrower_user_id');
+        return $this->belongsToMany(Announcement::class, 'announcement_user')
+                    ->withPivot('dismissed_at');
     }
 }

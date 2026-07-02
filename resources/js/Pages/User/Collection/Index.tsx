@@ -1,0 +1,304 @@
+import { useEffect, useState } from 'react';
+import { router } from '@inertiajs/react';
+import { BookOpen, Library, Loader2, Plus, Search, Trash2 } from 'lucide-react';
+import UserLayout from '@/Layouts/UserLayout';
+import PageHeader from '@/Components/app/PageHeader';
+import EmptyState from '@/Components/app/EmptyState';
+import { SeriesStatusBadge } from '@/Components/app/StatusBadge';
+import { Button } from '@/Components/ui/button';
+import { Input } from '@/Components/ui/input';
+import {
+    Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/Components/ui/dialog';
+import { cn } from '@/lib/utils';
+import { PageProps } from '@/types';
+import { type SeriesStatus, type SeriesType } from '@/lib/types';
+
+interface CollectionRow {
+    id: string;
+    series_id: string;
+    title_romaji: string;
+    title_english: string | null;
+    cover_url: string | null;
+    total_volumes: number | null;
+    collection_volumes_count: number;
+    status: SeriesStatus;
+    type: SeriesType;
+}
+
+interface SeriesResult {
+    id: string;
+    title_romaji: string;
+    title_english: string | null;
+    cover_url: string | null;
+    type: SeriesType;
+    status: SeriesStatus;
+}
+
+interface Props extends PageProps {
+    collections: CollectionRow[];
+}
+
+export default function CollectionIndex({ collections }: Props) {
+    const [deleteTarget, setDeleteTarget]   = useState<CollectionRow | null>(null);
+    const [deleting, setDeleting]           = useState(false);
+
+    // Add series dialog
+    const [addOpen, setAddOpen]             = useState(false);
+    const [searchQuery, setSearchQuery]     = useState('');
+    const [searchResults, setSearchResults] = useState<SeriesResult[]>([]);
+    const [searchLoading, setSearchLoading] = useState(false);
+    const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set());
+    const [inCollectionIds, setInCollectionIds] = useState<Set<string>>(
+        new Set(collections.map((c) => c.series_id)),
+    );
+    const [adding, setAdding]               = useState(false);
+
+    // Debounced search
+    useEffect(() => {
+        if (!addOpen) return;
+        setSearchResults([]);
+        setSearchLoading(true);
+        const t = setTimeout(async () => {
+            try {
+                const url = new URL(route('catalog.search'), window.location.origin);
+                if (searchQuery.trim()) url.searchParams.set('q', searchQuery.trim());
+                const res  = await fetch(url.toString(), { credentials: 'same-origin' });
+                const data: { results: SeriesResult[]; collection_series_ids: string[] } = await res.json();
+                setSearchResults(data.results);
+                setInCollectionIds(new Set(data.collection_series_ids));
+            } catch {
+                setSearchResults([]);
+            } finally {
+                setSearchLoading(false);
+            }
+        }, 350);
+        return () => clearTimeout(t);
+    }, [searchQuery, addOpen]);
+
+    function toggleSelect(id: string) {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
+        });
+    }
+
+    function handleAdd() {
+        if (selectedIds.size === 0) return;
+        setAdding(true);
+        router.post(
+            route('collection.store'),
+            { series_ids: Array.from(selectedIds) },
+            {
+                onSuccess: () => {
+                    setAddOpen(false);
+                    setSelectedIds(new Set());
+                    setSearchQuery('');
+                },
+                onFinish: () => setAdding(false),
+            },
+        );
+    }
+
+    function handleDelete() {
+        if (!deleteTarget) return;
+        setDeleting(true);
+        router.delete(route('collection.destroy', deleteTarget.id), {
+            onFinish: () => { setDeleting(false); setDeleteTarget(null); },
+        });
+    }
+
+    return (
+        <UserLayout
+            header={
+                <PageHeader
+                    title="Koleksiku"
+                    description={`${collections.length} series dalam koleksi`}
+                    actions={
+                        <Button size="sm" onClick={() => { setAddOpen(true); setSearchQuery(''); setSelectedIds(new Set()); }}>
+                            <Plus className="mr-1.5 h-3.5 w-3.5" />
+                            Tambah Series
+                        </Button>
+                    }
+                />
+            }
+        >
+            {collections.length === 0 ? (
+                <EmptyState
+                    title="Koleksi masih kosong"
+                    description="Tambahkan series untuk mulai melacak volume yang kamu miliki."
+                    icon={Library}
+                    action={
+                        <Button onClick={() => setAddOpen(true)}>
+                            <Plus className="mr-1.5 h-4 w-4" />
+                            Tambah Series
+                        </Button>
+                    }
+                />
+            ) : (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {collections.map((c) => (
+                        <div
+                            key={c.id}
+                            className="flex overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-sm cursor-pointer"
+                            onClick={() => router.visit(route('collection.show', c.id))}
+                        >
+                            <div className="w-20 shrink-0 overflow-hidden bg-muted">
+                                {c.cover_url ? (
+                                    <img src={c.cover_url} alt={c.title_romaji} className="h-full w-full object-cover" />
+                                ) : (
+                                    <div className="flex h-full items-center justify-center">
+                                        <BookOpen className="h-6 w-6 text-muted-foreground/40" />
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex flex-1 flex-col justify-between p-3 min-w-0">
+                                <div>
+                                    <p className="line-clamp-2 text-sm font-medium">{c.title_romaji}</p>
+                                    {c.title_english && (
+                                        <p className="line-clamp-1 text-xs text-muted-foreground">{c.title_english}</p>
+                                    )}
+                                    <div className="mt-1.5">
+                                        <SeriesStatusBadge status={c.status} />
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-between mt-2">
+                                    <p className="text-xs text-muted-foreground">
+                                        Dimiliki: <span className="font-medium text-foreground">{c.collection_volumes_count}</span>
+                                        {c.total_volumes ? `/${c.total_volumes}` : ''}
+                                    </p>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7 text-destructive/60 hover:text-destructive"
+                                        onClick={(e) => { e.stopPropagation(); setDeleteTarget(c); }}
+                                    >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Add Series Dialog */}
+            <Dialog open={addOpen} onOpenChange={(open) => { setAddOpen(open); if (!open) { setSelectedIds(new Set()); setSearchQuery(''); } }}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Tambah Series ke Koleksi</DialogTitle>
+                        <DialogDescription>Pilih satu atau lebih series. Klik gambar untuk memilih.</DialogDescription>
+                    </DialogHeader>
+
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            className="pl-9"
+                            placeholder="Cari judul series..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            autoFocus
+                        />
+                    </div>
+
+                    <div className="max-h-[380px] overflow-y-auto">
+                        {searchLoading && (
+                            <div className="flex items-center justify-center py-10 text-muted-foreground">
+                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                Mencari...
+                            </div>
+                        )}
+
+                        {!searchLoading && searchResults.length === 0 && (
+                            <p className="py-8 text-center text-sm text-muted-foreground">
+                                {searchQuery.trim() ? 'Tidak ada hasil.' : 'Ketik untuk mencari series.'}
+                            </p>
+                        )}
+
+                        {!searchLoading && searchResults.length > 0 && (
+                            <div className="grid grid-cols-3 gap-2 pb-1 sm:grid-cols-4">
+                                {searchResults.map((s) => {
+                                    const isInCollection = inCollectionIds.has(s.id);
+                                    const isSelected     = selectedIds.has(s.id);
+                                    return (
+                                        <button
+                                            key={s.id}
+                                            type="button"
+                                            disabled={isInCollection}
+                                            onClick={() => !isInCollection && toggleSelect(s.id)}
+                                            className={cn(
+                                                'group relative flex flex-col overflow-hidden rounded-lg border text-left transition-all focus:outline-none focus:ring-2 focus:ring-ring',
+                                                isInCollection && 'opacity-40 cursor-not-allowed',
+                                                isSelected && 'ring-2 ring-primary border-primary',
+                                                !isInCollection && !isSelected && 'hover:ring-2 hover:ring-primary/50',
+                                            )}
+                                        >
+                                            <div className="relative aspect-[2/3] overflow-hidden bg-muted">
+                                                {s.cover_url ? (
+                                                    <img src={s.cover_url} alt={s.title_romaji} className="h-full w-full object-cover" />
+                                                ) : (
+                                                    <div className="flex h-full items-center justify-center">
+                                                        <BookOpen className="h-6 w-6 text-muted-foreground/30" />
+                                                    </div>
+                                                )}
+                                                {isSelected && (
+                                                    <div className="absolute inset-0 flex items-center justify-center bg-primary/30">
+                                                        <div className="rounded-full bg-primary p-1.5">
+                                                            <svg className="h-4 w-4 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {isInCollection && (
+                                                    <div className="absolute bottom-1 right-1">
+                                                        <span className="rounded bg-black/60 px-1 py-0.5 text-[10px] text-white">Dimiliki</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="p-1.5">
+                                                <p className="line-clamp-2 text-xs font-medium leading-tight">{s.title_romaji}</p>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    <DialogFooter className="items-center gap-2">
+                        {selectedIds.size > 0 && (
+                            <p className="mr-auto text-sm text-muted-foreground">{selectedIds.size} dipilih</p>
+                        )}
+                        <Button variant="outline" onClick={() => setAddOpen(false)}>Batal</Button>
+                        <Button disabled={selectedIds.size === 0 || adding} onClick={handleAdd}>
+                            {adding ? 'Menambahkan...' : `Tambah${selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}`}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete dialog */}
+            <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Hapus dari Koleksi</DialogTitle>
+                        <DialogDescription>
+                            Yakin ingin menghapus <strong>{deleteTarget?.title_romaji}</strong> dari koleksimu?
+                            Semua data volume dan pinjaman aktif akan hilang.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteTarget(null)}>Batal</Button>
+                        <Button variant="destructive" disabled={deleting} onClick={handleDelete}>
+                            {deleting ? 'Menghapus...' : 'Hapus'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </UserLayout>
+    );
+}

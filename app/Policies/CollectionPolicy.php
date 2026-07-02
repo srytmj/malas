@@ -1,75 +1,34 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Policies;
 
-use Illuminate\Foundation\Auth\User as AuthUser;
 use App\Models\Collection;
-use Illuminate\Auth\Access\HandlesAuthorization;
+use App\Models\User;
 
 class CollectionPolicy
 {
-    use HandlesAuthorization;
-    
-    public function viewAny(AuthUser $authUser): bool
+    public function viewAny(User $user): bool
     {
-        return $authUser->can('ViewAny:Collection');
+        return true;
     }
 
-    public function view(AuthUser $authUser, Collection $collection): bool
+    public function view(User $user, Collection $collection): bool
     {
-        return $authUser->can('View:Collection');
+        return $user->isAdmin() || $collection->user_id === $user->id;
     }
 
-    public function create(AuthUser $authUser): bool
+    public function create(User $user): bool
     {
-        return $authUser->can('Create:Collection');
+        return true;
     }
 
-    public function update(AuthUser $authUser, Collection $collection): bool
+    public function update(User $user, Collection $collection): bool
     {
-        return $authUser->can('Update:Collection');
+        return $user->isAdmin() || $collection->user_id === $user->id;
     }
 
-    public function delete(AuthUser $authUser, Collection $collection): bool
+    public function delete(User $user, Collection $collection): bool
     {
-        return $authUser->can('Delete:Collection');
+        return $user->isAdmin() || $collection->user_id === $user->id;
     }
-
-    public function deleteAny(AuthUser $authUser): bool
-    {
-        return $authUser->can('DeleteAny:Collection');
-    }
-
-    public function restore(AuthUser $authUser, Collection $collection): bool
-    {
-        return $authUser->can('Restore:Collection');
-    }
-
-    public function forceDelete(AuthUser $authUser, Collection $collection): bool
-    {
-        return $authUser->can('ForceDelete:Collection');
-    }
-
-    public function forceDeleteAny(AuthUser $authUser): bool
-    {
-        return $authUser->can('ForceDeleteAny:Collection');
-    }
-
-    public function restoreAny(AuthUser $authUser): bool
-    {
-        return $authUser->can('RestoreAny:Collection');
-    }
-
-    public function replicate(AuthUser $authUser, Collection $collection): bool
-    {
-        return $authUser->can('Replicate:Collection');
-    }
-
-    public function reorder(AuthUser $authUser): bool
-    {
-        return $authUser->can('Reorder:Collection');
-    }
-
 }

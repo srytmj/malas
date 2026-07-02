@@ -3,22 +3,22 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Traits\LogsActivity;
 
 class Volume extends Model
 {
-    use HasUuids, LogsActivity, SoftDeletes;
+    use HasFactory, HasUuids, SoftDeletes;
 
     protected $fillable = [
         'series_id',
         'volume_number',
-        'isbn',
         'cover_path',
+        'type',
+        'digital_source',
+        'isbn',
         'published_at',
     ];
 
@@ -26,16 +26,8 @@ class Volume extends Model
     {
         return [
             'published_at' => 'date',
-            'deleted_at' => 'datetime',
+            'deleted_at'   => 'datetime',
         ];
-    }
-
-    public function getActivitylogOptions(): LogOptions
-    {
-        return LogOptions::defaults()
-            ->logFillable()
-            ->logOnlyDirty()
-            ->dontSubmitEmptyLogs();
     }
 
     public function series(): BelongsTo
@@ -43,8 +35,5 @@ class Volume extends Model
         return $this->belongsTo(Series::class);
     }
 
-    public function collections(): BelongsToMany
-    {
-        return $this->belongsToMany(Collection::class, 'collection_volumes');
-    }
+
 }

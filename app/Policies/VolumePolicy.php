@@ -1,75 +1,34 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Policies;
 
-use Illuminate\Foundation\Auth\User as AuthUser;
+use App\Models\User;
 use App\Models\Volume;
-use Illuminate\Auth\Access\HandlesAuthorization;
 
 class VolumePolicy
 {
-    use HandlesAuthorization;
-    
-    public function viewAny(AuthUser $authUser): bool
+    public function viewAny(User $user): bool
     {
-        return $authUser->can('ViewAny:Volume');
+        return true;
     }
 
-    public function view(AuthUser $authUser, Volume $volume): bool
+    public function view(User $user, Volume $volume): bool
     {
-        return $authUser->can('View:Volume');
+        return true;
     }
 
-    public function create(AuthUser $authUser): bool
+    public function create(User $user): bool
     {
-        return $authUser->can('Create:Volume');
+        return $user->isAdmin();
     }
 
-    public function update(AuthUser $authUser, Volume $volume): bool
+    public function update(User $user, Volume $volume): bool
     {
-        return $authUser->can('Update:Volume');
+        return $user->isAdmin();
     }
 
-    public function delete(AuthUser $authUser, Volume $volume): bool
+    public function delete(User $user, Volume $volume): bool
     {
-        return $authUser->can('Delete:Volume');
+        return $user->isAdmin();
     }
-
-    public function deleteAny(AuthUser $authUser): bool
-    {
-        return $authUser->can('DeleteAny:Volume');
-    }
-
-    public function restore(AuthUser $authUser, Volume $volume): bool
-    {
-        return $authUser->can('Restore:Volume');
-    }
-
-    public function forceDelete(AuthUser $authUser, Volume $volume): bool
-    {
-        return $authUser->can('ForceDelete:Volume');
-    }
-
-    public function forceDeleteAny(AuthUser $authUser): bool
-    {
-        return $authUser->can('ForceDeleteAny:Volume');
-    }
-
-    public function restoreAny(AuthUser $authUser): bool
-    {
-        return $authUser->can('RestoreAny:Volume');
-    }
-
-    public function replicate(AuthUser $authUser, Volume $volume): bool
-    {
-        return $authUser->can('Replicate:Volume');
-    }
-
-    public function reorder(AuthUser $authUser): bool
-    {
-        return $authUser->can('Reorder:Volume');
-    }
-
 }
