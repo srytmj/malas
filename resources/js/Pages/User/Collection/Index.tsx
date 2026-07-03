@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { BookOpen, Library, Loader2, Plus, Search, Trash2 } from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -124,6 +124,7 @@ export default function CollectionIndex({ collections }: Props) {
                 />
             }
         >
+            <Head title="Koleksiku" />
             {collections.length === 0 ? (
                 <EmptyState
                     title="Koleksi masih kosong"

@@ -23,6 +23,7 @@ class User extends Authenticatable
         'is_banned',
         'ban_reason',
         'banned_at',
+        'name_changed_at',
     ];
 
     protected $hidden = [
@@ -37,6 +38,7 @@ class User extends Authenticatable
             'password'          => 'hashed',
             'is_banned'         => 'boolean',
             'banned_at'         => 'datetime',
+            'name_changed_at'   => 'datetime',
             'deleted_at'        => 'datetime',
         ];
     }

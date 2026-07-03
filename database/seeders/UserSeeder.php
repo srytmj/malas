@@ -24,6 +24,13 @@ class UserSeeder extends Seeder
             'role'     => 'admin',
         ]);
 
+        User::factory()->create([
+            'name'     => 'QA User',
+            'email'    => 'qa@malas.dev',
+            'password' => Hash::make('password'),
+            'role'     => 'user',
+        ]);
+
         User::factory()->count(3)->create([
             'role' => 'user',
         ]);

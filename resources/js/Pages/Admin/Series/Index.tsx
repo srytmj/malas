@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Plus, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -107,6 +107,7 @@ export default function SeriesIndex({ series, filters }: Props) {
                 />
             }
         >
+            <Head title="Series" />
             {/* Filters */}
             <div className="mb-4 flex flex-wrap gap-2">
                 <Input

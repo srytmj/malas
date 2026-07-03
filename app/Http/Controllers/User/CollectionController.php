@@ -67,14 +67,14 @@ class CollectionController extends Controller
         }
 
         if ($added === 0) {
-            return redirect()->route('collection.index')
+            return redirect()->back()
                 ->with('info', 'Series yang dipilih sudah ada di koleksimu.');
         }
 
         $msg = "{$added} series berhasil ditambahkan ke koleksi."
             . ($skipped > 0 ? " {$skipped} dilewati (sudah ada)." : '');
 
-        return redirect()->route('collection.index')->with('success', $msg);
+        return redirect()->back()->with('success', $msg);
     }
 
     public function show(Collection $collection): Response

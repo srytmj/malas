@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -118,6 +118,7 @@ export default function MenuEdit({ menu }: Props) {
                 />
             }
         >
+            <Head title={menu.label} />
             <form onSubmit={handleSubmit(onSubmit)}>
                 <div className="rounded-lg border">
                     <Table>

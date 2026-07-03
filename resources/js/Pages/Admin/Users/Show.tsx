@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -114,6 +114,7 @@ export default function UserShow({ user, collections_count, can }: Props) {
                 />
             }
         >
+            <Head title={user.name} />
             <div className="grid gap-6 lg:grid-cols-3">
                 {/* Info */}
                 <div className="lg:col-span-2 space-y-6">

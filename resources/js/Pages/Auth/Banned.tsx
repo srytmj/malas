@@ -1,4 +1,4 @@
-import { router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { Button } from '@/Components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/Components/ui/card';
 import { PageProps } from '@/types';
@@ -10,6 +10,7 @@ export default function Banned({ auth }: PageProps) {
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-background p-4">
+            <Head title="Akun Diblokir" />
             <Card className="w-full max-w-md">
                 <CardHeader className="text-center">
                     <CardTitle className="text-2xl text-destructive">Akun Diblokir</CardTitle>

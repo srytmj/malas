@@ -1,3 +1,4 @@
+import { Head } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import { Pagination } from '@/Components/app/Pagination';
@@ -33,6 +34,7 @@ export default function AdminCollectionsIndex({ collections }: Props) {
                 />
             }
         >
+            <Head title="Semua Koleksi" />
             <div className="rounded-lg border">
                 <Table>
                     <TableHeader>

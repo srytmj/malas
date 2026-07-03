@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { BookMarked } from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -48,6 +48,7 @@ export default function LoansIndex({ loans }: Props) {
                 />
             }
         >
+            <Head title="Pinjaman Saya" />
             {loans.data.length === 0 ? (
                 <EmptyState
                     title="Belum ada pinjaman"

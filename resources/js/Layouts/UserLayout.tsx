@@ -2,12 +2,13 @@ import { PropsWithChildren, ReactNode, useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import {
     BookOpen, HandCoins, LayoutDashboard, Library, LogOut,
-    Menu as MenuIcon, Moon, Sun, X,
+    Menu as MenuIcon, Moon, Settings, Sun, X,
     type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
+import { useFlash } from '@/hooks/useFlash';
 import AnnouncementBanner from '@/Components/app/AnnouncementBanner';
 import { type MenuItem } from '@/types';
 
@@ -16,6 +17,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
     'book-open':        BookOpen,
     'library':          Library,
     'hand-coins':       HandCoins,
+    'settings':         Settings,
 };
 
 function NavItem({ item, onClick }: { item: MenuItem; onClick?: () => void }) {
@@ -102,6 +104,7 @@ interface UserLayoutProps extends PropsWithChildren {
 export default function UserLayout({ children, header }: UserLayoutProps) {
     const { menus } = usePage().props;
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    useFlash();
 
     function closeSidebar() {
         setSidebarOpen(false);

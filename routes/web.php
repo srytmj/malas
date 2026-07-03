@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\VolumeController as AdminVolumeController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\User\CollectionController;
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use App\Http\Controllers\User\LoanController;
@@ -61,6 +62,11 @@ Route::middleware(['auth', 'not_banned', 'check.menu'])->group(function () {
 
     // Dismiss pengumuman
     Route::post('/announcements/{announcement}/dismiss', [AnnouncementController::class, 'dismiss'])->name('announcements.dismiss');
+
+    // Pengaturan akun (semua role)
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::patch('/settings/name', [SettingsController::class, 'updateName'])->name('settings.name');
+    Route::put('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
 });
 
 // Profile (auth only, not a menu-guarded route)

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -75,6 +75,7 @@ export default function AnnouncementsIndex({ items }: Props) {
                 />
             }
         >
+            <Head title="Pengumuman" />
             {items.data.length === 0 ? (
                 <EmptyState
                     title="Belum ada pengumuman"

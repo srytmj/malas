@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Menu as MenuIcon, Pencil } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -58,6 +58,7 @@ export default function MenusIndex({ rows }: Props) {
                 />
             }
         >
+            <Head title="Menu" />
             {rows.length === 0 ? (
                 <EmptyState
                     title="Tidak ada menu"

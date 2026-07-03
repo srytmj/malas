@@ -108,6 +108,15 @@ class MenuSeeder extends Seeder
                 'sort_order'  => 4,
                 'role_access' => ['user'],
             ],
+            // Shared — all roles
+            [
+                'key'         => 'settings',
+                'label'       => 'Pengaturan',
+                'icon'        => 'settings',
+                'route_name'  => 'settings.index',
+                'sort_order'  => 50,
+                'role_access' => ['user', 'admin', 'super_admin'],
+            ],
         ];
 
         foreach ($menus as $menu) {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -192,6 +192,7 @@ export default function CollectionShow({ collection, series, volumes }: Props) {
                 />
             }
         >
+            <Head title={series.title_romaji} />
             {/* Series info & progress */}
             <div className="grid gap-6 lg:grid-cols-[auto_1fr]">
                 <div className="shrink-0">

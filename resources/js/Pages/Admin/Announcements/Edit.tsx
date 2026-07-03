@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -95,6 +95,7 @@ export default function AnnouncementEdit({ announcement }: Props) {
                 />
             }
         >
+            <Head title={announcement.title} />
             <form onSubmit={handleSubmit(onSubmit)} className="max-w-2xl space-y-5">
                 <div className="space-y-1.5">
                     <Label htmlFor="title">Judul <span className="text-destructive">*</span></Label>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -500,6 +500,7 @@ export default function SeriesEdit({ series, volumes }: Props) {
                 />
             }
         >
+            <Head title={series.title_romaji} />
             <form id="series-edit-form" onSubmit={handleSubmit(onSubmit)}>
                 {/* Same grid layout as Show */}
                 <div className="grid gap-6 lg:grid-cols-[auto_1fr]">

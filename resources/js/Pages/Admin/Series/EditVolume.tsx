@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Link, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -99,6 +99,7 @@ export default function EditVolume({ volume, series }: Props) {
                 />
             }
         >
+            <Head title={`Edit Vol. ${volume.volume_number}`} />
             <form onSubmit={handleSubmit(onSubmit)} className="max-w-md space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">

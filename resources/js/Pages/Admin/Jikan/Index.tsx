@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { Search, BookOpen, Download, RefreshCw, CheckCircle } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -97,6 +97,7 @@ export default function JikanIndex({ results, pagination, filters, error }: Prop
                 />
             }
         >
+            <Head title="Jikan Search" />
             {/* Search */}
             <div className="relative mb-6 max-w-lg">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

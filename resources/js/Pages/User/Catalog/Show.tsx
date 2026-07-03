@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { BookOpen, Library } from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -83,6 +83,7 @@ export default function CatalogShow({ series, volumes, collection }: Props) {
                 />
             }
         >
+            <Head title={series.title_romaji} />
             {/* Series info */}
             <div className="grid gap-6 lg:grid-cols-[auto_1fr]">
                 <div className="shrink-0">

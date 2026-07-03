@@ -1,3 +1,4 @@
+import { Head } from '@inertiajs/react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
@@ -18,6 +19,7 @@ interface Props extends PageProps {
 export default function UserDashboard({ auth, stats }: Props) {
     return (
         <UserLayout header={<PageHeader title="Dashboard" description={`Selamat datang, ${auth.user?.name}.`} />}>
+            <Head title="Dashboard" />
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">

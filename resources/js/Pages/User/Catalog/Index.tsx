@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import { SeriesCard } from '@/Components/app/SeriesCard';
@@ -62,6 +62,7 @@ export default function CatalogIndex({ series, collectionSeriesIds, filters }: P
                 />
             }
         >
+            <Head title="Katalog" />
             {/* Filters */}
             <div className="mb-5 flex flex-wrap gap-2">
                 <Input

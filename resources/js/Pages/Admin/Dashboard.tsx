@@ -1,3 +1,4 @@
+import { Head } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
@@ -28,6 +29,7 @@ const STATUS_LABELS: Record<string, string> = {
 export default function AdminDashboard({ auth, stats, series_by_status }: Props) {
     return (
         <AdminLayout header={<PageHeader title="Dashboard" description="Ringkasan sistem MALAS." />}>
+            <Head title="Dashboard" />
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">

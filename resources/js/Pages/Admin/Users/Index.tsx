@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { Link, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Eye, Search } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -76,6 +76,7 @@ export default function UsersIndex({ users, filters }: Props) {
                 />
             }
         >
+            <Head title="Pengguna" />
             {/* Filters */}
             <div className="mb-4 flex flex-wrap gap-2">
                 <form onSubmit={handleSearch} className="flex gap-2">
