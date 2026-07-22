@@ -10,28 +10,29 @@ use App\Http\Controllers\Admin\SeriesController as AdminSeriesController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\VolumeController as AdminVolumeController;
 use App\Http\Controllers\AnnouncementController;
-use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\User\CollectionController;
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use App\Http\Controllers\User\LoanController;
 use App\Http\Controllers\User\SeriesController as UserSeriesController;
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
     $user = auth()->user();
-    return Inertia::render('Welcome', [
-        'canLogin'       => Route::has('login'),
-        'canRegister'    => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion'     => PHP_VERSION,
-        'dashboardUrl'   => $user
-            ? ($user->isAdmin() ? route('admin.dashboard') : route('dashboard'))
-            : route('dashboard'),
-    ]);
+
+    if (! $user) {
+        return Inertia::render('Landing');
+    }
+
+    return redirect($user->isAdmin() ? route('admin.dashboard') : route('dashboard'));
 });
+
+// SSO — whitearchive.id
+Route::get('/auth/redirect', [SsoController::class, 'redirect'])->name('sso.redirect');
+Route::get('/auth/callback', [SsoController::class, 'callback'])->name('sso.callback');
+Route::middleware('auth')->post('/logout', [SsoController::class, 'logout'])->name('logout');
 
 // Banned page — auth required so ban_reason is available, but not_banned skipped
 Route::get('/banned', function () {
@@ -63,17 +64,8 @@ Route::middleware(['auth', 'not_banned', 'check.menu'])->group(function () {
     // Dismiss pengumuman
     Route::post('/announcements/{announcement}/dismiss', [AnnouncementController::class, 'dismiss'])->name('announcements.dismiss');
 
-    // Pengaturan akun (semua role)
+    // Pengaturan akun (semua role) — profil dikelola di SSO, ini hanya tampilan read-only
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
-    Route::patch('/settings/name', [SettingsController::class, 'updateName'])->name('settings.name');
-    Route::put('/settings/password', [SettingsController::class, 'updatePassword'])->name('settings.password');
-});
-
-// Profile (auth only, not a menu-guarded route)
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
 // Admin area
@@ -107,5 +99,3 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'not_banned', 'check
     Route::get('/menus/{menu}/edit',  [AdminMenuController::class, 'edit'])   ->name('menus.edit');
     Route::match(['put', 'patch'], '/menus/{menu}', [AdminMenuController::class, 'update'])->name('menus.update');
 });
-
-require __DIR__.'/auth.php';

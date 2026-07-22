@@ -1,175 +1,90 @@
-import { FormEvent, useState } from 'react';
-import { Head, useForm, usePage } from '@inertiajs/react';
-import { KeyRound, User } from 'lucide-react';
+import { Head, usePage } from '@inertiajs/react';
+import { ExternalLink, ShieldCheck, User as UserIcon } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
-import { Button } from '@/Components/ui/button';
-import { Input } from '@/Components/ui/input';
-import { Label } from '@/Components/ui/label';
+import { buttonVariants } from '@/Components/ui/button';
+import { Badge } from '@/Components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/Components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/Components/ui/avatar';
+import { cn } from '@/lib/utils';
 import { PageProps } from '@/types';
 
 interface Props extends PageProps {
-    name_can_change_at: string | null;
+    sso_account_url: string;
 }
 
-export default function SettingsIndex({ name_can_change_at }: Props) {
+const ROLE_LABELS: Record<string, string> = {
+    super_admin: 'Super Admin',
+    admin:       'Admin',
+    user:        'User',
+};
+
+export default function SettingsIndex({ sso_account_url }: Props) {
     const { auth } = usePage().props;
-    const isAdmin = auth.user!.role !== 'user';
+    const user    = auth.user!;
+    const isAdmin = user.role !== 'user';
     const Layout  = isAdmin ? AdminLayout : UserLayout;
-
-    const now            = new Date();
-    const cooldownUntil  = name_can_change_at ? new Date(name_can_change_at) : null;
-    const canChangeName  = !cooldownUntil || cooldownUntil <= now;
-
-    const cooldownLabel = cooldownUntil && !canChangeName
-        ? `Bisa ganti lagi pada ${cooldownUntil.toLocaleString('id-ID', {
-            day: '2-digit', month: 'short', year: 'numeric',
-            hour: '2-digit', minute: '2-digit',
-          })}`
-        : null;
-
-    const nameForm = useForm({ name: auth.user!.name });
-    const [nameSaving, setNameSaving] = useState(false);
-
-    const pwForm = useForm({
-        current_password:      '',
-        password:              '',
-        password_confirmation: '',
-    });
-    const [pwSaving, setPwSaving] = useState(false);
-
-    function submitName(e: FormEvent) {
-        e.preventDefault();
-        setNameSaving(true);
-        nameForm.patch(route('settings.name'), {
-            onFinish: () => setNameSaving(false),
-        });
-    }
-
-    function submitPassword(e: FormEvent) {
-        e.preventDefault();
-        setPwSaving(true);
-        pwForm.put(route('settings.password'), {
-            onSuccess: () => pwForm.reset(),
-            onFinish:  () => setPwSaving(false),
-        });
-    }
 
     return (
         <Layout
             header={
                 <PageHeader
                     title="Pengaturan"
-                    description="Kelola nama dan password akunmu."
+                    description="Informasi akunmu, dikelola lewat whitearchive.id."
                 />
             }
         >
             <Head title="Pengaturan" />
 
             <div className="max-w-xl space-y-6">
-                {/* Name */}
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-base">
-                            <User className="h-4 w-4" />
-                            Ganti Nama
+                            <UserIcon className="h-4 w-4" />
+                            Profil
                         </CardTitle>
                         <CardDescription>
-                            Nama bisa diganti maksimal 1 kali setiap 2 jam.
+                            Nama, username, dan email disinkron dari akun whitearchive.id-mu setiap login.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <form onSubmit={submitName} className="space-y-4">
-                            <div className="space-y-1.5">
-                                <Label htmlFor="name">Nama</Label>
-                                <Input
-                                    id="name"
-                                    value={nameForm.data.name}
-                                    onChange={(e) => nameForm.setData('name', e.target.value)}
-                                    maxLength={100}
-                                    disabled={!canChangeName}
-                                />
-                                {nameForm.errors.name && (
-                                    <p className="text-sm text-destructive">{nameForm.errors.name}</p>
-                                )}
-                                {cooldownLabel && (
-                                    <p className="text-sm text-muted-foreground">{cooldownLabel}</p>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-center gap-4">
+                            <Avatar className="h-14 w-14">
+                                <AvatarImage src={user.avatar ?? undefined} alt={user.name} />
+                                <AvatarFallback>{user.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                                <p className="font-medium">{user.name}</p>
+                                {user.username && (
+                                    <p className="text-sm text-muted-foreground">@{user.username}</p>
                                 )}
                             </div>
-                            <Button
-                                type="submit"
-                                disabled={nameSaving || !canChangeName || nameForm.data.name === auth.user!.name}
-                            >
-                                {nameSaving ? 'Menyimpan...' : 'Simpan Nama'}
-                            </Button>
-                        </form>
-                    </CardContent>
-                </Card>
+                        </div>
 
-                {/* Password */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <KeyRound className="h-4 w-4" />
-                            Ganti Password
-                        </CardTitle>
-                        <CardDescription>
-                            Masukkan password lama dulu, lalu isi password baru.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={submitPassword} className="space-y-4">
-                            <div className="space-y-1.5">
-                                <Label htmlFor="current_password">Password Saat Ini</Label>
-                                <Input
-                                    id="current_password"
-                                    type="password"
-                                    value={pwForm.data.current_password}
-                                    onChange={(e) => pwForm.setData('current_password', e.target.value)}
-                                    autoComplete="current-password"
-                                />
-                                {pwForm.errors.current_password && (
-                                    <p className="text-sm text-destructive">{pwForm.errors.current_password}</p>
-                                )}
+                        <div className="grid gap-3 text-sm sm:grid-cols-2">
+                            <div>
+                                <p className="text-muted-foreground">Email</p>
+                                <p className="font-medium">{user.email}</p>
                             </div>
-
-                            <div className="space-y-1.5">
-                                <Label htmlFor="password">Password Baru</Label>
-                                <Input
-                                    id="password"
-                                    type="password"
-                                    value={pwForm.data.password}
-                                    onChange={(e) => pwForm.setData('password', e.target.value)}
-                                    autoComplete="new-password"
-                                />
-                                {pwForm.errors.password && (
-                                    <p className="text-sm text-destructive">{pwForm.errors.password}</p>
-                                )}
+                            <div>
+                                <p className="text-muted-foreground">Role</p>
+                                <Badge variant="outline" className="gap-1">
+                                    <ShieldCheck className="h-3 w-3" />
+                                    {ROLE_LABELS[user.role] ?? user.role}
+                                </Badge>
                             </div>
+                        </div>
 
-                            <div className="space-y-1.5">
-                                <Label htmlFor="password_confirmation">Konfirmasi Password Baru</Label>
-                                <Input
-                                    id="password_confirmation"
-                                    type="password"
-                                    value={pwForm.data.password_confirmation}
-                                    onChange={(e) => pwForm.setData('password_confirmation', e.target.value)}
-                                    autoComplete="new-password"
-                                />
-                                {pwForm.errors.password_confirmation && (
-                                    <p className="text-sm text-destructive">{pwForm.errors.password_confirmation}</p>
-                                )}
-                            </div>
-
-                            <Button
-                                type="submit"
-                                disabled={pwSaving || !pwForm.data.current_password || !pwForm.data.password}
-                            >
-                                {pwSaving ? 'Menyimpan...' : 'Ganti Password'}
-                            </Button>
-                        </form>
+                        <a
+                            href={sso_account_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={cn(buttonVariants({ variant: 'outline' }), 'w-full')}
+                        >
+                            Kelola Akun di whitearchive.id
+                            <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+                        </a>
                     </CardContent>
                 </Card>
             </div>

@@ -40,7 +40,9 @@ class HandleInertiaRequests extends Middleware
                 'user' => $user ? [
                     'id'         => $user->id,
                     'name'       => $user->name,
+                    'username'   => $user->username,
                     'email'      => $user->email,
+                    'avatar'     => $user->avatar,
                     'role'       => $user->role,
                     'is_banned'  => $user->is_banned,
                     'ban_reason' => $user->ban_reason,

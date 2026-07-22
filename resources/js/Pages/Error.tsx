@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { type LucideIcon } from 'lucide-react';
 
 interface Props {
-    status: 403 | 404 | 500 | 503;
+    status: 400 | 403 | 404 | 500 | 502 | 503;
 }
 
 interface ErrorConfig {
@@ -15,6 +15,11 @@ interface ErrorConfig {
 }
 
 const ERRORS: Record<number, ErrorConfig> = {
+    400: {
+        icon: AlertTriangle,
+        title: 'Permintaan Tidak Valid',
+        description: 'Permintaan tidak lengkap atau tidak valid.',
+    },
     403: {
         icon: Ban,
         title: 'Akses Ditolak',
@@ -29,6 +34,11 @@ const ERRORS: Record<number, ErrorConfig> = {
         icon: ServerCrash,
         title: 'Terjadi Kesalahan',
         description: 'Server mengalami masalah. Silakan coba lagi nanti.',
+    },
+    502: {
+        icon: ServerCrash,
+        title: 'SSO Tidak Merespons',
+        description: 'Tidak dapat menghubungi server whitearchive.id. Coba lagi beberapa saat lagi.',
     },
     503: {
         icon: ServerCrash,

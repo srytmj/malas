@@ -1,8 +1,9 @@
 export interface User {
     id: string;
     name: string;
+    username: string | null;
     email: string;
-    email_verified_at?: string;
+    avatar: string | null;
     role: 'super_admin' | 'admin' | 'user';
     is_banned: boolean;
     ban_reason: string | null;
