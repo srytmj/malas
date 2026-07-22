@@ -24,6 +24,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'not_banned' => \App\Http\Middleware\EnsureNotBanned::class,
             'check.menu' => \App\Http\Middleware\CheckMenuAccess::class,
         ]);
+
+        // Default Authenticate middleware calls route('login') to build its
+        // redirect before throwing AuthenticationException — that route no
+        // longer exists (SSO handles login), which crashed before our
+        // exception render below ever ran. Point it at SSO instead.
+        $middleware->redirectGuestsTo(fn () => route('sso.redirect'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (AuthenticationException $e, Request $request) {

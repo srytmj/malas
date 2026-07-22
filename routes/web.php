@@ -3,10 +3,11 @@
 use App\Http\Controllers\Admin\AnnouncementController as AdminAnnouncementController;
 use App\Http\Controllers\Admin\CollectionController as AdminCollectionController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
-use App\Http\Controllers\Admin\JikanController;
+use App\Http\Controllers\Admin\AniListController;
 use App\Http\Controllers\Admin\LoanController as AdminLoanController;
 use App\Http\Controllers\Admin\MenuController as AdminMenuController;
 use App\Http\Controllers\Admin\SeriesController as AdminSeriesController;
+use App\Http\Controllers\Admin\TicketController as AdminTicketController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\VolumeController as AdminVolumeController;
 use App\Http\Controllers\AnnouncementController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\User\CollectionController;
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use App\Http\Controllers\User\LoanController;
 use App\Http\Controllers\User\SeriesController as UserSeriesController;
+use App\Http\Controllers\User\TicketController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -54,6 +56,7 @@ Route::middleware(['auth', 'not_banned', 'check.menu'])->group(function () {
     Route::get('/my-collection/{collection}', [CollectionController::class, 'show'])->name('collection.show');
     Route::delete('/my-collection/{collection}', [CollectionController::class, 'destroy'])->name('collection.destroy');
     Route::post('/my-collection/{collection}/volumes', [CollectionController::class, 'storeVolumes'])->name('collection.volumes.store');
+    Route::delete('/my-collection/{collection}/volumes/bulk', [CollectionController::class, 'destroyVolumes'])->name('collection.volumes.destroyBulk');
     Route::delete('/my-collection/{collection}/volumes/{collectionVolume}', [CollectionController::class, 'destroyVolume'])->name('collection.volumes.destroy');
 
     // Pinjaman user
@@ -63,6 +66,12 @@ Route::middleware(['auth', 'not_banned', 'check.menu'])->group(function () {
 
     // Dismiss pengumuman
     Route::post('/announcements/{announcement}/dismiss', [AnnouncementController::class, 'dismiss'])->name('announcements.dismiss');
+
+    // Tiket ke superadmin
+    Route::get('/tickets', [TicketController::class, 'index'])->name('tickets.index');
+    Route::get('/tickets/create', [TicketController::class, 'create'])->name('tickets.create');
+    Route::post('/tickets', [TicketController::class, 'store'])->name('tickets.store');
+    Route::get('/tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');
 
     // Pengaturan akun (semua role) — profil dikelola di SSO, ini hanya tampilan read-only
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
@@ -74,11 +83,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'not_banned', 'check
 
     Route::get('/collections', [AdminCollectionController::class, 'index'])->name('collections.index');
     Route::get('/loans', [AdminLoanController::class, 'index'])->name('loans.index');
-    Route::get('/jikan', [JikanController::class, 'index'])->name('jikan.index');
-    Route::get('/jikan/search', [JikanController::class, 'searchJson'])->name('jikan.search');
-    Route::get('/jikan/pictures', [JikanController::class, 'pictures'])->name('jikan.pictures');
+    Route::get('/anilist', [AniListController::class, 'index'])->name('anilist.index');
+    Route::get('/anilist/search', [AniListController::class, 'searchJson'])->name('anilist.search');
+    Route::get('/anilist/status', [AniListController::class, 'statusPage'])->name('anilist.status.page');
+    Route::get('/anilist/status/check', [AniListController::class, 'statusCheck'])->name('anilist.status');
     Route::get('/images/search', [\App\Http\Controllers\Admin\ImageSearchController::class, 'search'])->name('images.search');
-    Route::post('/jikan/import', [JikanController::class, 'import'])->name('jikan.import');
+    Route::post('/anilist/import', [AniListController::class, 'import'])->name('anilist.import');
     Route::resource('series', AdminSeriesController::class);
     Route::post('series/{series}/volumes/generate', [AdminVolumeController::class, 'generate'])->name('series.volumes.generate');
     Route::resource('series.volumes', AdminVolumeController::class)
@@ -98,4 +108,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'not_banned', 'check
     Route::get('/menus',              [AdminMenuController::class, 'index'])  ->name('menus.index');
     Route::get('/menus/{menu}/edit',  [AdminMenuController::class, 'edit'])   ->name('menus.edit');
     Route::match(['put', 'patch'], '/menus/{menu}', [AdminMenuController::class, 'update'])->name('menus.update');
+
+    // Tiket dari user
+    Route::get('/tickets',                [AdminTicketController::class, 'index'])   ->name('tickets.index');
+    Route::get('/tickets/{ticket}',        [AdminTicketController::class, 'show'])    ->name('tickets.show');
+    Route::patch('/tickets/{ticket}/respond', [AdminTicketController::class, 'respond'])->name('tickets.respond');
 });

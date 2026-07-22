@@ -10,6 +10,7 @@ import EmptyState from '@/Components/app/EmptyState';
 import { SeriesStatusBadge, SeriesTypeBadge, VolumeFormatBadge } from '@/Components/app/StatusBadge';
 import { Badge } from '@/Components/ui/badge';
 import { Button, buttonVariants } from '@/Components/ui/button';
+import { Checkbox } from '@/Components/ui/checkbox';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Textarea } from '@/Components/ui/textarea';
@@ -88,6 +89,9 @@ export default function CollectionShow({ collection, series, volumes }: Props) {
     const [deletingVol, setDeletingVol]       = useState(false);
     const [deleting, setDeleting]             = useState(false);
     const [returningId, setReturningId]       = useState<string | null>(null);
+    const [selectedIds, setSelectedIds]       = useState<Set<string>>(new Set());
+    const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+    const [bulkDeleting, setBulkDeleting]     = useState(false);
 
     const today = new Date().toISOString().split('T')[0];
 
@@ -164,6 +168,23 @@ export default function CollectionShow({ collection, series, volumes }: Props) {
         });
     }
 
+    function toggleVolumeSelect(id: string) {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
+        });
+    }
+
+    function handleBulkDelete() {
+        setBulkDeleting(true);
+        router.delete(route('collection.volumes.destroyBulk', collection.id), {
+            data: { volume_ids: Array.from(selectedIds) },
+            onSuccess: () => setSelectedIds(new Set()),
+            onFinish: () => { setBulkDeleting(false); setBulkDeleteOpen(false); },
+        });
+    }
+
     const ownedCount = volumes.length;
 
     return (
@@ -232,10 +253,18 @@ export default function CollectionShow({ collection, series, volumes }: Props) {
             <div className="mt-8">
                 <div className="mb-3 flex items-center justify-between">
                     <h2 className="text-base font-semibold">Volume yang Dimiliki ({ownedCount})</h2>
-                    <Button size="sm" onClick={() => setAddVolumeOpen(true)}>
-                        <Plus className="mr-1.5 h-3.5 w-3.5" />
-                        Tambah Volume
-                    </Button>
+                    <div className="flex gap-2">
+                        {selectedIds.size > 0 && (
+                            <Button size="sm" variant="destructive" onClick={() => setBulkDeleteOpen(true)}>
+                                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                                Hapus ({selectedIds.size})
+                            </Button>
+                        )}
+                        <Button size="sm" onClick={() => setAddVolumeOpen(true)}>
+                            <Plus className="mr-1.5 h-3.5 w-3.5" />
+                            Tambah Volume
+                        </Button>
+                    </div>
                 </div>
 
                 {volumes.length === 0 ? (
@@ -253,9 +282,21 @@ export default function CollectionShow({ collection, series, volumes }: Props) {
                 ) : (
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                         {volumes.map((v) => (
-                            <div key={v.id} className="flex flex-col overflow-hidden rounded-lg border bg-card">
+                            <div
+                                key={v.id}
+                                className={cn(
+                                    'flex flex-col overflow-hidden rounded-lg border bg-card',
+                                    selectedIds.has(v.id) && 'ring-2 ring-primary',
+                                )}
+                            >
                                 {/* Cover placeholder + number */}
-                                <div className="flex aspect-[2/3] items-center justify-center bg-muted">
+                                <div className="relative flex aspect-[2/3] items-center justify-center bg-muted">
+                                    <Checkbox
+                                        checked={selectedIds.has(v.id)}
+                                        onCheckedChange={() => toggleVolumeSelect(v.id)}
+                                        className="absolute left-1.5 top-1.5 bg-background"
+                                        aria-label={`Pilih volume ${v.volume_number}`}
+                                    />
                                     <div className="text-center">
                                         <p className="text-2xl font-bold text-muted-foreground/40">{v.volume_number}</p>
                                         <p className="text-xs text-muted-foreground/40">Vol.</p>
@@ -382,6 +423,24 @@ export default function CollectionShow({ collection, series, volumes }: Props) {
                         <Button variant="outline" onClick={() => setDeleteVolume(null)}>Batal</Button>
                         <Button variant="destructive" disabled={deletingVol} onClick={handleDeleteVolume}>
                             {deletingVol ? 'Menghapus...' : 'Hapus'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Bulk Delete Volumes Dialog */}
+            <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Hapus {selectedIds.size} Volume</DialogTitle>
+                    </DialogHeader>
+                    <p className="text-sm text-muted-foreground">
+                        Yakin ingin menghapus {selectedIds.size} volume terpilih dari koleksimu? Riwayat pinjaman terkait juga akan hilang.
+                    </p>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setBulkDeleteOpen(false)}>Batal</Button>
+                        <Button variant="destructive" disabled={bulkDeleting} onClick={handleBulkDelete}>
+                            {bulkDeleting ? 'Menghapus...' : 'Hapus'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

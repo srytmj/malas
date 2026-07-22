@@ -59,6 +59,11 @@ class User extends Authenticatable
         return $this->hasMany(Collection::class);
     }
 
+    public function tickets(): HasMany
+    {
+        return $this->hasMany(Ticket::class);
+    }
+
     public function dismissedAnnouncements(): BelongsToMany
     {
         return $this->belongsToMany(Announcement::class, 'announcement_user')

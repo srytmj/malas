@@ -179,4 +179,20 @@ class CollectionController extends Controller
 
         return redirect()->back()->with('success', 'Volume berhasil dihapus dari koleksi.');
     }
+
+    public function destroyVolumes(Request $request, Collection $collection): RedirectResponse
+    {
+        $this->authorize('update', $collection);
+
+        $request->validate([
+            'volume_ids'   => ['required', 'array', 'min:1'],
+            'volume_ids.*' => ['uuid'],
+        ]);
+
+        $deleted = $collection->collectionVolumes()
+            ->whereIn('id', $request->volume_ids)
+            ->delete();
+
+        return redirect()->back()->with('success', "{$deleted} volume berhasil dihapus dari koleksi.");
+    }
 }

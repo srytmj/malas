@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { BookOpen, Library } from 'lucide-react';
+import { BookOpen, ExternalLink, Library, Ticket } from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import { VolumeGrid } from '@/Components/app/VolumeGrid';
 import { SeriesStatusBadge, SeriesTypeBadge } from '@/Components/app/StatusBadge';
+import { Badge } from '@/Components/ui/badge';
 import { Button, buttonVariants } from '@/Components/ui/button';
 import { cn } from '@/lib/utils';
 import { PageProps } from '@/types';
@@ -21,6 +22,7 @@ interface VolumeRow {
 
 interface SeriesData {
     id: string;
+    anilist_id: number | null;
     title_romaji: string;
     title_english: string | null;
     title_japanese: string | null;
@@ -33,6 +35,10 @@ interface SeriesData {
     score: number | null;
     rank: number | null;
     cover_url: string | null;
+    genres: string[] | null;
+    authors: string[] | null;
+    themes: string[] | null;
+    demographics: string[] | null;
 }
 
 interface Props extends PageProps {
@@ -65,20 +71,29 @@ export default function CatalogShow({ series, volumes, collection }: Props) {
                         { label: series.title_romaji },
                     ]}
                     actions={
-                        collection ? (
+                        <div className="flex gap-2">
                             <Link
-                                href={route('collection.show', collection.id)}
+                                href={`${route('tickets.create')}?series_id=${series.id}`}
                                 className={cn(buttonVariants({ variant: 'outline' }))}
                             >
-                                <Library className="mr-1.5 h-4 w-4" />
-                                Lihat di Koleksi
+                                <Ticket className="mr-1.5 h-4 w-4" />
+                                Buat Tiket
                             </Link>
-                        ) : (
-                            <Button onClick={handleAddToCollection} disabled={adding}>
-                                <Library className="mr-1.5 h-4 w-4" />
-                                {adding ? 'Menambahkan...' : 'Tambah ke Koleksi'}
-                            </Button>
-                        )
+                            {collection ? (
+                                <Link
+                                    href={route('collection.show', collection.id)}
+                                    className={cn(buttonVariants({ variant: 'outline' }))}
+                                >
+                                    <Library className="mr-1.5 h-4 w-4" />
+                                    Lihat di Koleksi
+                                </Link>
+                            ) : (
+                                <Button onClick={handleAddToCollection} disabled={adding}>
+                                    <Library className="mr-1.5 h-4 w-4" />
+                                    {adding ? 'Menambahkan...' : 'Tambah ke Koleksi'}
+                                </Button>
+                            )}
+                        </div>
                     }
                 />
             }
@@ -99,11 +114,30 @@ export default function CatalogShow({ series, volumes, collection }: Props) {
                 <div className="space-y-3">
                     {series.title_english && <p className="text-muted-foreground">{series.title_english}</p>}
                     {series.title_japanese && <p className="text-sm text-muted-foreground">{series.title_japanese}</p>}
+                    {series.authors && series.authors.length > 0 && (
+                        <p className="text-sm text-muted-foreground">
+                            <span className="text-xs">Author:</span> {series.authors.join(', ')}
+                        </p>
+                    )}
 
                     <div className="flex flex-wrap gap-2">
                         <SeriesStatusBadge status={series.status} />
                         <SeriesTypeBadge type={series.type} />
+                        {series.demographics?.map((d) => (
+                            <Badge key={d} variant="secondary">{d}</Badge>
+                        ))}
                     </div>
+
+                    {((series.genres?.length ?? 0) > 0 || (series.themes?.length ?? 0) > 0) && (
+                        <div className="flex flex-wrap gap-1.5">
+                            {series.genres?.map((g) => (
+                                <Badge key={g} variant="outline">{g}</Badge>
+                            ))}
+                            {series.themes?.map((t) => (
+                                <Badge key={t} variant="outline" className="text-muted-foreground">{t}</Badge>
+                            ))}
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm sm:grid-cols-4">
                         <div>
@@ -131,6 +165,18 @@ export default function CatalogShow({ series, volumes, collection }: Props) {
 
                     {series.synopsis && (
                         <p className="text-sm text-muted-foreground leading-relaxed">{series.synopsis}</p>
+                    )}
+
+                    {series.anilist_id && (
+                        <a
+                            href={`https://anilist.co/manga/${series.anilist_id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
+                        >
+                            Lihat di AniList
+                            <ExternalLink className="h-3 w-3" />
+                        </a>
                     )}
                 </div>
             </div>

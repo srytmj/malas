@@ -4,13 +4,13 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Series;
-use App\Services\JikanService;
+use App\Services\AniListService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ImageSearchController extends Controller
 {
-    public function __construct(private JikanService $jikan) {}
+    public function __construct(private AniListService $anilist) {}
 
     public function search(Request $request): JsonResponse
     {
@@ -27,20 +27,18 @@ class ImageSearchController extends Controller
         $query = $query ?: $q;
 
         try {
-            $raw     = $this->jikan->searchManga($query, 1);
+            $raw     = $this->anilist->searchManga($query, 1);
             $results = [];
 
             foreach ($raw['data'] as $item) {
-                $large  = $item['images']['jpg']['large_image_url'] ?? null;
-                $normal = $item['images']['jpg']['image_url']       ?? null;
-                $thumb  = $item['images']['jpg']['small_image_url'] ?? $normal;
+                $image = $item['coverImage']['large'] ?? null;
 
-                if (! $normal) continue;
+                if (! $image) continue;
 
                 $results[] = [
-                    'thumbnail' => $thumb,
-                    'image'     => $large ?? $normal,
-                    'title'     => $item['title'] ?? '',
+                    'thumbnail' => $image,
+                    'image'     => $image,
+                    'title'     => $item['title']['romaji'] ?? '',
                 ];
             }
 

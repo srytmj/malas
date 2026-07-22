@@ -116,10 +116,15 @@ class SsoController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
+        // redirect_uri tells SSO where to send the browser back after it
+        // destroys its own session — without it, the SSO session survives
+        // and the next login silently succeeds without showing the login form.
+        $redirectUri = urlencode(url('/'));
+
         // Inertia's XHR-based router.post() can't follow a redirect to a
         // different origin (CORS). Inertia::location() forces the client
         // to do a real browser navigation instead.
-        return Inertia::location(config('sso.base_url').'/logout');
+        return Inertia::location(config('sso.base_url')."/logout?redirect_uri={$redirectUri}");
     }
 
     /**

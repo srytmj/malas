@@ -5,19 +5,20 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
-import { Badge } from '@/Components/ui/badge';
+import { SeriesStatusBadge, SeriesTypeBadge } from '@/Components/app/StatusBadge';
 import {
     Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/Components/ui/dialog';
 import { PageProps } from '@/types';
+import { type SeriesStatus, type SeriesType } from '@/lib/types';
 
-interface JikanResult {
-    mal_id: number;
+interface AniListResult {
+    anilist_id: number;
     title: string;
     title_english: string | null;
     cover_url: string | null;
-    type: string | null;
-    status: string | null;
+    type: SeriesType;
+    status: SeriesStatus;
     volumes: number | null;
     score: number | null;
     synopsis: string | null;
@@ -26,19 +27,19 @@ interface JikanResult {
 }
 
 interface Props extends PageProps {
-    results: JikanResult[];
+    results: AniListResult[];
     pagination: {
-        last_visible_page?: number;
-        has_next_page?: boolean;
-        current_page?: number;
+        lastPage?: number;
+        hasNextPage?: boolean;
+        currentPage?: number;
     };
     filters: { q: string };
     error: string | null;
 }
 
-export default function JikanIndex({ results, pagination, filters, error }: Props) {
+export default function AniListIndex({ results, pagination, filters, error }: Props) {
     const [search, setSearch]       = useState(filters.q);
-    const [preview, setPreview]     = useState<JikanResult | null>(null);
+    const [preview, setPreview]     = useState<AniListResult | null>(null);
     const [importing, setImporting] = useState(false);
     const debounceRef               = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -47,7 +48,7 @@ export default function JikanIndex({ results, pagination, filters, error }: Prop
         debounceRef.current = setTimeout(() => {
             if (search.trim()) {
                 router.get(
-                    route('admin.jikan.index'),
+                    route('admin.anilist.index'),
                     { q: search.trim() },
                     { preserveState: true, replace: true },
                 );
@@ -56,12 +57,12 @@ export default function JikanIndex({ results, pagination, filters, error }: Prop
         return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
     }, [search]);
 
-    function handleImport(item: JikanResult) {
+    function handleImport(item: AniListResult) {
         setImporting(true);
         router.post(
-            route('admin.jikan.import'),
+            route('admin.anilist.import'),
             {
-                mal_id:         item.mal_id,
+                anilist_id:     item.anilist_id,
                 title:          item.title,
                 title_english:  item.title_english,
                 cover_url:      item.cover_url,
@@ -80,24 +81,24 @@ export default function JikanIndex({ results, pagination, filters, error }: Prop
 
     function goToPage(page: number) {
         router.get(
-            route('admin.jikan.index'),
+            route('admin.anilist.index'),
             { q: search.trim(), page },
             { preserveState: true, replace: true },
         );
     }
 
-    const currentPage = pagination.current_page ?? 1;
+    const currentPage = pagination.currentPage ?? 1;
 
     return (
         <AdminLayout
             header={
                 <PageHeader
-                    title="Import dari MyAnimeList"
-                    description="Cari dan import data manga/manhwa dari Jikan API (MyAnimeList)"
+                    title="Import dari AniList"
+                    description="Cari dan import data manga/manhwa/manhua dari AniList"
                 />
             }
         >
-            <Head title="Jikan Search" />
+            <Head title="Cari Manga (AniList)" />
             {/* Search */}
             <div className="relative mb-6 max-w-lg">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -117,7 +118,7 @@ export default function JikanIndex({ results, pagination, filters, error }: Prop
                     <button
                         type="button"
                         className="ml-auto flex items-center gap-1 hover:underline"
-                        onClick={() => router.get(route('admin.jikan.index'), { q: search }, { preserveState: true })}
+                        onClick={() => router.get(route('admin.anilist.index'), { q: search }, { preserveState: true })}
                     >
                         <RefreshCw className="h-3 w-3" /> Coba lagi
                     </button>
@@ -138,7 +139,7 @@ export default function JikanIndex({ results, pagination, filters, error }: Prop
                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                         {results.map((item) => (
                             <button
-                                key={item.mal_id}
+                                key={item.anilist_id}
                                 type="button"
                                 onClick={() => setPreview(item)}
                                 className="group flex flex-col overflow-hidden rounded-lg border bg-card text-left transition-shadow hover:shadow-md focus:outline-none"
@@ -174,9 +175,9 @@ export default function JikanIndex({ results, pagination, filters, error }: Prop
                                 {/* Info */}
                                 <div className="flex flex-col gap-1 p-3">
                                     <p className="line-clamp-2 text-sm font-medium leading-tight">{item.title}</p>
-                                    {item.type && (
-                                        <Badge variant="outline" className="w-fit text-xs">{item.type}</Badge>
-                                    )}
+                                    <div className="flex flex-wrap gap-1">
+                                        <SeriesTypeBadge type={item.type} />
+                                    </div>
                                     {item.volumes && (
                                         <p className="text-xs text-muted-foreground">{item.volumes} vol</p>
                                     )}
@@ -186,7 +187,7 @@ export default function JikanIndex({ results, pagination, filters, error }: Prop
                     </div>
 
                     {/* Pagination */}
-                    {(pagination.current_page ?? 1) > 1 || pagination.has_next_page ? (
+                    {(pagination.currentPage ?? 1) > 1 || pagination.hasNextPage ? (
                         <div className="mt-6 flex items-center justify-center gap-2">
                             <Button
                                 variant="outline"
@@ -200,7 +201,7 @@ export default function JikanIndex({ results, pagination, filters, error }: Prop
                             <Button
                                 variant="outline"
                                 size="sm"
-                                disabled={!pagination.has_next_page}
+                                disabled={!pagination.hasNextPage}
                                 onClick={() => goToPage(currentPage + 1)}
                             >
                                 Berikutnya
@@ -231,8 +232,8 @@ export default function JikanIndex({ results, pagination, filters, error }: Prop
                             )}
                             <div className="space-y-2 text-sm">
                                 <div className="flex flex-wrap gap-1.5">
-                                    {preview.type && <Badge variant="outline">{preview.type}</Badge>}
-                                    {preview.status && <Badge variant="secondary">{preview.status}</Badge>}
+                                    <SeriesTypeBadge type={preview.type} />
+                                    <SeriesStatusBadge status={preview.status} />
                                 </div>
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                                     <div>
@@ -244,8 +245,8 @@ export default function JikanIndex({ results, pagination, filters, error }: Prop
                                         <p className="font-medium">{preview.score ?? '—'}</p>
                                     </div>
                                     <div>
-                                        <p className="text-muted-foreground">MAL ID</p>
-                                        <p className="font-medium">{preview.mal_id}</p>
+                                        <p className="text-muted-foreground">AniList ID</p>
+                                        <p className="font-medium">{preview.anilist_id}</p>
                                     </div>
                                     <div>
                                         <p className="text-muted-foreground">Terbit</p>

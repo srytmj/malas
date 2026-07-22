@@ -1,5 +1,8 @@
 import { Badge } from '@/Components/ui/badge';
-import { type SeriesStatus, type SeriesType, type VolumeType, type CollectionVolumeFormat } from '@/lib/types';
+import {
+    type SeriesStatus, type SeriesType, type VolumeType, type CollectionVolumeFormat,
+    type TicketStatus, type TicketType,
+} from '@/lib/types';
 
 const STATUS_MAP: Record<SeriesStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
     publishing:        { label: 'Publishing',    variant: 'default' },
@@ -47,4 +50,26 @@ const FORMAT_MAP: Record<CollectionVolumeFormat, { label: string; className: str
 export function VolumeFormatBadge({ format }: { format: CollectionVolumeFormat }) {
     const config = FORMAT_MAP[format] ?? { label: format, className: '' };
     return <Badge variant="outline" className={`text-xs ${config.className}`}>{config.label}</Badge>;
+}
+
+const TICKET_STATUS_MAP: Record<TicketStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+    open:        { label: 'Terbuka',    variant: 'default' },
+    in_progress: { label: 'Diproses',   variant: 'outline' },
+    resolved:    { label: 'Selesai',    variant: 'secondary' },
+    closed:      { label: 'Ditutup',    variant: 'destructive' },
+};
+
+const TICKET_TYPE_MAP: Record<TicketType, string> = {
+    catalog_request: 'Request Katalog',
+    title_revision:  'Revisi Judul',
+    other:           'Lainnya',
+};
+
+export function TicketStatusBadge({ status }: { status: TicketStatus }) {
+    const config = TICKET_STATUS_MAP[status] ?? { label: status, variant: 'outline' as const };
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+}
+
+export function TicketTypeBadge({ type }: { type: TicketType }) {
+    return <Badge variant="outline">{TICKET_TYPE_MAP[type] ?? type}</Badge>;
 }

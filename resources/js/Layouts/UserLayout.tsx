@@ -2,10 +2,11 @@ import { PropsWithChildren, ReactNode, useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import {
     BookOpen, HandCoins, LayoutDashboard, Library, LogOut,
-    Menu as MenuIcon, Moon, Settings, Sun, X,
+    Menu as MenuIcon, Moon, Settings, Sun, Ticket, X,
     type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
+import { ScrollArea } from '@/Components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
 import { useFlash } from '@/hooks/useFlash';
@@ -18,6 +19,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
     'library':          Library,
     'hand-coins':       HandCoins,
     'settings':         Settings,
+    'ticket':           Ticket,
 };
 
 function NavItem({ item, onClick }: { item: MenuItem; onClick?: () => void }) {
@@ -57,13 +59,15 @@ function SidebarContent({ menus, onNavClick }: { menus: MenuItem[]; onNavClick?:
                 <span className="text-base font-bold tracking-tight">MALAS</span>
             </div>
 
-            <nav className="flex-1 overflow-y-auto px-2 py-3">
-                <div className="space-y-0.5">
-                    {menus.map(item => (
-                        <NavItem key={item.key} item={item} onClick={onNavClick} />
-                    ))}
-                </div>
-            </nav>
+            <ScrollArea className="min-h-0 flex-1">
+                <nav className="px-2 py-3">
+                    <div className="space-y-0.5">
+                        {menus.map(item => (
+                            <NavItem key={item.key} item={item} onClick={onNavClick} />
+                        ))}
+                    </div>
+                </nav>
+            </ScrollArea>
 
             <div className="border-t px-2 py-3 space-y-0.5">
                 <Button
@@ -155,9 +159,11 @@ export default function UserLayout({ children, header }: UserLayoutProps) {
                     </div>
                 )}
 
-                <main className="flex-1 overflow-y-auto p-6">
-                    {children}
-                </main>
+                <ScrollArea className="min-h-0 flex-1">
+                    <main className="p-6">
+                        {children}
+                    </main>
+                </ScrollArea>
             </div>
         </div>
     );

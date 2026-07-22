@@ -7,6 +7,7 @@ import EmptyState from '@/Components/app/EmptyState';
 import { SeriesStatusBadge } from '@/Components/app/StatusBadge';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
+import { ScrollArea } from '@/Components/ui/scroll-area';
 import {
     Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/Components/ui/dialog';
@@ -42,6 +43,14 @@ interface Props extends PageProps {
 export default function CollectionIndex({ collections }: Props) {
     const [deleteTarget, setDeleteTarget]   = useState<CollectionRow | null>(null);
     const [deleting, setDeleting]           = useState(false);
+    const [filterQuery, setFilterQuery]     = useState('');
+
+    const filteredCollections = collections.filter((c) => {
+        const q = filterQuery.trim().toLowerCase();
+        if (!q) return true;
+        return c.title_romaji.toLowerCase().includes(q)
+            || (c.title_english?.toLowerCase().includes(q) ?? false);
+    });
 
     // Add series dialog
     const [addOpen, setAddOpen]             = useState(false);
@@ -138,8 +147,24 @@ export default function CollectionIndex({ collections }: Props) {
                     }
                 />
             ) : (
+                <>
+                    <div className="relative mb-4 max-w-sm">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            className="pl-9"
+                            placeholder="Cari di koleksimu..."
+                            value={filterQuery}
+                            onChange={(e) => setFilterQuery(e.target.value)}
+                        />
+                    </div>
+
+                    {filteredCollections.length === 0 ? (
+                        <p className="py-12 text-center text-sm text-muted-foreground">
+                            Tidak ada koleksi yang cocok dengan "{filterQuery}".
+                        </p>
+                    ) : (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {collections.map((c) => (
+                    {filteredCollections.map((c) => (
                         <div
                             key={c.id}
                             className="flex overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-sm cursor-pointer"
@@ -184,6 +209,8 @@ export default function CollectionIndex({ collections }: Props) {
                         </div>
                     ))}
                 </div>
+                    )}
+                </>
             )}
 
             {/* Add Series Dialog */}
@@ -205,7 +232,7 @@ export default function CollectionIndex({ collections }: Props) {
                         />
                     </div>
 
-                    <div className="max-h-[380px] overflow-y-auto">
+                    <ScrollArea className="max-h-[380px]">
                         {searchLoading && (
                             <div className="flex items-center justify-center py-10 text-muted-foreground">
                                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -268,7 +295,7 @@ export default function CollectionIndex({ collections }: Props) {
                                 })}
                             </div>
                         )}
-                    </div>
+                    </ScrollArea>
 
                     <DialogFooter className="items-center gap-2">
                         {selectedIds.size > 0 && (

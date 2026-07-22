@@ -7,7 +7,7 @@ import { BookOpen, Save, X, Plus, Pencil, Trash2, ImageIcon, RefreshCw, Loader2,
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import EmptyState from '@/Components/app/EmptyState';
-import { VolumeTypeBadge } from '@/Components/app/StatusBadge';
+import { SeriesTypeBadge, VolumeTypeBadge } from '@/Components/app/StatusBadge';
 import { Button, buttonVariants } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Textarea } from '@/Components/ui/textarea';
@@ -29,41 +29,18 @@ import { cn } from '@/lib/utils';
 import { PageProps } from '@/types';
 import { type SeriesStatus, type SeriesType, type VolumeType } from '@/lib/types';
 
-interface JikanResult {
-    mal_id: number;
+interface AniListResult {
+    anilist_id: number;
     title: string;
     title_english: string | null;
     cover_url: string | null;
-    type: string | null;
-    status: string | null;
+    type: SeriesType;
+    status: SeriesStatus;
     volumes: number | null;
     score: number | null;
     synopsis: string | null;
     published_from: string | null;
     already_imported: boolean;
-}
-
-function mapJikanStatus(s: string | null): SeriesStatus {
-    switch (s) {
-        case 'Publishing':        return 'publishing';
-        case 'Finished':          return 'finished';
-        case 'On Hiatus':         return 'on_hiatus';
-        case 'Discontinued':      return 'discontinued';
-        case 'Not yet published': return 'not_yet_published';
-        default:                  return 'publishing';
-    }
-}
-
-function mapJikanType(t: string | null): SeriesType {
-    switch (t) {
-        case 'Manhwa':      return 'manhwa';
-        case 'Manhua':      return 'manhua';
-        case 'Novel':
-        case 'Light Novel': return 'novel';
-        case 'One-shot':    return 'one_shot';
-        case 'Doujinshi':   return 'doujinshi';
-        default:            return 'manga';
-    }
 }
 
 interface VolumeRow {
@@ -142,10 +119,10 @@ export default function SeriesEdit({ series, volumes }: Props) {
     const [coverSearchLoading, setCoverSearchLoading] = useState(false);
     const [coverSearchError, setCoverSearchError]     = useState<string | null>(null);
 
-    // Jikan sync dialog state
+    // AniList sync dialog state
     const [syncOpen, setSyncOpen]           = useState(false);
     const [syncQuery, setSyncQuery]         = useState('');
-    const [syncResults, setSyncResults]     = useState<JikanResult[]>([]);
+    const [syncResults, setSyncResults]     = useState<AniListResult[]>([]);
     const [syncLoading, setSyncLoading]     = useState(false);
     const [syncError, setSyncError]         = useState<string | null>(null);
 
@@ -342,33 +319,12 @@ export default function SeriesEdit({ series, volumes }: Props) {
         setCoverSearchOpen(true);
     }
 
-    async function openVolumeCoverSearch() {
+    function openVolumeCoverSearch() {
         setCoverSearchTarget('volume');
         setCoverSearchError(null);
         setCoverSearchOpen(true);
-
-        if (series.mal_id) {
-            // Punya MAL ID → langsung ambil semua gambar manga ini dari Jikan
-            setCoverSearchQuery('');
-            setCoverSearchResults([]);
-            setCoverSearchLoading(true);
-            try {
-                const url = new URL(route('admin.jikan.pictures'), window.location.origin);
-                url.searchParams.set('mal_id', String(series.mal_id));
-                const res  = await fetch(url.toString(), { credentials: 'same-origin' });
-                const data: { results: typeof coverSearchResults; error: string | null } = await res.json();
-                setCoverSearchResults(data.results);
-                setCoverSearchError(data.error);
-            } catch {
-                setCoverSearchError('Gagal memuat gambar dari Jikan.');
-            } finally {
-                setCoverSearchLoading(false);
-            }
-        } else {
-            // Tidak ada MAL ID → buka dengan query search biasa
-            setCoverSearchQuery(`manga cover ${titleRomaji}`);
-            setCoverSearchResults([]);
-        }
+        setCoverSearchQuery(`manga cover ${titleRomaji}`);
+        setCoverSearchResults([]);
     }
 
     function applyCoverImage(imageUrl: string) {
@@ -416,7 +372,7 @@ export default function SeriesEdit({ series, volumes }: Props) {
         setSyncOpen(true);
     }
 
-    // Debounced Jikan search via JSON endpoint
+    // Debounced AniList search via JSON endpoint
     useEffect(() => {
         if (!syncOpen || !syncQuery.trim()) {
             setSyncResults([]);
@@ -425,10 +381,10 @@ export default function SeriesEdit({ series, volumes }: Props) {
         setSyncLoading(true);
         const t = setTimeout(async () => {
             try {
-                const url = new URL(route('admin.jikan.search'), window.location.origin);
+                const url = new URL(route('admin.anilist.search'), window.location.origin);
                 url.searchParams.set('q', syncQuery.trim());
                 const res = await fetch(url.toString(), { credentials: 'same-origin' });
-                const data: { results: JikanResult[]; error: string | null } = await res.json();
+                const data: { results: AniListResult[]; error: string | null } = await res.json();
                 setSyncResults(data.results);
                 setSyncError(data.error);
             } catch {
@@ -441,12 +397,12 @@ export default function SeriesEdit({ series, volumes }: Props) {
         return () => clearTimeout(t);
     }, [syncQuery, syncOpen]);
 
-    // Apply Jikan result to form
-    function applySync(item: JikanResult) {
+    // Apply AniList result to form
+    function applySync(item: AniListResult) {
         setValue('title_romaji',   item.title);
         setValue('title_english',  item.title_english  ?? '');
-        setValue('status',         mapJikanStatus(item.status));
-        setValue('type',           mapJikanType(item.type));
+        setValue('status',         item.status);
+        setValue('type',           item.type);
         setValue('total_volumes',  item.volumes ? String(item.volumes) : '');
         setValue('score',          item.score   ? String(item.score)   : '');
         setValue('synopsis',       item.synopsis       ?? '');
@@ -477,7 +433,7 @@ export default function SeriesEdit({ series, volumes }: Props) {
                                 onClick={openSync}
                             >
                                 <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-                                Sync Jikan
+                                Sync AniList
                             </Button>
                             <Button
                                 form="series-edit-form"
@@ -857,21 +813,14 @@ export default function SeriesEdit({ series, volumes }: Props) {
                         <DialogTitle>Cari Gambar Cover</DialogTitle>
                     </DialogHeader>
 
-                    {/* Kalau volume + ada mal_id: tampilkan label, search tetap bisa dipakai untuk override */}
-                    {coverSearchTarget === 'volume' && series.mal_id && coverSearchResults.length > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                            Menampilkan semua gambar untuk <strong>{series.title_romaji}</strong> dari MyAnimeList.
-                            Ketik di bawah untuk mencari gambar lain.
-                        </p>
-                    )}
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             className="pl-9"
-                            placeholder="Cari gambar lain..."
+                            placeholder="Cari gambar..."
                             value={coverSearchQuery}
                             onChange={(e) => setCoverSearchQuery(e.target.value)}
-                            autoFocus={!(coverSearchTarget === 'volume' && series.mal_id)}
+                            autoFocus
                         />
                     </div>
 
@@ -1038,11 +987,11 @@ export default function SeriesEdit({ series, volumes }: Props) {
                 </SheetContent>
             </Sheet>
 
-            {/* Jikan Sync Dialog */}
+            {/* AniList Sync Dialog */}
             <Dialog open={syncOpen} onOpenChange={(open) => { setSyncOpen(open); if (!open) { setSyncQuery(''); setSyncResults([]); } }}>
                 <DialogContent className="max-w-2xl">
                     <DialogHeader>
-                        <DialogTitle>Sync dari Jikan / MyAnimeList</DialogTitle>
+                        <DialogTitle>Sync dari AniList</DialogTitle>
                     </DialogHeader>
 
                     {/* Search input */}
@@ -1078,7 +1027,7 @@ export default function SeriesEdit({ series, volumes }: Props) {
                             <div className="grid grid-cols-3 gap-3 pb-1">
                                 {syncResults.map((item) => (
                                     <button
-                                        key={item.mal_id}
+                                        key={item.anilist_id}
                                         type="button"
                                         onClick={() => applySync(item)}
                                         className="group flex flex-col overflow-hidden rounded-lg border bg-card text-left transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ring"
@@ -1103,9 +1052,9 @@ export default function SeriesEdit({ series, volumes }: Props) {
                                         </div>
                                         <div className="p-2 text-xs">
                                             <p className="line-clamp-2 font-medium leading-tight">{item.title}</p>
-                                            {item.type && (
-                                                <p className="mt-0.5 text-muted-foreground">{item.type}</p>
-                                            )}
+                                            <div className="mt-1">
+                                                <SeriesTypeBadge type={item.type} />
+                                            </div>
                                         </div>
                                     </button>
                                 ))}
@@ -1114,7 +1063,7 @@ export default function SeriesEdit({ series, volumes }: Props) {
                     </div>
 
                     <p className="text-xs text-muted-foreground">
-                        Klik salah satu hasil untuk mengisi form dengan data dari MyAnimeList. Data belum disimpan sampai kamu klik Simpan.
+                        Klik salah satu hasil untuk mengisi form dengan data dari AniList. Data belum disimpan sampai kamu klik Simpan.
                     </p>
                 </DialogContent>
             </Dialog>

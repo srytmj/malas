@@ -6,6 +6,8 @@ export type SeriesType            = 'manga' | 'manhwa' | 'manhua' | 'novel' | 'o
 export type VolumeType            = 'regular' | 'digital' | 'bind_up';
 export type CollectionCondition   = 'mint' | 'good' | 'fair' | 'poor';
 export type CollectionVolumeFormat = 'physical' | 'ebook' | 'online' | 'webtoon';
+export type TicketType            = 'catalog_request' | 'title_revision' | 'other';
+export type TicketStatus          = 'open' | 'in_progress' | 'resolved' | 'closed';
 
 export interface Series {
     id: string;

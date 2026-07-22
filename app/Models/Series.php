@@ -14,6 +14,7 @@ class Series extends Model
 
     protected $fillable = [
         'mal_id',
+        'anilist_id',
         'title_romaji',
         'title_english',
         'title_japanese',
@@ -26,6 +27,10 @@ class Series extends Model
         'total_volumes',
         'score',
         'rank',
+        'genres',
+        'authors',
+        'themes',
+        'demographics',
     ];
 
     protected function casts(): array
@@ -35,6 +40,10 @@ class Series extends Model
             'published_to'   => 'date',
             'score'          => 'decimal:2',
             'deleted_at'     => 'datetime',
+            'genres'         => 'array',
+            'authors'        => 'array',
+            'themes'         => 'array',
+            'demographics'   => 'array',
         ];
     }
 

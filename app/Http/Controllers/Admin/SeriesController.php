@@ -93,6 +93,7 @@ class SeriesController extends Controller
                 ...$series->only([
                     'id', 'title_romaji', 'title_english', 'title_japanese',
                     'synopsis', 'status', 'type', 'total_volumes', 'score', 'rank',
+                    'genres', 'authors', 'themes', 'demographics',
                 ]),
                 'published_from' => $series->published_from?->toDateString(),
                 'published_to'   => $series->published_to?->toDateString(),
