@@ -7,10 +7,12 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\Response;
 
 class SsoController extends Controller
 {
-    public function redirect(): RedirectResponse
+    public function redirect(): Response
     {
         $codeVerifier = bin2hex(random_bytes(32));
         $codeChallenge = rtrim(
@@ -34,7 +36,10 @@ class SsoController extends Controller
             'state'                 => $state,
         ]);
 
-        return redirect(config('sso.base_url').'/oauth/authorize?'.$query);
+        // Inertia::location() forces a real browser navigation instead of an
+        // XHR follow, which would fail cross-origin (CORS) when this route
+        // is reached via an Inertia request (e.g. expired-session redirect).
+        return Inertia::location(config('sso.base_url').'/oauth/authorize?'.$query);
     }
 
     public function callback(Request $request): RedirectResponse
@@ -104,14 +109,17 @@ class SsoController extends Controller
         return redirect()->intended($default);
     }
 
-    public function logout(Request $request): RedirectResponse
+    public function logout(Request $request): Response
     {
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect(config('sso.base_url').'/logout');
+        // Inertia's XHR-based router.post() can't follow a redirect to a
+        // different origin (CORS). Inertia::location() forces the client
+        // to do a real browser navigation instead.
+        return Inertia::location(config('sso.base_url').'/logout');
     }
 
     /**
