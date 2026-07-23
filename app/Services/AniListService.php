@@ -5,7 +5,6 @@ namespace App\Services;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
 
 class AniListService
 {
@@ -34,6 +33,8 @@ class AniListService
             isMediaSpoiler
         }
     GRAPHQL;
+
+    public function __construct(private StorageSettingsService $storage) {}
 
     public function searchManga(string $query, int $page = 1): array
     {
@@ -150,11 +151,8 @@ class AniListService
             }
 
             $extension = pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
-            $path = 'covers/' . $filename . '.' . $extension;
 
-            Storage::disk(config('filesystems.cover_disk', 'public'))->put($path, $response->body());
-
-            return $path;
+            return $this->storage->storeContents('covers', $filename.'.'.$extension, $response->body());
         } catch (ConnectionException) {
             return null;
         }

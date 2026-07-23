@@ -6,14 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTicketRequest;
 use App\Models\Series;
 use App\Models\Ticket;
+use App\Services\StorageSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class TicketController extends Controller
 {
+    public function __construct(private StorageSettingsService $storage) {}
+
     public function index(): Response
     {
         $tickets = auth()->user()
@@ -51,7 +53,7 @@ class TicketController extends Controller
             'series' => $series ? [
                 'id'           => $series->id,
                 'title_romaji' => $series->title_romaji,
-                'cover_url'    => $series->cover_path ? Storage::url($series->cover_path) : null,
+                'cover_url'    => $this->storage->url($series->cover_path),
             ] : null,
         ]);
     }

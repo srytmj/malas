@@ -10,13 +10,13 @@ export function Pagination<T>({ data }: PaginationProps<T>) {
     if (data.last_page <= 1) return null;
 
     return (
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-muted-foreground">
                 {data.from !== null && data.to !== null
                     ? `Menampilkan ${data.from}–${data.to} dari ${data.total}`
                     : `Total ${data.total}`}
             </p>
-            <div className="flex items-center gap-1">
+            <div className="flex flex-wrap items-center gap-1">
                 {data.links.map((link, i) => (
                     link.url ? (
                         <Link

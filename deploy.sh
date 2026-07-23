@@ -1,0 +1,241 @@
+#!/usr/bin/env bash
+# =============================================================================
+# MALAS — Deploy Script (Ubuntu Server 24)
+# Jalankan dari root direktori project: bash deploy.sh
+# =============================================================================
+set -euo pipefail
+
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'
+BOLD='\033[1m'; NC='\033[0m'
+
+info()    { echo -e "${BLUE}[INFO]${NC} $*"; }
+success() { echo -e "${GREEN}[OK]${NC} $*"; }
+warn()    { echo -e "${YELLOW}[WARN]${NC} $*"; }
+error()   { echo -e "${RED}[ERROR]${NC} $*"; exit 1; }
+step()    { echo -e "\n${BOLD}▶ $*${NC}"; }
+
+# Harus dijalankan dari root project
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+[[ -f "artisan" ]] || error "Script harus dijalankan dari root direktori project MALAS."
+
+# =============================================================================
+step "Cek hak akses"
+# =============================================================================
+if [[ $EUID -ne 0 ]]; then
+    SUDO="sudo"
+    info "Tidak root — akan pakai sudo untuk instalasi sistem."
+else
+    SUDO=""
+fi
+
+# =============================================================================
+step "Install dependency sistem"
+# =============================================================================
+info "Update package list..."
+$SUDO apt-get update -qq
+
+info "Install Nginx, PHP 8.2, MySQL 8, Node 20, Composer..."
+$SUDO apt-get install -y -qq \
+    nginx \
+    mysql-server \
+    php8.2 php8.2-fpm php8.2-mysql php8.2-mbstring php8.2-xml \
+    php8.2-bcmath php8.2-curl php8.2-zip php8.2-intl php8.2-sqlite3 \
+    unzip curl git
+
+# Node 20 via NodeSource
+if ! command -v node &>/dev/null || [[ $(node -v | cut -d. -f1 | tr -d 'v') -lt 20 ]]; then
+    info "Install Node.js 20..."
+    curl -fsSL https://deb.nodesource.com/setup_20.x | $SUDO bash - -s -- -y
+    $SUDO apt-get install -y -qq nodejs
+fi
+
+# Composer
+if ! command -v composer &>/dev/null; then
+    info "Install Composer..."
+    curl -sS https://getcomposer.org/installer | php
+    $SUDO mv composer.phar /usr/local/bin/composer
+fi
+
+success "Dependency sistem terpasang."
+
+# =============================================================================
+step "Konfigurasi MySQL"
+# =============================================================================
+echo ""
+read -rp "Nama database [malas_prod]: " DB_DATABASE
+DB_DATABASE="${DB_DATABASE:-malas_prod}"
+
+read -rp "Username database [malas]: " DB_USERNAME
+DB_USERNAME="${DB_USERNAME:-malas}"
+
+while true; do
+    read -rsp "Password database: " DB_PASSWORD
+    echo ""
+    read -rsp "Konfirmasi password: " DB_PASSWORD2
+    echo ""
+    [[ "$DB_PASSWORD" == "$DB_PASSWORD2" ]] && break
+    warn "Password tidak cocok, coba lagi."
+done
+
+info "Membuat database dan user MySQL..."
+$SUDO mysql -e "CREATE DATABASE IF NOT EXISTS \`${DB_DATABASE}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+$SUDO mysql -e "CREATE USER IF NOT EXISTS '${DB_USERNAME}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';"
+$SUDO mysql -e "GRANT ALL PRIVILEGES ON \`${DB_DATABASE}\`.* TO '${DB_USERNAME}'@'localhost';"
+$SUDO mysql -e "FLUSH PRIVILEGES;"
+success "Database '${DB_DATABASE}' siap."
+
+# =============================================================================
+step "Setup file .env"
+# =============================================================================
+if [[ ! -f ".env" ]]; then
+    cp .env.example .env
+    info "File .env dibuat dari .env.example."
+fi
+
+read -rp "Domain / IP server (contoh: malas.example.com atau 123.45.67.89): " APP_DOMAIN
+
+# Update .env
+sed -i "s|APP_ENV=.*|APP_ENV=production|"             .env
+sed -i "s|APP_DEBUG=.*|APP_DEBUG=false|"              .env
+sed -i "s|APP_URL=.*|APP_URL=https://${APP_DOMAIN}|"  .env
+sed -i "s|LOG_LEVEL=.*|LOG_LEVEL=error|"              .env
+sed -i "s|DB_CONNECTION=.*|DB_CONNECTION=mysql|"      .env
+
+# Tambah / update DB config
+grep -q "^DB_HOST="     .env && sed -i "s|DB_HOST=.*|DB_HOST=127.0.0.1|"          .env || echo "DB_HOST=127.0.0.1"     >> .env
+grep -q "^DB_PORT="     .env && sed -i "s|DB_PORT=.*|DB_PORT=3306|"               .env || echo "DB_PORT=3306"           >> .env
+grep -q "^DB_DATABASE=" .env && sed -i "s|DB_DATABASE=.*|DB_DATABASE=${DB_DATABASE}|" .env || echo "DB_DATABASE=${DB_DATABASE}" >> .env
+grep -q "^DB_USERNAME=" .env && sed -i "s|DB_USERNAME=.*|DB_USERNAME=${DB_USERNAME}|" .env || echo "DB_USERNAME=${DB_USERNAME}" >> .env
+grep -q "^DB_PASSWORD=" .env && sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=${DB_PASSWORD}|" .env || echo "DB_PASSWORD=${DB_PASSWORD}" >> .env
+
+echo ""
+warn "SSO credentials wajib diisi agar login berfungsi."
+read -rp "SSO_CLIENT_ID: " SSO_CLIENT_ID
+read -rsp "SSO_CLIENT_SECRET: " SSO_CLIENT_SECRET
+echo ""
+read -rp "SSO_REDIRECT_URI [https://${APP_DOMAIN}/auth/callback]: " SSO_REDIRECT
+SSO_REDIRECT="${SSO_REDIRECT:-https://${APP_DOMAIN}/auth/callback}"
+
+grep -q "^SSO_CLIENT_ID="     .env && sed -i "s|SSO_CLIENT_ID=.*|SSO_CLIENT_ID=${SSO_CLIENT_ID}|"         .env || echo "SSO_CLIENT_ID=${SSO_CLIENT_ID}"     >> .env
+grep -q "^SSO_CLIENT_SECRET=" .env && sed -i "s|SSO_CLIENT_SECRET=.*|SSO_CLIENT_SECRET=${SSO_CLIENT_SECRET}|" .env || echo "SSO_CLIENT_SECRET=${SSO_CLIENT_SECRET}" >> .env
+grep -q "^SSO_REDIRECT_URI="  .env && sed -i "s|SSO_REDIRECT_URI=.*|SSO_REDIRECT_URI=${SSO_REDIRECT}|"    .env || echo "SSO_REDIRECT_URI=${SSO_REDIRECT}"    >> .env
+
+sed -i "s|SESSION_ENCRYPT=.*|SESSION_ENCRYPT=true|"  .env
+
+success ".env dikonfigurasi."
+
+# =============================================================================
+step "Install PHP dependencies"
+# =============================================================================
+composer install --no-dev --optimize-autoloader --no-interaction
+success "Composer install selesai."
+
+# =============================================================================
+step "Generate application key"
+# =============================================================================
+grep -q "^APP_KEY=base64:" .env || php artisan key:generate
+success "APP_KEY siap."
+
+# =============================================================================
+step "Build frontend assets"
+# =============================================================================
+npm ci
+npm run build
+success "Frontend build selesai."
+
+# =============================================================================
+step "Database migration & seeding"
+# =============================================================================
+php artisan migrate --force
+php artisan db:seed --class=MenuSeeder --force
+success "Migration dan seeding selesai."
+
+# =============================================================================
+step "Setup storage symlink & cache"
+# =============================================================================
+php artisan storage:link || true
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+php artisan optimize
+success "Cache dan storage siap."
+
+# =============================================================================
+step "Set permission file"
+# =============================================================================
+$SUDO chown -R www-data:www-data storage bootstrap/cache
+$SUDO chmod -R 775 storage bootstrap/cache
+success "Permission diset ke www-data."
+
+# =============================================================================
+step "Konfigurasi Nginx"
+# =============================================================================
+PROJECT_PATH="$SCRIPT_DIR"
+NGINX_CONF="/etc/nginx/sites-available/malas"
+
+$SUDO tee "$NGINX_CONF" > /dev/null <<NGINX
+server {
+    listen 80;
+    server_name ${APP_DOMAIN};
+    root ${PROJECT_PATH}/public;
+    index index.php;
+
+    add_header X-Frame-Options "SAMEORIGIN";
+    add_header X-Content-Type-Options "nosniff";
+
+    charset utf-8;
+
+    location / {
+        try_files \$uri \$uri/ /index.php?\$query_string;
+    }
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location = /robots.txt  { access_log off; log_not_found off; }
+
+    error_page 404 /index.php;
+
+    location ~ \.php$ {
+        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME \$realpath_root\$fastcgi_script_name;
+        include fastcgi_params;
+        fastcgi_hide_header X-Powered-By;
+    }
+
+    location ~ /\.(?!well-known).* {
+        deny all;
+    }
+}
+NGINX
+
+$SUDO ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/malas
+$SUDO rm -f /etc/nginx/sites-enabled/default
+$SUDO nginx -t && $SUDO systemctl reload nginx
+$SUDO systemctl enable nginx php8.2-fpm mysql
+success "Nginx dikonfigurasi untuk ${APP_DOMAIN}."
+
+# =============================================================================
+echo ""
+echo -e "${GREEN}${BOLD}╔═══════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}${BOLD}║   MALAS berhasil di-deploy!               ║${NC}"
+echo -e "${GREEN}${BOLD}╚═══════════════════════════════════════════╝${NC}"
+echo ""
+echo -e "  URL         : http://${APP_DOMAIN}  (belum HTTPS)"
+echo -e "  Project dir : ${PROJECT_PATH}"
+echo ""
+echo -e "${BOLD}Langkah selanjutnya (pilih salah satu):${NC}"
+echo ""
+echo -e "  ${BOLD}A. Cloudflare Tunnel (rekomendasi — tanpa perlu IP publik):${NC}"
+echo -e "     1. Install: curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared && chmod +x /usr/local/bin/cloudflared"
+echo -e "     2. Login : cloudflared tunnel login"
+echo -e "     3. Buat  : cloudflared tunnel create malas"
+echo -e "     4. Route : cloudflared tunnel route dns malas ${APP_DOMAIN}"
+echo -e "     5. Jalankan: cloudflared tunnel run --url http://localhost:80 malas"
+echo ""
+echo -e "  ${BOLD}B. SSL langsung (butuh IP publik):${NC}"
+echo -e "     sudo apt install certbot python3-certbot-nginx"
+echo -e "     sudo certbot --nginx -d ${APP_DOMAIN}"
+echo ""
+echo -e "Untuk update kode di masa mendatang, jalankan: ${BOLD}bash update.sh${NC}"
+echo ""

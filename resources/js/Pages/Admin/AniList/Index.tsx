@@ -1,14 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Head, router } from '@inertiajs/react';
-import { Search, BookOpen, Download, RefreshCw, CheckCircle } from 'lucide-react';
+import { Search, BookOpen, Download, RefreshCw, CheckCircle, X } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { SeriesStatusBadge, SeriesTypeBadge } from '@/Components/app/StatusBadge';
-import {
-    Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from '@/Components/ui/dialog';
 import { PageProps } from '@/types';
 import { type SeriesStatus, type SeriesType } from '@/lib/types';
 
@@ -138,51 +135,113 @@ export default function AniListIndex({ results, pagination, filters, error }: Pr
                 <>
                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                         {results.map((item) => (
-                            <button
-                                key={item.anilist_id}
-                                type="button"
-                                onClick={() => setPreview(item)}
-                                className="group flex flex-col overflow-hidden rounded-lg border bg-card text-left transition-shadow hover:shadow-md focus:outline-none"
-                            >
-                                {/* Cover */}
-                                <div className="relative aspect-[2/3] overflow-hidden bg-muted">
-                                    {item.cover_url ? (
-                                        <img
-                                            src={item.cover_url}
-                                            alt={item.title}
-                                            className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
-                                        />
-                                    ) : (
-                                        <div className="flex h-full items-center justify-center">
-                                            <BookOpen className="h-8 w-8 text-muted-foreground/30" />
-                                        </div>
-                                    )}
-                                    {item.already_imported && (
-                                        <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/60 to-transparent p-2">
-                                            <span className="flex items-center gap-1 text-xs font-medium text-white">
-                                                <CheckCircle className="h-3.5 w-3.5 text-green-400" />
-                                                Sudah diimpor
-                                            </span>
-                                        </div>
-                                    )}
-                                    {item.score && (
-                                        <div className="absolute top-2 right-2 rounded bg-black/60 px-1.5 py-0.5 text-xs font-medium text-white">
-                                            ★ {item.score}
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Info */}
-                                <div className="flex flex-col gap-1 p-3">
-                                    <p className="line-clamp-2 text-sm font-medium leading-tight">{item.title}</p>
-                                    <div className="flex flex-wrap gap-1">
-                                        <SeriesTypeBadge type={item.type} />
+                            <div key={item.anilist_id} className="relative">
+                                {/* Card */}
+                                <button
+                                    type="button"
+                                    className="group flex w-full flex-col overflow-hidden rounded-lg border bg-card text-left transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ring"
+                                    onClick={() => setPreview(preview?.anilist_id === item.anilist_id ? null : item)}
+                                >
+                                    {/* Cover */}
+                                    <div className="relative aspect-[2/3] overflow-hidden bg-muted">
+                                        {item.cover_url ? (
+                                            <img
+                                                src={item.cover_url}
+                                                alt={item.title}
+                                                className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+                                            />
+                                        ) : (
+                                            <div className="flex h-full items-center justify-center">
+                                                <BookOpen className="h-8 w-8 text-muted-foreground/30" />
+                                            </div>
+                                        )}
+                                        {item.already_imported && (
+                                            <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/60 to-transparent p-2">
+                                                <span className="flex items-center gap-1 text-xs font-medium text-white">
+                                                    <CheckCircle className="h-3.5 w-3.5 text-green-400" />
+                                                    Sudah diimpor
+                                                </span>
+                                            </div>
+                                        )}
+                                        {item.score && (
+                                            <div className="absolute top-2 right-2 rounded bg-black/60 px-1.5 py-0.5 text-xs font-medium text-white">
+                                                ★ {item.score}
+                                            </div>
+                                        )}
                                     </div>
-                                    {item.volumes && (
-                                        <p className="text-xs text-muted-foreground">{item.volumes} vol</p>
-                                    )}
-                                </div>
-                            </button>
+
+                                    {/* Info */}
+                                    <div className="flex flex-col gap-1 p-3">
+                                        <p className="line-clamp-2 text-sm font-medium leading-tight">{item.title}</p>
+                                        <div className="flex flex-wrap gap-1">
+                                            <SeriesTypeBadge type={item.type} />
+                                        </div>
+                                        {item.volumes && (
+                                            <p className="text-xs text-muted-foreground">{item.volumes} vol</p>
+                                        )}
+                                    </div>
+                                </button>
+
+                                {/* Overlay detail — muncul tepat di atas card */}
+                                {preview?.anilist_id === item.anilist_id && (
+                                    <div className="absolute inset-0 z-20 flex flex-col justify-between overflow-hidden rounded-lg border border-border bg-card shadow-xl">
+                                        <div className="flex items-start justify-between gap-2 border-b p-3">
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-semibold leading-tight line-clamp-2">{item.title}</p>
+                                                {item.title_english && (
+                                                    <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">{item.title_english}</p>
+                                                )}
+                                            </div>
+                                            <button
+                                                type="button"
+                                                className="shrink-0 rounded p-0.5 hover:bg-muted"
+                                                onClick={() => setPreview(null)}
+                                            >
+                                                <X className="h-3.5 w-3.5 text-muted-foreground" />
+                                            </button>
+                                        </div>
+
+                                        <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                                            <div className="flex flex-wrap gap-1">
+                                                <SeriesTypeBadge type={item.type} />
+                                                <SeriesStatusBadge status={item.status} />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                                                <div>
+                                                    <p className="text-muted-foreground">Volume</p>
+                                                    <p className="font-medium">{item.volumes ?? '—'}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-muted-foreground">Skor</p>
+                                                    <p className="font-medium">{item.score ?? '—'}</p>
+                                                </div>
+                                            </div>
+                                            {item.synopsis && (
+                                                <p className="line-clamp-4 text-xs text-muted-foreground leading-relaxed">
+                                                    {item.synopsis}
+                                                </p>
+                                            )}
+                                            {item.already_imported && (
+                                                <p className="text-xs text-amber-600 dark:text-amber-400">
+                                                    ⚠ Sudah ada di database. Import akan memperbarui data.
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="flex gap-2 border-t p-3">
+                                            <Button
+                                                size="sm"
+                                                className="w-full"
+                                                disabled={importing}
+                                                onClick={() => handleImport(item)}
+                                            >
+                                                <Download className="mr-1.5 h-3.5 w-3.5" />
+                                                {importing ? 'Mengimpor...' : item.already_imported ? 'Perbarui' : 'Import'}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         ))}
                     </div>
 
@@ -210,75 +269,6 @@ export default function AniListIndex({ results, pagination, filters, error }: Pr
                     ) : null}
                 </>
             )}
-
-            {/* Preview / import dialog */}
-            <Dialog open={!!preview} onOpenChange={(open) => !open && setPreview(null)}>
-                <DialogContent className="max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>{preview?.title}</DialogTitle>
-                        {preview?.title_english && (
-                            <DialogDescription>{preview.title_english}</DialogDescription>
-                        )}
-                    </DialogHeader>
-
-                    {preview && (
-                        <div className="grid gap-4 sm:grid-cols-[auto_1fr]">
-                            {preview.cover_url && (
-                                <img
-                                    src={preview.cover_url}
-                                    alt={preview.title}
-                                    className="w-28 rounded-lg object-cover"
-                                />
-                            )}
-                            <div className="space-y-2 text-sm">
-                                <div className="flex flex-wrap gap-1.5">
-                                    <SeriesTypeBadge type={preview.type} />
-                                    <SeriesStatusBadge status={preview.status} />
-                                </div>
-                                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                                    <div>
-                                        <p className="text-muted-foreground">Volume</p>
-                                        <p className="font-medium">{preview.volumes ?? '—'}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-muted-foreground">Skor</p>
-                                        <p className="font-medium">{preview.score ?? '—'}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-muted-foreground">AniList ID</p>
-                                        <p className="font-medium">{preview.anilist_id}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-muted-foreground">Terbit</p>
-                                        <p className="font-medium">{preview.published_from ?? '—'}</p>
-                                    </div>
-                                </div>
-                                {preview.synopsis && (
-                                    <p className="line-clamp-4 text-xs text-muted-foreground leading-relaxed">
-                                        {preview.synopsis}
-                                    </p>
-                                )}
-                                {preview.already_imported && (
-                                    <p className="text-xs text-amber-600 dark:text-amber-400">
-                                        ⚠ Series ini sudah ada di database. Import akan memperbarui data (cover tidak akan ditimpa).
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setPreview(null)}>Batal</Button>
-                        <Button
-                            disabled={importing}
-                            onClick={() => preview && handleImport(preview)}
-                        >
-                            <Download className="mr-1.5 h-4 w-4" />
-                            {importing ? 'Mengimpor...' : preview?.already_imported ? 'Perbarui Data' : 'Import'}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </AdminLayout>
     );
 }

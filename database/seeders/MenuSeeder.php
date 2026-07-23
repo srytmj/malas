@@ -91,6 +91,22 @@ class MenuSeeder extends Seeder
                 'sort_order'  => 10,
                 'role_access' => ['admin', 'super_admin'],
             ],
+            [
+                'key'         => 'admin.settings.storage',
+                'label'       => 'Penyimpanan',
+                'icon'        => 'hard-drive',
+                'route_name'  => 'admin.settings.storage.edit',
+                'sort_order'  => 11,
+                'role_access' => ['super_admin'],
+            ],
+            [
+                'key'         => 'admin.settings.database',
+                'label'       => 'Backup Database',
+                'icon'        => 'database',
+                'route_name'  => 'admin.settings.db.index',
+                'sort_order'  => 12,
+                'role_access' => ['super_admin'],
+            ],
             // User menus
             [
                 'key'         => 'user.dashboard',

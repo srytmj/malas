@@ -19,6 +19,9 @@ import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/Components/ui/dialog';
 import {
+    Popover, PopoverContent, PopoverHeader, PopoverTitle, PopoverTrigger,
+} from '@/Components/ui/popover';
+import {
     Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter,
 } from '@/Components/ui/sheet';
 import { ScrollArea } from '@/Components/ui/scroll-area';
@@ -426,15 +429,103 @@ export default function SeriesEdit({ series, volumes }: Props) {
                     ]}
                     actions={
                         <div className="flex gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={openSync}
+                            <Popover
+                                open={syncOpen}
+                                onOpenChange={(open) => {
+                                    if (open) {
+                                        openSync();
+                                    } else {
+                                        setSyncOpen(false);
+                                        setSyncQuery('');
+                                        setSyncResults([]);
+                                    }
+                                }}
                             >
-                                <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-                                Sync AniList
-                            </Button>
+                                <PopoverTrigger
+                                    render={<Button type="button" variant="outline" size="sm" />}
+                                >
+                                    <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                                    Sync AniList
+                                </PopoverTrigger>
+
+                                <PopoverContent className="w-[420px]" align="end">
+                                    <PopoverHeader>
+                                        <PopoverTitle>Sync dari AniList</PopoverTitle>
+                                    </PopoverHeader>
+
+                                    {/* Search input */}
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                        <Input
+                                            className="pl-9"
+                                            placeholder="Cari judul manga, manhwa..."
+                                            value={syncQuery}
+                                            onChange={(e) => setSyncQuery(e.target.value)}
+                                            autoFocus
+                                        />
+                                    </div>
+
+                                    {/* States */}
+                                    <div className="max-h-80 overflow-y-auto">
+                                        {syncLoading && (
+                                            <div className="flex items-center justify-center py-10 text-muted-foreground">
+                                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                                Mencari...
+                                            </div>
+                                        )}
+
+                                        {!syncLoading && syncError && (
+                                            <p className="py-6 text-center text-sm text-destructive">{syncError}</p>
+                                        )}
+
+                                        {!syncLoading && !syncError && syncQuery.trim() && syncResults.length === 0 && (
+                                            <p className="py-6 text-center text-sm text-muted-foreground">Tidak ada hasil.</p>
+                                        )}
+
+                                        {!syncLoading && !syncError && syncResults.length > 0 && (
+                                            <div className="grid grid-cols-3 gap-2 pb-1">
+                                                {syncResults.map((item) => (
+                                                    <button
+                                                        key={item.anilist_id}
+                                                        type="button"
+                                                        onClick={() => applySync(item)}
+                                                        className="group flex flex-col overflow-hidden rounded-lg border bg-card text-left transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ring"
+                                                    >
+                                                        <div className="relative aspect-[2/3] overflow-hidden bg-muted">
+                                                            {item.cover_url ? (
+                                                                <img
+                                                                    src={item.cover_url}
+                                                                    alt={item.title}
+                                                                    className="h-full w-full object-cover transition-transform duration-150 group-hover:scale-105"
+                                                                />
+                                                            ) : (
+                                                                <div className="flex h-full items-center justify-center">
+                                                                    <BookOpen className="h-6 w-6 text-muted-foreground/30" />
+                                                                </div>
+                                                            )}
+                                                            {item.score && (
+                                                                <div className="absolute right-1.5 top-1.5 rounded bg-black/60 px-1 py-0.5 text-xs font-medium text-white">
+                                                                    ★ {item.score}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="p-1.5 text-xs">
+                                                            <p className="line-clamp-2 font-medium leading-tight">{item.title}</p>
+                                                            <div className="mt-1">
+                                                                <SeriesTypeBadge type={item.type} />
+                                                            </div>
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <p className="text-xs text-muted-foreground">
+                                        Klik salah satu hasil untuk mengisi form dengan data dari AniList. Data belum disimpan sampai kamu klik Simpan.
+                                    </p>
+                                </PopoverContent>
+                            </Popover>
                             <Button
                                 form="series-edit-form"
                                 type="submit"
@@ -466,6 +557,7 @@ export default function SeriesEdit({ series, volumes }: Props) {
                         {/* Preview */}
                         {displayCover ? (
                             <img
+                                key={displayCover}
                                 src={displayCover}
                                 alt={series.title_romaji}
                                 className="w-32 rounded-lg object-cover shadow-sm"
@@ -889,6 +981,7 @@ export default function SeriesEdit({ series, volumes }: Props) {
                                             : (evCoverUrlInput.trim() || editVolume?.cover_url);
                                         return display ? (
                                             <img
+                                                key={display}
                                                 src={display}
                                                 alt="Cover"
                                                 className="w-20 rounded-lg object-cover shadow-sm"
@@ -986,87 +1079,6 @@ export default function SeriesEdit({ series, volumes }: Props) {
                     </SheetFooter>
                 </SheetContent>
             </Sheet>
-
-            {/* AniList Sync Dialog */}
-            <Dialog open={syncOpen} onOpenChange={(open) => { setSyncOpen(open); if (!open) { setSyncQuery(''); setSyncResults([]); } }}>
-                <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle>Sync dari AniList</DialogTitle>
-                    </DialogHeader>
-
-                    {/* Search input */}
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                            className="pl-9"
-                            placeholder="Cari judul manga, manhwa..."
-                            value={syncQuery}
-                            onChange={(e) => setSyncQuery(e.target.value)}
-                            autoFocus
-                        />
-                    </div>
-
-                    {/* States */}
-                    <div className="max-h-96 overflow-y-auto">
-                        {syncLoading && (
-                            <div className="flex items-center justify-center py-10 text-muted-foreground">
-                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                Mencari...
-                            </div>
-                        )}
-
-                        {!syncLoading && syncError && (
-                            <p className="py-6 text-center text-sm text-destructive">{syncError}</p>
-                        )}
-
-                        {!syncLoading && !syncError && syncQuery.trim() && syncResults.length === 0 && (
-                            <p className="py-6 text-center text-sm text-muted-foreground">Tidak ada hasil.</p>
-                        )}
-
-                        {!syncLoading && !syncError && syncResults.length > 0 && (
-                            <div className="grid grid-cols-3 gap-3 pb-1">
-                                {syncResults.map((item) => (
-                                    <button
-                                        key={item.anilist_id}
-                                        type="button"
-                                        onClick={() => applySync(item)}
-                                        className="group flex flex-col overflow-hidden rounded-lg border bg-card text-left transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ring"
-                                    >
-                                        <div className="relative aspect-[2/3] overflow-hidden bg-muted">
-                                            {item.cover_url ? (
-                                                <img
-                                                    src={item.cover_url}
-                                                    alt={item.title}
-                                                    className="h-full w-full object-cover transition-transform duration-150 group-hover:scale-105"
-                                                />
-                                            ) : (
-                                                <div className="flex h-full items-center justify-center">
-                                                    <BookOpen className="h-6 w-6 text-muted-foreground/30" />
-                                                </div>
-                                            )}
-                                            {item.score && (
-                                                <div className="absolute right-1.5 top-1.5 rounded bg-black/60 px-1 py-0.5 text-xs font-medium text-white">
-                                                    ★ {item.score}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="p-2 text-xs">
-                                            <p className="line-clamp-2 font-medium leading-tight">{item.title}</p>
-                                            <div className="mt-1">
-                                                <SeriesTypeBadge type={item.type} />
-                                            </div>
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    <p className="text-xs text-muted-foreground">
-                        Klik salah satu hasil untuk mengisi form dengan data dari AniList. Data belum disimpan sampai kamu klik Simpan.
-                    </p>
-                </DialogContent>
-            </Dialog>
 
             {/* Delete Volume Dialog */}
             <Dialog open={!!deleteVolume} onOpenChange={(open) => !open && setDeleteVolume(null)}>

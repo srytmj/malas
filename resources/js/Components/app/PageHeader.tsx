@@ -23,10 +23,10 @@ export default function PageHeader({
     className,
 }: PageHeaderProps) {
     return (
-        <div className={cn('flex items-start justify-between gap-4', className)}>
+        <div className={cn('flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between', className)}>
             <div className="min-w-0">
                 {breadcrumbs && breadcrumbs.length > 0 && (
-                    <nav className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <nav className="mb-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                         {breadcrumbs.map((crumb, i) => (
                             <span key={i} className="flex items-center gap-1.5">
                                 {i > 0 && <span>/</span>}
@@ -46,7 +46,7 @@ export default function PageHeader({
                     <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
                 )}
             </div>
-            {actions && <div className="shrink-0">{actions}</div>}
+            {actions && <div className="sm:shrink-0">{actions}</div>}
         </div>
     );
 }

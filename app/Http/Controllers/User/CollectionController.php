@@ -6,15 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Models\Collection;
 use App\Models\CollectionVolume;
 use App\Models\Series;
+use App\Services\StorageSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class CollectionController extends Controller
 {
+    public function __construct(private StorageSettingsService $storage) {}
+
     public function index(): Response
     {
         $collections = auth()->user()
@@ -28,9 +30,7 @@ class CollectionController extends Controller
                 'series_id'           => $c->series_id,
                 'title_romaji'        => $c->series->title_romaji,
                 'title_english'       => $c->series->title_english,
-                'cover_url'           => $c->series->cover_path
-                    ? Storage::url($c->series->cover_path)
-                    : null,
+                'cover_url'           => $this->storage->url($c->series->cover_path),
                 'total_volumes'       => $c->series->total_volumes,
                 'collection_volumes_count' => $c->collection_volumes_count,
                 'status'              => $c->series->status,
@@ -109,7 +109,7 @@ class CollectionController extends Controller
                 ...$series->only([
                     'id', 'title_romaji', 'title_english', 'status', 'type', 'total_volumes',
                 ]),
-                'cover_url' => $series->cover_path ? Storage::url($series->cover_path) : null,
+                'cover_url' => $this->storage->url($series->cover_path),
             ],
             'volumes' => $collectionVolumes,
         ]);
@@ -135,14 +135,26 @@ class CollectionController extends Controller
         ]);
 
         $numbers = collect(explode(',', $request->volumes))
-            ->map(fn ($n) => (int) trim($n))
-            ->filter(fn ($n) => $n > 0)
+            ->flatMap(function (string $segment): array {
+                $segment = trim($segment);
+                if (str_contains($segment, '-')) {
+                    [$a, $b] = array_map('intval', explode('-', $segment, 2));
+                    if ($a > $b) [$a, $b] = [$b, $a];
+                    return $a > 0 ? range($a, $b) : [];
+                }
+                $n = (int) $segment;
+                return $n > 0 ? [$n] : [];
+            })
             ->unique()
             ->sort()
             ->values();
 
         if ($numbers->isEmpty()) {
             return redirect()->back()->with('error', 'Masukkan minimal satu nomor volume yang valid.');
+        }
+
+        if ($numbers->count() > 100) {
+            return redirect()->back()->with('error', 'Maksimal 100 volume sekaligus.');
         }
 
         $existing = $collection->collectionVolumes()->pluck('volume_number')->toArray();

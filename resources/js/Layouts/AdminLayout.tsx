@@ -1,7 +1,7 @@
 import { PropsWithChildren, ReactNode, useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import {
-    Activity, BookOpen, HandCoins, LayoutDashboard, Library, LogOut,
+    Activity, BookOpen, Database, HandCoins, HardDrive, LayoutDashboard, Library, LogOut,
     Megaphone, Menu as MenuIcon, Moon, Search, Settings, Sun, Ticket, Users, X,
     type LucideIcon,
 } from 'lucide-react';
@@ -25,6 +25,8 @@ const ICON_MAP: Record<string, LucideIcon> = {
     'settings':         Settings,
     'activity':         Activity,
     'ticket':           Ticket,
+    'hard-drive':       HardDrive,
+    'database':         Database,
 };
 
 function NavItem({ item, onClick }: { item: MenuItem; onClick?: () => void }) {

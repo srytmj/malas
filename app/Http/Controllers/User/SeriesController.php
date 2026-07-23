@@ -4,14 +4,16 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\Series;
+use App\Services\StorageSettingsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class SeriesController extends Controller
 {
+    public function __construct(private StorageSettingsService $storage) {}
+
     public function index(): Response
     {
         $series = Series::query()
@@ -30,7 +32,7 @@ class SeriesController extends Controller
                 'id'            => $s->id,
                 'title_romaji'  => $s->title_romaji,
                 'title_english' => $s->title_english,
-                'cover_url'     => $s->cover_path ? Storage::url($s->cover_path) : null,
+                'cover_url'     => $this->storage->url($s->cover_path),
                 'status'        => $s->status,
                 'type'          => $s->type,
                 'total_volumes' => $s->total_volumes,
@@ -68,7 +70,7 @@ class SeriesController extends Controller
             'id'            => $s->id,
             'title_romaji'  => $s->title_romaji,
             'title_english' => $s->title_english,
-            'cover_url'     => $s->cover_path ? Storage::url($s->cover_path) : null,
+            'cover_url'     => $this->storage->url($s->cover_path),
             'type'          => $s->type,
             'status'        => $s->status,
         ]);
@@ -92,7 +94,7 @@ class SeriesController extends Controller
                 'type'          => $v->type,
                 'isbn'          => $v->isbn,
                 'published_at'  => $v->published_at?->toDateString(),
-                'cover_url'     => $v->cover_path ? Storage::url($v->cover_path) : null,
+                'cover_url'     => $this->storage->url($v->cover_path),
             ]);
 
         $collection = auth()->user()
@@ -109,7 +111,7 @@ class SeriesController extends Controller
                 ]),
                 'published_from' => $series->published_from?->toDateString(),
                 'published_to'   => $series->published_to?->toDateString(),
-                'cover_url'      => $series->cover_path ? Storage::url($series->cover_path) : null,
+                'cover_url'      => $this->storage->url($series->cover_path),
             ],
             'volumes'    => $volumes,
             'collection' => $collection ? ['id' => $collection->id] : null,

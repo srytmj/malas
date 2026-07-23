@@ -6,6 +6,7 @@ import PageHeader from '@/Components/app/PageHeader';
 import { Pagination } from '@/Components/app/Pagination';
 import { SeriesStatusBadge, SeriesTypeBadge } from '@/Components/app/StatusBadge';
 import { Button, buttonVariants } from '@/Components/ui/button';
+import { Checkbox } from '@/Components/ui/checkbox';
 import { Input } from '@/Components/ui/input';
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -58,9 +59,17 @@ const TYPES = [
 ];
 
 export default function SeriesIndex({ series, filters }: Props) {
-    const [search, setSearch]             = useState(filters.search ?? '');
-    const [deleteTarget, setDeleteTarget] = useState<SeriesRow | null>(null);
-    const [deleting, setDeleting]         = useState(false);
+    const [search, setSearch]               = useState(filters.search ?? '');
+    const [deleteTarget, setDeleteTarget]   = useState<SeriesRow | null>(null);
+    const [deleting, setDeleting]           = useState(false);
+    const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set());
+    const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+    const [bulkDeleting, setBulkDeleting]   = useState(false);
+
+    useEffect(() => {
+        // Reset pilihan saat halaman/filter berubah
+        setSelectedIds(new Set());
+    }, [series.current_page]);
 
     useEffect(() => {
         const t = setTimeout(() => {
@@ -89,6 +98,41 @@ export default function SeriesIndex({ series, filters }: Props) {
         });
     }
 
+    function toggleRow(id: string) {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            next.has(id) ? next.delete(id) : next.add(id);
+            return next;
+        });
+    }
+
+    function toggleAll() {
+        const pageIds = series.data.map((s) => s.id);
+        const allSelected = pageIds.every((id) => selectedIds.has(id));
+        if (allSelected) {
+            setSelectedIds((prev) => {
+                const next = new Set(prev);
+                pageIds.forEach((id) => next.delete(id));
+                return next;
+            });
+        } else {
+            setSelectedIds((prev) => new Set([...prev, ...pageIds]));
+        }
+    }
+
+    function handleBulkDelete() {
+        setBulkDeleting(true);
+        router.delete(route('admin.series.bulk-destroy'), {
+            data: { ids: Array.from(selectedIds) },
+            onSuccess: () => setSelectedIds(new Set()),
+            onFinish: () => { setBulkDeleting(false); setBulkDeleteOpen(false); },
+        });
+    }
+
+    const pageIds      = series.data.map((s) => s.id);
+    const allSelected  = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
+    const someSelected = pageIds.some((id) => selectedIds.has(id)) && !allSelected;
+
     return (
         <AdminLayout
             header={
@@ -96,13 +140,25 @@ export default function SeriesIndex({ series, filters }: Props) {
                     title="Series"
                     description={`${series.total} series terdaftar`}
                     actions={
-                        <Link
-                            href={route('admin.series.create')}
-                            className={buttonVariants()}
-                        >
-                            <Plus className="h-4 w-4 mr-1.5" />
-                            Tambah Series
-                        </Link>
+                        <div className="flex flex-wrap gap-2">
+                            {selectedIds.size > 0 && (
+                                <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => setBulkDeleteOpen(true)}
+                                >
+                                    <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                                    Hapus ({selectedIds.size})
+                                </Button>
+                            )}
+                            <Link
+                                href={route('admin.series.create')}
+                                className={buttonVariants()}
+                            >
+                                <Plus className="h-4 w-4 mr-1.5" />
+                                Tambah Series
+                            </Link>
+                        </div>
                     }
                 />
             }
@@ -151,6 +207,14 @@ export default function SeriesIndex({ series, filters }: Props) {
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            <TableHead className="w-10">
+                                <Checkbox
+                                    checked={allSelected}
+                                    indeterminate={someSelected}
+                                    onCheckedChange={toggleAll}
+                                    aria-label="Pilih semua"
+                                />
+                            </TableHead>
                             <TableHead className="w-12" />
                             <TableHead>Judul</TableHead>
                             <TableHead className="w-28">Tipe</TableHead>
@@ -163,16 +227,23 @@ export default function SeriesIndex({ series, filters }: Props) {
                     <TableBody>
                         {series.data.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
+                                <TableCell colSpan={8} className="py-12 text-center text-muted-foreground">
                                     Tidak ada series ditemukan.
                                 </TableCell>
                             </TableRow>
                         ) : series.data.map((s) => (
                             <TableRow
                                 key={s.id}
-                                className="cursor-pointer"
+                                className={cn('cursor-pointer', selectedIds.has(s.id) && 'bg-muted/50')}
                                 onClick={() => router.visit(route('admin.series.show', s.id))}
                             >
+                                <TableCell onClick={(e) => e.stopPropagation()}>
+                                    <Checkbox
+                                        checked={selectedIds.has(s.id)}
+                                        onCheckedChange={() => toggleRow(s.id)}
+                                        aria-label={`Pilih ${s.title_romaji}`}
+                                    />
+                                </TableCell>
                                 <TableCell>
                                     {s.cover_url ? (
                                         <img src={s.cover_url} alt={s.title_romaji} className="h-10 w-7 rounded object-cover" />
@@ -228,20 +299,40 @@ export default function SeriesIndex({ series, filters }: Props) {
                 <Pagination data={series} />
             </div>
 
-            {/* Delete confirmation */}
+            {/* Single delete confirmation */}
             <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Hapus Series</DialogTitle>
                         <DialogDescription>
                             Yakin ingin menghapus <strong>{deleteTarget?.title_romaji}</strong>?
-                            Aksi ini tidak dapat dibatalkan.
+                            Semua volume, koleksi, dan pinjaman terkait juga akan terhapus.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setDeleteTarget(null)}>Batal</Button>
                         <Button variant="destructive" disabled={deleting} onClick={handleDelete}>
                             {deleting ? 'Menghapus...' : 'Hapus'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Bulk delete confirmation */}
+            <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Hapus {selectedIds.size} Series</DialogTitle>
+                        <DialogDescription>
+                            Yakin ingin menghapus <strong>{selectedIds.size} series</strong> yang dipilih?
+                            Semua volume, koleksi user, dan pinjaman terkait juga akan ikut terhapus.
+                            Tindakan ini tidak dapat dibatalkan.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setBulkDeleteOpen(false)}>Batal</Button>
+                        <Button variant="destructive" disabled={bulkDeleting} onClick={handleBulkDelete}>
+                            {bulkDeleting ? 'Menghapus...' : `Hapus ${selectedIds.size} Series`}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

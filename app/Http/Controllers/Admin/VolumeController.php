@@ -7,14 +7,16 @@ use App\Http\Requests\Admin\StoreVolumeRequest;
 use App\Http\Requests\Admin\UpdateVolumeRequest;
 use App\Models\Series;
 use App\Models\Volume;
+use App\Services\StorageSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class VolumeController extends Controller
 {
+    public function __construct(private StorageSettingsService $storage) {}
+
     public function generate(Series $series): RedirectResponse
     {
         $this->authorize('create', Volume::class);
@@ -47,7 +49,7 @@ class VolumeController extends Controller
         $data              = $request->validated();
         $data['series_id'] = $series->id;
         $data['cover_path'] = $request->hasFile('cover')
-            ? $request->file('cover')->store('covers/volumes', 'public')
+            ? $this->storage->storeUploadedFile($request->file('cover'), 'covers/volumes')
             : null;
         unset($data['cover']);
 
@@ -69,7 +71,7 @@ class VolumeController extends Controller
                 'type'          => $volume->type,
                 'isbn'          => $volume->isbn,
                 'published_at'  => $volume->published_at?->toDateString(),
-                'cover_url'     => $volume->cover_path ? Storage::url($volume->cover_path) : null,
+                'cover_url'     => $this->storage->url($volume->cover_path),
             ],
             'series' => $volume->series->only(['id', 'title_romaji']),
         ]);
@@ -83,14 +85,14 @@ class VolumeController extends Controller
 
         if ($request->hasFile('cover')) {
             if ($volume->cover_path) {
-                Storage::disk('public')->delete($volume->cover_path);
+                $this->storage->delete($volume->cover_path);
             }
-            $data['cover_path'] = $request->file('cover')->store('covers/volumes', 'public');
+            $data['cover_path'] = $this->storage->storeUploadedFile($request->file('cover'), 'covers/volumes');
         } elseif ($request->filled('cover_url')) {
             $fetched = $this->fetchCoverFromUrl($request->cover_url);
             if ($fetched) {
                 if ($volume->cover_path) {
-                    Storage::disk('public')->delete($volume->cover_path);
+                    $this->storage->delete($volume->cover_path);
                 }
                 $data['cover_path'] = $fetched;
             }
@@ -110,7 +112,7 @@ class VolumeController extends Controller
         $seriesId = $volume->series_id;
 
         if ($volume->cover_path) {
-            Storage::disk('public')->delete($volume->cover_path);
+            $this->storage->delete($volume->cover_path);
         }
 
         $volume->delete();
@@ -125,12 +127,9 @@ class VolumeController extends Controller
             $response = Http::timeout(20)->get($url);
             if (! $response->successful()) return null;
 
-            $ext  = pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
-            $path = 'covers/volumes/url_' . uniqid() . '.' . $ext;
+            $ext = pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
 
-            Storage::disk(config('filesystems.cover_disk', 'public'))->put($path, $response->body());
-
-            return $path;
+            return $this->storage->storeContents('covers/volumes', 'url_'.uniqid().'.'.$ext, $response->body());
         } catch (\Exception) {
             return null;
         }

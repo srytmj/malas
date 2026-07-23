@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import { SeriesCard } from '@/Components/app/SeriesCard';
@@ -108,7 +108,21 @@ export default function CatalogIndex({ series, collectionSeriesIds, filters }: P
 
             {/* Grid */}
             {series.data.length === 0 ? (
-                <p className="py-20 text-center text-muted-foreground">Tidak ada series ditemukan.</p>
+                <div className="py-20 text-center">
+                    <p className="text-muted-foreground">Tidak ada series ditemukan.</p>
+                    {filters.search && (
+                        <p className="mt-2 text-sm text-muted-foreground">
+                            Judul yang kamu cari belum ada di katalog?{' '}
+                            <Link
+                                href={route('tickets.create')}
+                                className="font-medium text-primary underline-offset-4 hover:underline"
+                            >
+                                Buat tiket request
+                            </Link>{' '}
+                            ke admin.
+                        </p>
+                    )}
+                </div>
             ) : (
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                     {series.data.map((s) => (

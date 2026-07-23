@@ -1,11 +1,12 @@
 # PHASES — MALAS v2 Implementation Plan
 
-**Versi:** 2.0  
-**Tanggal:** 2026-06-26  
-**Status:** ✅ Semua fase selesai (QA pass 2026-07-03)
+**Versi:** 2.1
+**Tanggal:** 2026-06-26 (Phase 0–10), diperbarui 2026-07-23 (Phase 11)
+**Status:** ✅ Semua fase selesai (QA pass 2026-07-03) + Phase 11 post-launch enhancements
 
 > Setelah setiap fase selesai: buka QA chat baru dengan instruksi dari `QA.md`.
 > Jangan mulai fase berikutnya sebelum QA pass.
+> Phase 0–10 di bawah ini adalah histori perencanaan v2 asli dan **tidak diedit ulang** untuk mencerminkan perubahan sesudahnya — perubahan detail per-fitur pasca-QA dicatat di Phase 11 dan di [`CHANGELOG.md`](../CHANGELOG.md).
 
 ---
 
@@ -300,6 +301,35 @@ Loan mereferensikan `collection_volume_id` (bukan `volume_id`).
 
 ---
 
+## Phase 11 — Post-Launch Enhancements ✅
+
+**Goal:** Item-item yang muncul setelah QA v2 pass, di luar rencana fase awal.
+
+Dikerjakan bertahap setelah 2026-07-03, tidak dalam urutan fase formal:
+
+1. **Migrasi Jikan → AniList** — `JikanService` dihapus total, diganti `AniListService` (GraphQL). Menambah kolom `anilist_id`, `genres`, `authors`, `themes`, `demographics` (json) di `series`. Search & import UI dirombak jadi absolute overlay per-card (bukan Popover, karena anchor engine Base UI selalu menempatkan popover di samping trigger, bukan di tengah).
+2. **SSO whitearchive.id** — `SsoController` PKCE OAuth2 menggantikan auth lokal Breeze sepenuhnya. Kolom baru di `users`: `sso_id`, `username`, `avatar`; `password` jadi nullable.
+3. **Sistem tiket** — tabel `tickets` + `User/Tickets/*` (buat & lihat) + `Admin/Tickets/*` (respond). Bisa diakses langsung dari katalog dengan series pre-filled. Note "buat tiket request" ditambahkan di halaman Catalog dan Collection kosong/hasil pencarian nihil.
+4. **Storage settings via UI** — tabel `storage_settings` (driver `local`/`s3`, credentials ter-encrypt) + `StorageSettingsService` sebagai satu-satunya jalur akses file. Semua kode yang sebelumnya panggil `Storage::` facade langsung dimigrasi.
+5. **Database backup & import** — `DatabaseBackupController` (super_admin only): download SQL dump (exclude tabel sensitif seperti `users`, `sessions`, `jobs`), import dengan `DELETE + INSERT` per tabel dibungkus transaction agar atomic (bukan `TRUNCATE`, yang implicit-commit di MySQL).
+6. **Input volume dengan range syntax** — `CollectionController::storeVolumes()` menerima `1,2,5-9,11,12` dan expand jadi list nomor volume individual (dengan validasi edge case: swap jika terbalik, dedupe, limit 100 per batch).
+7. **Bulk delete series (admin)** — checkbox multi-select di `Admin/Series/Index.tsx` + `SeriesController::bulkDestroy()`, satu request hapus banyak series sekaligus (tetap authorize per-item via Policy).
+8. **Mobile-first UI pass (user-side)** — perbaikan responsive di `PageHeader`, `Pagination`, halaman Catalog/Collection agar tidak ada elemen tertimpa di layar sempit.
+9. **Cover preview fix** — `key={displayCover}` di elemen `<img>` Edit Series supaya React remount elemen (bukan reuse DOM node), menghindari `onError` lama (`display:none`) nyangkut lintas render.
+10. **Deployment tooling** — `deploy.sh` (setup server Ubuntu 24 dari kode yang sudah ter-clone, bukan clone ulang), `update.sh` (pull + smart-skip build steps + migration aman), dan `docs/DEPLOYMENT.md`.
+
+### Done Criteria
+- [x] Tidak ada referensi `JikanService` tersisa di codebase
+- [x] Login hanya lewat SSO, tidak ada form register/login lokal
+- [x] User bisa buat tiket, admin bisa respond, status ter-update
+- [x] Storage bisa di-switch Local ↔ S3 dari UI tanpa restart/redeploy
+- [x] Database backup bisa di-download dan di-import ulang tanpa korupsi data
+- [x] Range volume `1-5,7,9-12` ter-parse benar termasuk edge case terbalik/duplikat
+- [x] Admin bisa pilih banyak series sekaligus lalu hapus dalam satu aksi
+- [x] `npx tsc --noEmit` → 0 errors
+
+---
+
 ## Summary Tabel
 
 | Phase | Nama | Status |
@@ -311,9 +341,10 @@ Loan mereferensikan `collection_volume_id` (bukan `volume_id`).
 | 4 | Admin: Series & Volume CRUD | ✅ |
 | 5 | User: Katalog & Koleksi | ✅ |
 | 6 | Loans | ✅ |
-| 7 | Jikan API Integration | ✅ |
+| 7 | Jikan API Integration *(diganti AniList di Phase 11)* | ✅ |
 | 8 | Announcements & Dashboard | ✅ |
 | 9 | User & Menu Management | ✅ |
 | 10 | Polish & Hardening | ✅ |
+| 11 | Post-Launch Enhancements | ✅ |
 
-**QA pass: 2026-07-03**
+**QA pass: 2026-07-03** — Phase 11 dikerjakan iteratif sesudahnya, lihat [`CHANGELOG.md`](../CHANGELOG.md) untuk detail per-perubahan.

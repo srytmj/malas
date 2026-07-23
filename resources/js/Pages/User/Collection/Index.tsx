@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { BookOpen, Library, Loader2, Plus, Search, Trash2 } from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -140,10 +140,21 @@ export default function CollectionIndex({ collections }: Props) {
                     description="Tambahkan series untuk mulai melacak volume yang kamu miliki."
                     icon={Library}
                     action={
-                        <Button onClick={() => setAddOpen(true)}>
-                            <Plus className="mr-1.5 h-4 w-4" />
-                            Tambah Series
-                        </Button>
+                        <div className="flex flex-col items-center gap-3">
+                            <Button onClick={() => setAddOpen(true)}>
+                                <Plus className="mr-1.5 h-4 w-4" />
+                                Tambah Series
+                            </Button>
+                            <p className="text-sm text-muted-foreground">
+                                Koleksimu belum ada di katalog?{' '}
+                                <Link
+                                    href={route('tickets.create')}
+                                    className="font-medium text-primary underline-offset-4 hover:underline"
+                                >
+                                    Request lewat tiket
+                                </Link>
+                            </p>
+                        </div>
                     }
                 />
             ) : (
@@ -241,9 +252,23 @@ export default function CollectionIndex({ collections }: Props) {
                         )}
 
                         {!searchLoading && searchResults.length === 0 && (
-                            <p className="py-8 text-center text-sm text-muted-foreground">
-                                {searchQuery.trim() ? 'Tidak ada hasil.' : 'Ketik untuk mencari series.'}
-                            </p>
+                            <div className="py-8 text-center">
+                                <p className="text-sm text-muted-foreground">
+                                    {searchQuery.trim() ? 'Tidak ada hasil.' : 'Ketik untuk mencari series.'}
+                                </p>
+                                {searchQuery.trim() && (
+                                    <p className="mt-2 text-sm text-muted-foreground">
+                                        Judul tidak ditemukan?{' '}
+                                        <Link
+                                            href={route('tickets.create')}
+                                            className="font-medium text-primary underline-offset-4 hover:underline"
+                                            onClick={() => setAddOpen(false)}
+                                        >
+                                            Request lewat tiket
+                                        </Link>
+                                    </p>
+                                )}
+                            </div>
                         )}
 
                         {!searchLoading && searchResults.length > 0 && (

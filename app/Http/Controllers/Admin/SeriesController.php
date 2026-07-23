@@ -7,16 +7,18 @@ use App\Http\Requests\Admin\StoreSeriesRequest;
 use App\Http\Requests\Admin\UpdateSeriesRequest;
 use App\Models\CollectionVolume;
 use App\Models\Series;
+use App\Services\StorageSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class SeriesController extends Controller
 {
+    public function __construct(private StorageSettingsService $storage) {}
+
     public function index(): Response
     {
         $this->authorize('viewAny', Series::class);
@@ -37,7 +39,7 @@ class SeriesController extends Controller
                 'id'            => $s->id,
                 'title_romaji'  => $s->title_romaji,
                 'title_english' => $s->title_english,
-                'cover_url'     => $s->cover_path ? Storage::url($s->cover_path) : null,
+                'cover_url'     => $this->storage->url($s->cover_path),
                 'status'        => $s->status,
                 'type'          => $s->type,
                 'total_volumes' => $s->total_volumes,
@@ -85,7 +87,7 @@ class SeriesController extends Controller
                 'type'          => $v->type,
                 'isbn'          => $v->isbn,
                 'published_at'  => $v->published_at?->toDateString(),
-                'cover_url'     => $v->cover_path ? Storage::url($v->cover_path) : null,
+                'cover_url'     => $this->storage->url($v->cover_path),
             ]);
 
         return Inertia::render('Admin/Series/Show', [
@@ -97,7 +99,7 @@ class SeriesController extends Controller
                 ]),
                 'published_from' => $series->published_from?->toDateString(),
                 'published_to'   => $series->published_to?->toDateString(),
-                'cover_url'      => $series->cover_path ? Storage::url($series->cover_path) : null,
+                'cover_url'      => $this->storage->url($series->cover_path),
             ],
             'volumes' => $volumes,
             'can'     => [
@@ -134,7 +136,7 @@ class SeriesController extends Controller
                 'type'          => $v->type,
                 'isbn'          => $v->isbn,
                 'published_at'  => $v->published_at?->toDateString(),
-                'cover_url'     => $v->cover_path ? Storage::url($v->cover_path) : null,
+                'cover_url'     => $this->storage->url($v->cover_path),
             ]);
 
         return Inertia::render('Admin/Series/Edit', [
@@ -145,7 +147,7 @@ class SeriesController extends Controller
                 ]),
                 'published_from' => $series->published_from?->toDateString(),
                 'published_to'   => $series->published_to?->toDateString(),
-                'cover_url'      => $series->cover_path ? Storage::url($series->cover_path) : null,
+                'cover_url'      => $this->storage->url($series->cover_path),
             ],
             'volumes' => $volumes,
         ]);
@@ -159,14 +161,14 @@ class SeriesController extends Controller
 
         if ($request->hasFile('cover')) {
             if ($series->cover_path) {
-                Storage::disk('public')->delete($series->cover_path);
+                $this->storage->delete($series->cover_path);
             }
             $data['cover_path'] = $this->storeCover($request->file('cover'));
         } elseif ($request->filled('cover_url')) {
             $fetched = $this->fetchCoverFromUrl($request->cover_url);
             if ($fetched) {
                 if ($series->cover_path) {
-                    Storage::disk('public')->delete($series->cover_path);
+                    $this->storage->delete($series->cover_path);
                 }
                 $data['cover_path'] = $fetched;
             }
@@ -188,9 +190,29 @@ class SeriesController extends Controller
             ->with('success', 'Series berhasil dihapus.');
     }
 
+    public function bulkDestroy(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'ids'   => ['required', 'array', 'min:1'],
+            'ids.*' => ['uuid', 'exists:series,id'],
+        ]);
+
+        $series = Series::whereIn('id', $request->ids)->get();
+
+        foreach ($series as $s) {
+            $this->authorize('delete', $s);
+        }
+
+        $count = $series->count();
+        Series::whereIn('id', $request->ids)->delete();
+
+        return redirect()->route('admin.series.index')
+            ->with('success', "{$count} series berhasil dihapus.");
+    }
+
     private function storeCover(?UploadedFile $file): ?string
     {
-        return $file?->store('covers', 'public');
+        return $file ? $this->storage->storeUploadedFile($file, 'covers') : null;
     }
 
     private function fetchCoverFromUrl(string $url): ?string
@@ -199,12 +221,9 @@ class SeriesController extends Controller
             $response = Http::timeout(20)->get($url);
             if (! $response->successful()) return null;
 
-            $ext  = pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
-            $path = 'covers/url_' . uniqid() . '.' . $ext;
+            $ext = pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
 
-            Storage::disk(config('filesystems.cover_disk', 'public'))->put($path, $response->body());
-
-            return $path;
+            return $this->storage->storeContents('covers', 'url_'.uniqid().'.'.$ext, $response->body());
         } catch (\Exception) {
             return null;
         }

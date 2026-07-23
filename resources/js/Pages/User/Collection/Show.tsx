@@ -197,7 +197,7 @@ export default function CollectionShow({ collection, series, volumes }: Props) {
                         { label: series.title_romaji },
                     ]}
                     actions={
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                             <Link
                                 href={route('catalog.show', series.id)}
                                 className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
@@ -251,9 +251,9 @@ export default function CollectionShow({ collection, series, volumes }: Props) {
 
             {/* Volume list */}
             <div className="mt-8">
-                <div className="mb-3 flex items-center justify-between">
+                <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className="text-base font-semibold">Volume yang Dimiliki ({ownedCount})</h2>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                         {selectedIds.size > 0 && (
                             <Button size="sm" variant="destructive" onClick={() => setBulkDeleteOpen(true)}>
                                 <Trash2 className="mr-1.5 h-3.5 w-3.5" />
@@ -366,7 +366,7 @@ export default function CollectionShow({ collection, series, volumes }: Props) {
                     <DialogHeader>
                         <DialogTitle>Tambah Volume</DialogTitle>
                         <DialogDescription>
-                            Masukkan nomor volume yang kamu miliki, pisahkan dengan koma. Contoh: <strong>1,2,3,5</strong>
+                            Pisahkan dengan koma. Gunakan tanda hubung untuk range. Contoh: <strong>1,2,3,5-9,11,12,15-18</strong>
                         </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={avSubmit(onAddVolume)} className="space-y-4">
@@ -374,7 +374,7 @@ export default function CollectionShow({ collection, series, volumes }: Props) {
                             <Label htmlFor="volumes">Nomor Volume <span className="text-destructive">*</span></Label>
                             <Input
                                 id="volumes"
-                                placeholder="1,2,3,5"
+                                placeholder="1,2,3,5-9,11,12"
                                 {...avReg('volumes')}
                             />
                             <FieldError message={avErrors.volumes?.message} />

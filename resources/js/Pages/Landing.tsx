@@ -8,7 +8,7 @@ const FEATURES = [
     {
         icon: BookOpen,
         title: 'Katalog',
-        description: 'Jelajahi dan cari manga, manhwa, manhua, hingga novel lengkap dengan metadata dari MyAnimeList.',
+        description: 'Jelajahi dan cari manga, manhwa, manhua, hingga novel lengkap dengan metadata dari AniList.',
     },
     {
         icon: Library,

@@ -71,7 +71,7 @@ export default function CatalogShow({ series, volumes, collection }: Props) {
                         { label: series.title_romaji },
                     ]}
                     actions={
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                             <Link
                                 href={`${route('tickets.create')}?series_id=${series.id}`}
                                 className={cn(buttonVariants({ variant: 'outline' }))}
