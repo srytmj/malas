@@ -37,13 +37,13 @@ class Series extends Model
     {
         return [
             'published_from' => 'date',
-            'published_to'   => 'date',
-            'score'          => 'decimal:2',
-            'deleted_at'     => 'datetime',
-            'genres'         => 'array',
-            'authors'        => 'array',
-            'themes'         => 'array',
-            'demographics'   => 'array',
+            'published_to' => 'date',
+            'score' => 'decimal:2',
+            'deleted_at' => 'datetime',
+            'genres' => 'array',
+            'authors' => 'array',
+            'themes' => 'array',
+            'demographics' => 'array',
         ];
     }
 

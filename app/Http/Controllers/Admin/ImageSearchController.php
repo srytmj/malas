@@ -27,18 +27,20 @@ class ImageSearchController extends Controller
         $query = $query ?: $q;
 
         try {
-            $raw     = $this->anilist->searchManga($query, 1);
+            $raw = $this->anilist->searchManga($query, 1);
             $results = [];
 
             foreach ($raw['data'] as $item) {
                 $image = $item['coverImage']['large'] ?? null;
 
-                if (! $image) continue;
+                if (! $image) {
+                    continue;
+                }
 
                 $results[] = [
                     'thumbnail' => $image,
-                    'image'     => $image,
-                    'title'     => $item['title']['romaji'] ?? '',
+                    'image' => $image,
+                    'title' => $item['title']['romaji'] ?? '',
                 ];
             }
 

@@ -28,9 +28,9 @@ class Menu extends Model
     protected function casts(): array
     {
         return [
-            'is_visible'     => 'boolean',
+            'is_visible' => 'boolean',
             'is_maintenance' => 'boolean',
-            'role_access'    => 'array',
+            'role_access' => 'array',
         ];
     }
 

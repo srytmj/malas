@@ -19,14 +19,14 @@ class AniListController extends Controller
     {
         $this->authorize('create', Series::class);
 
-        $results    = [];
+        $results = [];
         $pagination = [];
-        $error      = null;
+        $error = null;
 
         if ($q = $request->get('q')) {
             try {
-                $raw        = $this->anilist->searchManga(trim($q), (int) $request->get('page', 1));
-                $results    = $this->formatResults($raw['data']);
+                $raw = $this->anilist->searchManga(trim($q), (int) $request->get('page', 1));
+                $results = $this->formatResults($raw['data']);
                 $pagination = $raw['pagination'];
             } catch (\Exception $e) {
                 $error = $e->getMessage();
@@ -34,10 +34,10 @@ class AniListController extends Controller
         }
 
         return Inertia::render('Admin/AniList/Index', [
-            'results'    => $results,
+            'results' => $results,
             'pagination' => $pagination,
-            'filters'    => ['q' => $request->get('q', '')],
-            'error'      => $error,
+            'filters' => ['q' => $request->get('q', '')],
+            'error' => $error,
         ]);
     }
 
@@ -56,7 +56,7 @@ class AniListController extends Controller
 
             return response()->json([
                 'results' => $this->formatResults($raw['data']),
-                'error'   => null,
+                'error' => null,
             ]);
         } catch (\Exception $e) {
             return response()->json(['results' => [], 'error' => $e->getMessage()]);
@@ -72,10 +72,10 @@ class AniListController extends Controller
             ->limit(20)
             ->get(['id', 'title_romaji', 'anilist_id', 'updated_at'])
             ->map(fn ($s) => [
-                'id'           => $s->id,
+                'id' => $s->id,
                 'title_romaji' => $s->title_romaji,
-                'anilist_id'   => $s->anilist_id,
-                'updated_at'   => $s->updated_at->toIso8601String(),
+                'anilist_id' => $s->anilist_id,
+                'updated_at' => $s->updated_at->toIso8601String(),
             ]);
 
         return Inertia::render('Admin/AniList/Status', [
@@ -95,34 +95,34 @@ class AniListController extends Controller
         $this->authorize('create', Series::class);
 
         $request->validate([
-            'anilist_id'     => ['required', 'integer', 'min:1'],
-            'title'          => ['nullable', 'string', 'max:500'],
-            'title_english'  => ['nullable', 'string', 'max:500'],
-            'cover_url'      => ['nullable', 'url'],
-            'type'           => ['nullable', 'string'],
-            'status'         => ['nullable', 'string'],
-            'volumes'        => ['nullable', 'integer'],
-            'score'          => ['nullable', 'numeric'],
-            'synopsis'       => ['nullable', 'string'],
+            'anilist_id' => ['required', 'integer', 'min:1'],
+            'title' => ['nullable', 'string', 'max:500'],
+            'title_english' => ['nullable', 'string', 'max:500'],
+            'cover_url' => ['nullable', 'url'],
+            'type' => ['nullable', 'string'],
+            'status' => ['nullable', 'string'],
+            'volumes' => ['nullable', 'integer'],
+            'score' => ['nullable', 'numeric'],
+            'synopsis' => ['nullable', 'string'],
             'published_from' => ['nullable', 'string'],
         ]);
 
         $anilistId = (int) $request->anilist_id;
 
-        $coverUrl  = null;
+        $coverUrl = null;
         $fromCache = false;
 
         try {
-            $data       = $this->anilist->getManga($anilistId);
+            $data = $this->anilist->getManga($anilistId);
             $attributes = $this->mapToSeries($data);
-            $coverUrl   = $data['coverImage']['large'] ?? null;
+            $coverUrl = $data['coverImage']['large'] ?? null;
         } catch (\Exception $e) {
             if (! $request->filled('title')) {
                 return redirect()->back()->with('error', $e->getMessage());
             }
             $attributes = $this->mapFromRequest($request);
-            $coverUrl   = $request->cover_url;
-            $fromCache  = true;
+            $coverUrl = $request->cover_url;
+            $fromCache = true;
         }
 
         $existing = Series::where('anilist_id', $anilistId)->first();
@@ -132,16 +132,16 @@ class AniListController extends Controller
                 unset($attributes['cover_path']);
             }
             $existing->update($attributes);
-            $series  = $existing;
+            $series = $existing;
             $message = 'Series berhasil diperbarui dari AniList.';
         } else {
             if ($coverUrl) {
                 $attributes['cover_path'] = $this->anilist->downloadCover(
                     $coverUrl,
-                    'anilist_' . $anilistId
+                    'anilist_'.$anilistId
                 );
             }
-            $series  = Series::create($attributes);
+            $series = Series::create($attributes);
             $message = $fromCache
                 ? 'Series berhasil diimpor (data dari cache pencarian — beberapa field mungkin tidak lengkap).'
                 : 'Series berhasil diimpor dari AniList.';
@@ -159,17 +159,17 @@ class AniListController extends Controller
     private function mapFromRequest(Request $request): array
     {
         return [
-            'anilist_id'     => $request->anilist_id,
-            'title_romaji'   => $request->title ?? '',
-            'title_english'  => $request->title_english ?: null,
+            'anilist_id' => $request->anilist_id,
+            'title_romaji' => $request->title ?? '',
+            'title_english' => $request->title_english ?: null,
             'title_japanese' => null,
-            'synopsis'       => $request->synopsis ?: null,
-            'status'         => $request->status ?: 'publishing',
-            'type'           => $request->type ?: 'manga',
+            'synopsis' => $request->synopsis ?: null,
+            'status' => $request->status ?: 'publishing',
+            'type' => $request->type ?: 'manga',
             'published_from' => $request->published_from ?: null,
-            'published_to'   => null,
-            'total_volumes'  => $request->volumes ? (int) $request->volumes : null,
-            'score'          => $request->score ? (float) $request->score : null,
+            'published_to' => null,
+            'total_volumes' => $request->volumes ? (int) $request->volumes : null,
+            'score' => $request->score ? (float) $request->score : null,
         ];
     }
 
@@ -178,21 +178,21 @@ class AniListController extends Controller
         $tags = $data['tags'] ?? [];
 
         return [
-            'anilist_id'     => $data['id'],
-            'title_romaji'   => $data['title']['romaji'] ?? '',
-            'title_english'  => $data['title']['english'] ?: null,
+            'anilist_id' => $data['id'],
+            'title_romaji' => $data['title']['romaji'] ?? '',
+            'title_english' => $data['title']['english'] ?: null,
             'title_japanese' => $data['title']['native'] ?: null,
-            'synopsis'       => $this->cleanDescription($data['description'] ?? null),
-            'status'         => $this->mapStatus($data['status'] ?? ''),
-            'type'           => $this->mapType($data['format'] ?? '', $data['countryOfOrigin'] ?? null),
+            'synopsis' => $this->cleanDescription($data['description'] ?? null),
+            'status' => $this->mapStatus($data['status'] ?? ''),
+            'type' => $this->mapType($data['format'] ?? '', $data['countryOfOrigin'] ?? null),
             'published_from' => $this->buildDate($data['startDate'] ?? null),
-            'published_to'   => $this->buildDate($data['endDate'] ?? null),
-            'total_volumes'  => $data['volumes'] ?: null,
-            'score'          => isset($data['averageScore']) ? round($data['averageScore'] / 10, 2) : null,
-            'genres'         => $data['genres'] ?? [],
-            'authors'        => $this->extractAuthors($data['staff']['edges'] ?? []),
-            'themes'         => $this->extractTags($tags, 'Theme-', 8),
-            'demographics'   => $this->extractTags($tags, 'Demographic', 5),
+            'published_to' => $this->buildDate($data['endDate'] ?? null),
+            'total_volumes' => $data['volumes'] ?: null,
+            'score' => isset($data['averageScore']) ? round($data['averageScore'] / 10, 2) : null,
+            'genres' => $data['genres'] ?? [],
+            'authors' => $this->extractAuthors($data['staff']['edges'] ?? []),
+            'themes' => $this->extractTags($tags, 'Theme-', 8),
+            'demographics' => $this->extractTags($tags, 'Demographic', 5),
         ];
     }
 
@@ -220,8 +220,7 @@ class AniListController extends Controller
 
     private function extractTags(array $tags, string $categoryPrefix, int $limit): array
     {
-        $filtered = array_values(array_filter($tags, fn ($t) =>
-            ! ($t['isMediaSpoiler'] ?? false)
+        $filtered = array_values(array_filter($tags, fn ($t) => ! ($t['isMediaSpoiler'] ?? false)
             && str_starts_with($t['category'] ?? '', $categoryPrefix)
         ));
 
@@ -237,7 +236,7 @@ class AniListController extends Controller
         }
 
         $month = str_pad((string) ($date['month'] ?? 1), 2, '0', STR_PAD_LEFT);
-        $day   = str_pad((string) ($date['day'] ?? 1), 2, '0', STR_PAD_LEFT);
+        $day = str_pad((string) ($date['day'] ?? 1), 2, '0', STR_PAD_LEFT);
 
         return "{$date['year']}-{$month}-{$day}";
     }
@@ -261,7 +260,7 @@ class AniListController extends Controller
         }
 
         $existing = $series->volumes()->pluck('volume_number')->all();
-        $created  = 0;
+        $created = 0;
 
         for ($i = 1; $i <= $series->total_volumes; $i++) {
             if (! in_array($i, $existing)) {
@@ -276,19 +275,19 @@ class AniListController extends Controller
     private function mapStatus(string $status): string
     {
         return match ($status) {
-            'RELEASING'        => 'publishing',
-            'FINISHED'         => 'finished',
-            'HIATUS'           => 'on_hiatus',
-            'CANCELLED'        => 'discontinued',
+            'RELEASING' => 'publishing',
+            'FINISHED' => 'finished',
+            'HIATUS' => 'on_hiatus',
+            'CANCELLED' => 'discontinued',
             'NOT_YET_RELEASED' => 'not_yet_published',
-            default            => 'publishing',
+            default => 'publishing',
         };
     }
 
     private function mapType(string $format, ?string $countryOfOrigin): string
     {
         return match (true) {
-            $format === 'NOVEL'    => 'novel',
+            $format === 'NOVEL' => 'novel',
             $format === 'ONE_SHOT' => 'one_shot',
             $countryOfOrigin === 'KR' => 'manhwa',
             in_array($countryOfOrigin, ['CN', 'TW'], true) => 'manhua',
@@ -300,19 +299,19 @@ class AniListController extends Controller
     private function formatResults(array $data): array
     {
         $anilistIds = array_column($data, 'id');
-        $imported   = Series::whereIn('anilist_id', $anilistIds)->pluck('anilist_id')->flip()->toArray();
+        $imported = Series::whereIn('anilist_id', $anilistIds)->pluck('anilist_id')->flip()->toArray();
 
         return array_map(fn ($item) => [
-            'anilist_id'       => $item['id'],
-            'title'            => $item['title']['romaji'] ?? '',
-            'title_english'    => $item['title']['english'] ?? null,
-            'cover_url'        => $item['coverImage']['large'] ?? null,
-            'type'             => $this->mapType($item['format'] ?? '', $item['countryOfOrigin'] ?? null),
-            'status'           => $this->mapStatus($item['status'] ?? ''),
-            'volumes'          => $item['volumes'] ?? null,
-            'score'            => isset($item['averageScore']) ? round($item['averageScore'] / 10, 2) : null,
-            'synopsis'         => $this->cleanDescription($item['description'] ?? null),
-            'published_from'   => $this->buildDate($item['startDate'] ?? null),
+            'anilist_id' => $item['id'],
+            'title' => $item['title']['romaji'] ?? '',
+            'title_english' => $item['title']['english'] ?? null,
+            'cover_url' => $item['coverImage']['large'] ?? null,
+            'type' => $this->mapType($item['format'] ?? '', $item['countryOfOrigin'] ?? null),
+            'status' => $this->mapStatus($item['status'] ?? ''),
+            'volumes' => $item['volumes'] ?? null,
+            'score' => isset($item['averageScore']) ? round($item['averageScore'] / 10, 2) : null,
+            'synopsis' => $this->cleanDescription($item['description'] ?? null),
+            'published_from' => $this->buildDate($item['startDate'] ?? null),
             'already_imported' => isset($imported[$item['id']]),
         ], $data);
     }

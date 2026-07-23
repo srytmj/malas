@@ -11,11 +11,11 @@ class SeriesFactory extends Factory
     public function definition(): array
     {
         return [
-            'title_romaji'  => fake()->words(3, true),
-            'status'        => fake()->randomElement(['publishing', 'finished', 'on_hiatus']),
-            'type'          => fake()->randomElement(['manga', 'manhwa', 'manhua']),
+            'title_romaji' => fake()->words(3, true),
+            'status' => fake()->randomElement(['publishing', 'finished', 'on_hiatus']),
+            'type' => fake()->randomElement(['manga', 'manhwa', 'manhua']),
             'total_volumes' => fake()->numberBetween(1, 30),
-            'score'         => fake()->randomFloat(2, 5, 10),
+            'score' => fake()->randomFloat(2, 5, 10),
         ];
     }
 

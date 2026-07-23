@@ -16,16 +16,16 @@ class MenuController extends Controller
         $this->authorize('viewAny', Menu::class);
 
         $menus = Menu::orderBy('sort_order')->get()->map(fn ($m) => [
-            'id'                  => $m->id,
-            'key'                 => $m->key,
-            'label'               => $m->label,
-            'icon'                => $m->icon,
-            'route_name'          => $m->route_name,
-            'sort_order'          => $m->sort_order,
-            'is_visible'          => $m->is_visible,
-            'is_maintenance'      => $m->is_maintenance,
+            'id' => $m->id,
+            'key' => $m->key,
+            'label' => $m->label,
+            'icon' => $m->icon,
+            'route_name' => $m->route_name,
+            'sort_order' => $m->sort_order,
+            'is_visible' => $m->is_visible,
+            'is_maintenance' => $m->is_maintenance,
             'maintenance_message' => $m->maintenance_message,
-            'role_access'         => $m->role_access,
+            'role_access' => $m->role_access,
         ]);
 
         return Inertia::render('Admin/Menus/Index', [
@@ -39,16 +39,16 @@ class MenuController extends Controller
 
         return Inertia::render('Admin/Menus/Edit', [
             'menu' => [
-                'id'                  => $menu->id,
-                'key'                 => $menu->key,
-                'label'               => $menu->label,
-                'icon'                => $menu->icon,
-                'route_name'          => $menu->route_name,
-                'sort_order'          => $menu->sort_order,
-                'is_visible'          => $menu->is_visible,
-                'is_maintenance'      => $menu->is_maintenance,
+                'id' => $menu->id,
+                'key' => $menu->key,
+                'label' => $menu->label,
+                'icon' => $menu->icon,
+                'route_name' => $menu->route_name,
+                'sort_order' => $menu->sort_order,
+                'is_visible' => $menu->is_visible,
+                'is_maintenance' => $menu->is_maintenance,
                 'maintenance_message' => $menu->maintenance_message,
-                'role_access'         => $menu->role_access,
+                'role_access' => $menu->role_access,
             ],
         ]);
     }
@@ -58,14 +58,14 @@ class MenuController extends Controller
         $this->authorize('update', $menu);
 
         $validated = $request->validate([
-            'label'               => ['sometimes', 'required', 'string', 'max:100'],
-            'icon'                => ['sometimes', 'nullable', 'string', 'max:50'],
-            'sort_order'          => ['sometimes', 'integer', 'min:0'],
-            'is_visible'          => ['sometimes', 'boolean'],
-            'is_maintenance'      => ['sometimes', 'boolean'],
+            'label' => ['sometimes', 'required', 'string', 'max:100'],
+            'icon' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'sort_order' => ['sometimes', 'integer', 'min:0'],
+            'is_visible' => ['sometimes', 'boolean'],
+            'is_maintenance' => ['sometimes', 'boolean'],
             'maintenance_message' => ['sometimes', 'nullable', 'string', 'max:500'],
-            'role_access'         => ['sometimes', 'array'],
-            'role_access.*'       => ['in:super_admin,admin,user'],
+            'role_access' => ['sometimes', 'array'],
+            'role_access.*' => ['in:super_admin,admin,user'],
         ]);
 
         $menu->update($validated);

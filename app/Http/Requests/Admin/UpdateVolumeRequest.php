@@ -21,7 +21,7 @@ class UpdateVolumeRequest extends FormRequest
 
     public function rules(): array
     {
-        $volume   = $this->route('volume');
+        $volume = $this->route('volume');
         $seriesId = $volume?->series_id;
 
         return [
@@ -31,11 +31,11 @@ class UpdateVolumeRequest extends FormRequest
                     ->where('series_id', $seriesId)
                     ->ignore($volume?->id),
             ],
-            'type'          => ['required', Rule::in(['regular', 'digital', 'bind_up'])],
-            'isbn'          => ['nullable', 'string', 'max:20'],
-            'published_at'  => ['nullable', 'date'],
-            'cover'         => ['nullable', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
-            'cover_url'     => ['nullable', 'url', 'max:2048'],
+            'type' => ['required', Rule::in(['regular', 'digital', 'bind_up'])],
+            'isbn' => ['nullable', 'string', 'max:20'],
+            'published_at' => ['nullable', 'date'],
+            'cover' => ['nullable', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
+            'cover_url' => ['nullable', 'url', 'max:2048'],
         ];
     }
 }

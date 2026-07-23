@@ -22,12 +22,12 @@ class TicketController extends Controller
             ->paginate(20)
             ->withQueryString()
             ->through(fn ($t) => [
-                'id'         => $t->id,
-                'subject'    => $t->subject,
-                'type'       => $t->type,
-                'status'     => $t->status,
-                'user_name'  => $t->user->name,
-                'series'     => $t->series ? ['id' => $t->series->id, 'title_romaji' => $t->series->title_romaji] : null,
+                'id' => $t->id,
+                'subject' => $t->subject,
+                'type' => $t->type,
+                'status' => $t->status,
+                'user_name' => $t->user->name,
+                'series' => $t->series ? ['id' => $t->series->id, 'title_romaji' => $t->series->title_romaji] : null,
                 'created_at' => $t->created_at->toDateString(),
             ]);
 
@@ -45,21 +45,21 @@ class TicketController extends Controller
 
         return Inertia::render('Admin/Tickets/Show', [
             'ticket' => [
-                'id'             => $ticket->id,
-                'subject'        => $ticket->subject,
-                'type'           => $ticket->type,
-                'message'        => $ticket->message,
-                'status'         => $ticket->status,
+                'id' => $ticket->id,
+                'subject' => $ticket->subject,
+                'type' => $ticket->type,
+                'message' => $ticket->message,
+                'status' => $ticket->status,
                 'admin_response' => $ticket->admin_response,
-                'responded_at'   => $ticket->responded_at?->toDateTimeString(),
-                'responded_by'   => $ticket->respondedBy?->name,
-                'created_at'     => $ticket->created_at->toDateTimeString(),
-                'user'           => [
-                    'name'  => $ticket->user->name,
+                'responded_at' => $ticket->responded_at?->toDateTimeString(),
+                'responded_by' => $ticket->respondedBy?->name,
+                'created_at' => $ticket->created_at->toDateTimeString(),
+                'user' => [
+                    'name' => $ticket->user->name,
                     'email' => $ticket->user->email,
                 ],
-                'series'         => $ticket->series ? [
-                    'id'           => $ticket->series->id,
+                'series' => $ticket->series ? [
+                    'id' => $ticket->series->id,
                     'title_romaji' => $ticket->series->title_romaji,
                 ] : null,
             ],
@@ -75,9 +75,9 @@ class TicketController extends Controller
 
         $ticket->update([
             'admin_response' => $request->admin_response,
-            'status'         => $request->status,
-            'responded_by'   => $request->user()->id,
-            'responded_at'   => now(),
+            'status' => $request->status,
+            'responded_by' => $request->user()->id,
+            'responded_at' => now(),
         ]);
 
         return redirect()->back()->with('success', 'Respons berhasil dikirim.');

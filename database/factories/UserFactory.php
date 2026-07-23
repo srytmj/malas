@@ -15,13 +15,13 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'name'              => fake()->name(),
-            'email'             => fake()->unique()->safeEmail(),
+            'name' => fake()->name(),
+            'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
-            'password'          => static::$password ??= Hash::make('password'),
-            'role'              => 'user',
-            'is_banned'         => false,
-            'remember_token'    => Str::random(10),
+            'password' => static::$password ??= Hash::make('password'),
+            'role' => 'user',
+            'is_banned' => false,
+            'remember_token' => Str::random(10),
         ];
     }
 
@@ -33,9 +33,9 @@ class UserFactory extends Factory
     public function banned(): static
     {
         return $this->state(fn () => [
-            'is_banned'  => true,
+            'is_banned' => true,
             'ban_reason' => 'Violation of terms',
-            'banned_at'  => now(),
+            'banned_at' => now(),
         ]);
     }
 }

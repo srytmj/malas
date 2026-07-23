@@ -26,7 +26,7 @@ class Volume extends Model
     {
         return [
             'published_at' => 'date',
-            'deleted_at'   => 'datetime',
+            'deleted_at' => 'datetime',
         ];
     }
 
@@ -34,6 +34,4 @@ class Volume extends Model
     {
         return $this->belongsTo(Series::class);
     }
-
-
 }

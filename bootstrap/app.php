@@ -1,9 +1,13 @@
 <?php
 
+use App\Http\Middleware\CheckMenuAccess;
+use App\Http\Middleware\EnsureNotBanned;
+use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,13 +20,13 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
-            \App\Http\Middleware\HandleInertiaRequests::class,
-            \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
+            HandleInertiaRequests::class,
+            AddLinkHeadersForPreloadedAssets::class,
         ]);
 
         $middleware->alias([
-            'not_banned' => \App\Http\Middleware\EnsureNotBanned::class,
-            'check.menu' => \App\Http\Middleware\CheckMenuAccess::class,
+            'not_banned' => EnsureNotBanned::class,
+            'check.menu' => CheckMenuAccess::class,
         ]);
 
         // Default Authenticate middleware calls route('login') to build its

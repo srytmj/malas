@@ -35,13 +35,13 @@ class DatabaseBackupController extends Controller
     {
         abort_unless(auth()->user()->hasRole('super_admin'), 403);
 
-        $tables   = $this->getBackupTables();
-        $filename = 'malas-backup-' . now()->format('Y-m-d-His') . '.sql';
+        $tables = $this->getBackupTables();
+        $filename = 'malas-backup-'.now()->format('Y-m-d-His').'.sql';
 
         return response()->streamDownload(function () use ($tables): void {
             echo "-- MALAS Database Backup\n";
-            echo '-- Generated : ' . now()->toDateTimeString() . "\n";
-            echo '-- Tables    : ' . implode(', ', $tables) . "\n";
+            echo '-- Generated : '.now()->toDateTimeString()."\n";
+            echo '-- Tables    : '.implode(', ', $tables)."\n";
             echo "-- NOTE: Tabel 'users' tidak di-backup (dikelola via SSO)\n\n";
             echo "SET FOREIGN_KEY_CHECKS=0;\n\n";
 
@@ -56,25 +56,27 @@ class DatabaseBackupController extends Controller
 
                 if ($rows->isEmpty()) {
                     echo "\n";
+
                     continue;
                 }
 
                 $columns = array_keys((array) $rows->first());
-                $colList = '`' . implode('`, `', $columns) . '`';
+                $colList = '`'.implode('`, `', $columns).'`';
 
                 foreach ($rows as $row) {
                     $vals = array_map(function ($v): string {
                         if ($v === null) {
                             return 'NULL';
                         }
-                        return "'" . str_replace(
+
+                        return "'".str_replace(
                             ['\\',  "'",  "\n",  "\r",  "\x00", "\x1a"],
                             ['\\\\', "\\'", '\\n', '\\r', '\\0',  '\\Z'],
                             (string) $v
-                        ) . "'";
+                        )."'";
                     }, (array) $row);
 
-                    echo "INSERT INTO `{$table}` ({$colList}) VALUES (" . implode(', ', $vals) . ");\n";
+                    echo "INSERT INTO `{$table}` ({$colList}) VALUES (".implode(', ', $vals).");\n";
                 }
 
                 echo "\n";
@@ -102,14 +104,15 @@ class DatabaseBackupController extends Controller
         $statements = $this->parseStatements($content);
 
         // Safety: buang statement yang menyentuh tabel excluded
-        $excluded   = self::EXCLUDED;
+        $excluded = self::EXCLUDED;
         $statements = array_filter($statements, function (string $sql) use ($excluded): bool {
             foreach ($excluded as $table) {
                 // Cek apakah statement menyebut tabel ini dalam konteks DML/DDL
-                if (preg_match('/\b(DELETE\s+FROM|INSERT\s+INTO|UPDATE|TRUNCATE|DROP\s+TABLE|CREATE\s+TABLE)\s+[`"]?' . preg_quote($table, '/') . '[`"]?/i', $sql)) {
+                if (preg_match('/\b(DELETE\s+FROM|INSERT\s+INTO|UPDATE|TRUNCATE|DROP\s+TABLE|CREATE\s+TABLE)\s+[`"]?'.preg_quote($table, '/').'[`"]?/i', $sql)) {
                     return false;
                 }
             }
+
             return true;
         });
 
@@ -137,14 +140,14 @@ class DatabaseBackupController extends Controller
             } catch (\Throwable) {
             }
 
-            return back()->with('error', 'Import gagal dan dibatalkan (rollback). Pesan error: ' . $e->getMessage());
+            return back()->with('error', 'Import gagal dan dibatalkan (rollback). Pesan error: '.$e->getMessage());
         }
     }
 
     private function parseStatements(string $content): array
     {
         $statements = [];
-        $current    = '';
+        $current = '';
 
         foreach (explode("\n", $content) as $line) {
             $trimmed = ltrim($line);
@@ -154,12 +157,12 @@ class DatabaseBackupController extends Controller
                 continue;
             }
 
-            $current .= $line . "\n";
+            $current .= $line."\n";
 
             // Statement selesai kalau baris diakhiri titik koma
             if (str_ends_with(rtrim($line), ';')) {
                 $statements[] = trim($current);
-                $current      = '';
+                $current = '';
             }
         }
 

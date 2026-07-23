@@ -18,14 +18,14 @@ class CollectionController extends Controller
             ->latest()
             ->paginate(20)
             ->through(fn ($c) => [
-                'id'                       => $c->id,
-                'user_name'                => $c->user->name,
-                'user_email'               => $c->user->email,
-                'series_title'             => $c->series->title_romaji,
-                'series_type'              => $c->series->type,
+                'id' => $c->id,
+                'user_name' => $c->user->name,
+                'user_email' => $c->user->email,
+                'series_title' => $c->series->title_romaji,
+                'series_type' => $c->series->type,
                 'owned_volumes_count' => $c->collection_volumes_count,
-                'total_volumes'            => $c->series->total_volumes,
-                'acquired_at'              => $c->acquired_at?->toDateString(),
+                'total_volumes' => $c->series->total_volumes,
+                'acquired_at' => $c->acquired_at?->toDateString(),
             ]);
 
         return Inertia::render('Admin/Collections/Index', [

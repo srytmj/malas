@@ -52,7 +52,7 @@ class AniListService
         $data = $this->request($gql, ['search' => $query, 'page' => $page]);
 
         return [
-            'data'       => $data['Page']['media'] ?? [],
+            'data' => $data['Page']['media'] ?? [],
             'pagination' => $data['Page']['pageInfo'] ?? [],
         ];
     }
@@ -86,15 +86,15 @@ class AniListService
             ]);
 
             return [
-                'online'      => $response->successful(),
+                'online' => $response->successful(),
                 'duration_ms' => (int) round((microtime(true) - $start) * 1000),
-                'status'      => $response->status(),
+                'status' => $response->status(),
             ];
         } catch (ConnectionException|RequestException $e) {
             return [
-                'online'      => false,
+                'online' => false,
                 'duration_ms' => (int) round((microtime(true) - $start) * 1000),
-                'status'      => null,
+                'status' => null,
             ];
         }
     }
@@ -108,7 +108,7 @@ class AniListService
     {
         try {
             $response = Http::timeout(15)->retry(2, 1000)->post(self::BASE_URL, [
-                'query'     => $query,
+                'query' => $query,
                 'variables' => $variables,
             ]);
         } catch (ConnectionException) {
@@ -136,8 +136,8 @@ class AniListService
         return match (true) {
             $status === 404 => 'Data tidak ditemukan di AniList.',
             $status === 429 => 'Terlalu banyak request ke AniList API. Tunggu beberapa detik lalu coba lagi.',
-            $status >= 500  => 'AniList sedang bermasalah atau tidak dapat diakses. Coba lagi beberapa saat.',
-            default         => "AniList API mengembalikan error HTTP {$status}.",
+            $status >= 500 => 'AniList sedang bermasalah atau tidak dapat diakses. Coba lagi beberapa saat.',
+            default => "AniList API mengembalikan error HTTP {$status}.",
         };
     }
 

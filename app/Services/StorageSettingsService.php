@@ -30,12 +30,12 @@ class StorageSettingsService
 
         if ($settings->driver === 's3') {
             return $this->buildS3Disk([
-                'access_key_id'     => $settings->access_key_id,
+                'access_key_id' => $settings->access_key_id,
                 'secret_access_key' => $settings->secret_access_key,
-                'bucket'            => $settings->bucket,
-                'endpoint'          => $settings->endpoint,
-                'region'            => $settings->region,
-                'url'               => $settings->url,
+                'bucket' => $settings->bucket,
+                'endpoint' => $settings->endpoint,
+                'region' => $settings->region,
+                'url' => $settings->url,
             ]);
         }
 
@@ -46,15 +46,15 @@ class StorageSettingsService
     public function buildS3Disk(array $credentials): Filesystem
     {
         return Storage::build([
-            'driver'                  => 's3',
-            'key'                     => $credentials['access_key_id'],
-            'secret'                  => $credentials['secret_access_key'],
-            'region'                  => $credentials['region'] ?: 'auto',
-            'bucket'                  => $credentials['bucket'],
-            'endpoint'                => $credentials['endpoint'],
-            'url'                     => $credentials['url'],
+            'driver' => 's3',
+            'key' => $credentials['access_key_id'],
+            'secret' => $credentials['secret_access_key'],
+            'region' => $credentials['region'] ?: 'auto',
+            'bucket' => $credentials['bucket'],
+            'endpoint' => $credentials['endpoint'],
+            'url' => $credentials['url'],
             'use_path_style_endpoint' => false,
-            'throw'                   => true,
+            'throw' => true,
         ]);
     }
 

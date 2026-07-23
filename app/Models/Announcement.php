@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -23,8 +24,8 @@ class Announcement extends Model
     protected function casts(): array
     {
         return [
-            'is_active'  => 'boolean',
-            'starts_at'  => 'datetime',
+            'is_active' => 'boolean',
+            'starts_at' => 'datetime',
             'expires_at' => 'datetime',
         ];
     }
@@ -32,13 +33,13 @@ class Announcement extends Model
     public function dismissedByUsers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'announcement_user')
-                    ->withPivot('dismissed_at');
+            ->withPivot('dismissed_at');
     }
 
-    public function scopeActive(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true)
-                     ->where(fn ($q) => $q->whereNull('starts_at')->orWhere('starts_at', '<=', now()))
-                     ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>=', now()));
+            ->where(fn ($q) => $q->whereNull('starts_at')->orWhere('starts_at', '<=', now()))
+            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>=', now()));
     }
 }

@@ -24,14 +24,14 @@ class StorageSettingController extends Controller
 
         return Inertia::render('Admin/Settings/Storage', [
             'setting' => [
-                'driver'        => $setting->driver,
+                'driver' => $setting->driver,
                 'access_key_id' => $setting->access_key_id,
-                'bucket'        => $setting->bucket,
-                'endpoint'      => $setting->endpoint,
-                'region'        => $setting->region,
-                'url'           => $setting->url,
+                'bucket' => $setting->bucket,
+                'endpoint' => $setting->endpoint,
+                'region' => $setting->region,
+                'url' => $setting->url,
                 // secret_access_key is never sent to the frontend
-                'has_secret'    => filled($setting->secret_access_key),
+                'has_secret' => filled($setting->secret_access_key),
             ],
         ]);
     }

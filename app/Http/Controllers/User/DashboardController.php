@@ -33,10 +33,10 @@ class DashboardController extends Controller
 
         return Inertia::render('User/Dashboard', [
             'stats' => [
-                'series_count'       => $collectionIds->count(),
+                'series_count' => $collectionIds->count(),
                 'owned_volumes_count' => $ownedCount,
                 'active_loans_count' => $activeLoansCount,
-                'overdue_count'      => $overdueCount,
+                'overdue_count' => $overdueCount,
             ],
         ]);
     }

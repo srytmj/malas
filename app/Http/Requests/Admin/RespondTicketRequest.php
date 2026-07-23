@@ -15,7 +15,7 @@ class RespondTicketRequest extends FormRequest
     {
         return [
             'admin_response' => ['required', 'string', 'max:5000'],
-            'status'         => ['required', 'in:open,in_progress,resolved,closed'],
+            'status' => ['required', 'in:open,in_progress,resolved,closed'],
         ];
     }
 }

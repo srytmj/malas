@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -23,17 +24,17 @@ class SsoController extends Controller
 
         session([
             'sso_code_verifier' => $codeVerifier,
-            'sso_state'         => $state,
+            'sso_state' => $state,
         ]);
 
         $query = http_build_query([
-            'response_type'         => 'code',
-            'client_id'             => config('sso.client_id'),
-            'redirect_uri'          => config('sso.redirect_uri'),
-            'scope'                 => 'profile:read',
-            'code_challenge'        => $codeChallenge,
+            'response_type' => 'code',
+            'client_id' => config('sso.client_id'),
+            'redirect_uri' => config('sso.redirect_uri'),
+            'scope' => 'profile:read',
+            'code_challenge' => $codeChallenge,
             'code_challenge_method' => 'S256',
-            'state'                 => $state,
+            'state' => $state,
         ]);
 
         // Inertia::location() forces a real browser navigation instead of an
@@ -48,10 +49,10 @@ class SsoController extends Controller
         abort_if($request->state !== session('sso_state'), 403, 'Invalid state');
 
         $tokenResult = $this->curlRequest('POST', config('sso.base_url').'/oauth/token', [
-            'grant_type'    => 'authorization_code',
-            'code'          => $request->code,
-            'redirect_uri'  => config('sso.redirect_uri'),
-            'client_id'     => config('sso.client_id'),
+            'grant_type' => 'authorization_code',
+            'code' => $request->code,
+            'redirect_uri' => config('sso.redirect_uri'),
+            'client_id' => config('sso.client_id'),
             'client_secret' => config('sso.client_secret'),
             'code_verifier' => session('sso_code_verifier'),
         ]);
@@ -77,10 +78,10 @@ class SsoController extends Controller
         $isNew = ! $user->exists;
 
         $user->fill([
-            'name'     => $profile['name'],
+            'name' => $profile['name'],
             'username' => $profile['username'],
-            'email'    => $profile['email'],
-            'avatar'   => $profile['avatar'],
+            'email' => $profile['email'],
+            'avatar' => $profile['avatar'],
         ]);
 
         if ($isNew) {
@@ -91,7 +92,7 @@ class SsoController extends Controller
 
         session()->forget(['sso_code_verifier', 'sso_state']);
         session([
-            'sso_access_token'  => $tokenResponse['access_token'],
+            'sso_access_token' => $tokenResponse['access_token'],
             'sso_refresh_token' => $tokenResponse['refresh_token'],
         ]);
 
@@ -158,7 +159,8 @@ class SsoController extends Controller
         curl_close($ch);
 
         if ($errno !== 0 || $body === false) {
-            \Illuminate\Support\Facades\Log::error("SSO request to {$url} failed: [{$errno}] {$error}");
+            Log::error("SSO request to {$url} failed: [{$errno}] {$error}");
+
             return null;
         }
 

@@ -17,15 +17,15 @@ class LoanController extends Controller
             ->latest('loaned_at')
             ->paginate(20)
             ->through(fn ($l) => [
-                'id'            => $l->id,
-                'user_name'     => $l->collection->user->name,
-                'series_title'  => $l->collection->series->title_romaji,
+                'id' => $l->id,
+                'user_name' => $l->collection->user->name,
+                'series_title' => $l->collection->series->title_romaji,
                 'volume_number' => $l->collectionVolume?->volume_number,
                 'borrower_name' => $l->borrower_name,
-                'loaned_at'     => $l->loaned_at?->toDateString(),
-                'due_at'        => $l->due_at?->toDateString(),
-                'returned_at'   => $l->returned_at?->toDateString(),
-                'is_overdue'    => $l->isOverdue(),
+                'loaned_at' => $l->loaned_at?->toDateString(),
+                'due_at' => $l->due_at?->toDateString(),
+                'returned_at' => $l->returned_at?->toDateString(),
+                'is_overdue' => $l->isOverdue(),
             ]);
 
         return Inertia::render('Admin/Loans/Index', [

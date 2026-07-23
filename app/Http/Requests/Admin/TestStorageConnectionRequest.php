@@ -14,12 +14,12 @@ class TestStorageConnectionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'access_key_id'     => ['required', 'string', 'max:255'],
+            'access_key_id' => ['required', 'string', 'max:255'],
             'secret_access_key' => ['required', 'string', 'max:255'],
-            'bucket'            => ['required', 'string', 'max:255'],
-            'endpoint'          => ['required', 'url', 'max:255'],
-            'region'            => ['nullable', 'string', 'max:100'],
-            'url'               => ['required', 'url', 'max:255'],
+            'bucket' => ['required', 'string', 'max:255'],
+            'endpoint' => ['required', 'url', 'max:255'],
+            'region' => ['nullable', 'string', 'max:100'],
+            'url' => ['required', 'url', 'max:255'],
         ];
     }
 }

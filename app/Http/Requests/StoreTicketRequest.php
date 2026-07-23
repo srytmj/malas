@@ -14,9 +14,9 @@ class StoreTicketRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'subject'   => ['required', 'string', 'max:200'],
-            'type'      => ['required', 'in:catalog_request,title_revision,other'],
-            'message'   => ['required', 'string', 'max:5000'],
+            'subject' => ['required', 'string', 'max:200'],
+            'type' => ['required', 'in:catalog_request,title_revision,other'],
+            'message' => ['required', 'string', 'max:5000'],
             'series_id' => ['nullable', 'uuid', 'exists:series,id'],
         ];
     }

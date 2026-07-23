@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\StoreSeriesRequest;
 use App\Http\Requests\Admin\UpdateSeriesRequest;
 use App\Models\CollectionVolume;
 use App\Models\Series;
+use App\Models\Volume;
 use App\Services\StorageSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,31 +25,29 @@ class SeriesController extends Controller
         $this->authorize('viewAny', Series::class);
 
         $series = Series::query()
-            ->when(request('search'), fn ($q, $s) =>
-                $q->where(fn ($sub) =>
-                    $sub->where('title_romaji', 'like', "%{$s}%")
-                        ->orWhere('title_english', 'like', "%{$s}%")
-                ))
+            ->when(request('search'), fn ($q, $s) => $q->where(fn ($sub) => $sub->where('title_romaji', 'like', "%{$s}%")
+                ->orWhere('title_english', 'like', "%{$s}%")
+            ))
             ->when(request('status'), fn ($q, $s) => $q->where('status', $s))
-            ->when(request('type'),   fn ($q, $t) => $q->where('type', $t))
+            ->when(request('type'), fn ($q, $t) => $q->where('type', $t))
             ->withCount('volumes')
             ->latest()
             ->paginate(20)
             ->withQueryString()
             ->through(fn ($s) => [
-                'id'            => $s->id,
-                'title_romaji'  => $s->title_romaji,
-                'title_english' => $s->title_english,
-                'cover_url'     => $this->storage->url($s->cover_path),
-                'status'        => $s->status,
-                'type'          => $s->type,
-                'total_volumes' => $s->total_volumes,
-                'volumes_count' => $s->volumes_count,
-                'score'         => $s->score,
+            'id' => $s->id,
+            'title_romaji' => $s->title_romaji,
+            'title_english' => $s->title_english,
+            'cover_url' => $this->storage->url($s->cover_path),
+            'status' => $s->status,
+            'type' => $s->type,
+            'total_volumes' => $s->total_volumes,
+            'volumes_count' => $s->volumes_count,
+            'score' => $s->score,
             ]);
 
         return Inertia::render('Admin/Series/Index', [
-            'series'  => $series,
+            'series' => $series,
             'filters' => request()->only(['search', 'status', 'type']),
         ]);
     }
@@ -64,7 +63,7 @@ class SeriesController extends Controller
     {
         $this->authorize('create', Series::class);
 
-        $data              = $request->validated();
+        $data = $request->validated();
         $data['cover_path'] = $this->storeCover($request->file('cover'));
         unset($data['cover']);
 
@@ -82,41 +81,41 @@ class SeriesController extends Controller
             ->orderBy('volume_number')
             ->get(['id', 'volume_number', 'type', 'isbn', 'published_at', 'cover_path'])
             ->map(fn ($v) => [
-                'id'            => $v->id,
+                'id' => $v->id,
                 'volume_number' => $v->volume_number,
-                'type'          => $v->type,
-                'isbn'          => $v->isbn,
-                'published_at'  => $v->published_at?->toDateString(),
-                'cover_url'     => $this->storage->url($v->cover_path),
+                'type' => $v->type,
+                'isbn' => $v->isbn,
+                'published_at' => $v->published_at?->toDateString(),
+                'cover_url' => $this->storage->url($v->cover_path),
             ]);
 
         return Inertia::render('Admin/Series/Show', [
-            'series'  => [
+            'series' => [
                 ...$series->only([
                     'id', 'title_romaji', 'title_english', 'title_japanese',
                     'synopsis', 'status', 'type', 'total_volumes', 'score', 'rank',
                     'genres', 'authors', 'themes', 'demographics',
                 ]),
                 'published_from' => $series->published_from?->toDateString(),
-                'published_to'   => $series->published_to?->toDateString(),
-                'cover_url'      => $this->storage->url($series->cover_path),
+                'published_to' => $series->published_to?->toDateString(),
+                'cover_url' => $this->storage->url($series->cover_path),
             ],
             'volumes' => $volumes,
-            'can'     => [
-                'update'       => $request->user()->can('update', $series),
-                'delete'       => $request->user()->can('delete', $series),
-                'createVolume' => $request->user()->can('create', \App\Models\Volume::class),
+            'can' => [
+                'update' => $request->user()->can('update', $series),
+                'delete' => $request->user()->can('delete', $series),
+                'createVolume' => $request->user()->can('create', Volume::class),
             ],
             'ownerships' => CollectionVolume::whereHas('collection', fn ($q) => $q->where('series_id', $series->id))
                 ->with(['collection.user', 'activeLoans'])
                 ->orderBy('volume_number')
                 ->get()
                 ->map(fn ($cv) => [
-                    'id'            => $cv->id,
+                    'id' => $cv->id,
                     'volume_number' => $cv->volume_number,
-                    'format'        => $cv->format,
-                    'user_name'     => $cv->collection->user->name,
-                    'active_loan'   => $cv->activeLoans->first()
+                    'format' => $cv->format,
+                    'user_name' => $cv->collection->user->name,
+                    'active_loan' => $cv->activeLoans->first()
                         ? ['borrower_name' => $cv->activeLoans->first()->borrower_name]
                         : null,
                 ]),
@@ -131,12 +130,12 @@ class SeriesController extends Controller
             ->orderBy('volume_number')
             ->get(['id', 'volume_number', 'type', 'isbn', 'published_at', 'cover_path'])
             ->map(fn ($v) => [
-                'id'            => $v->id,
+                'id' => $v->id,
                 'volume_number' => $v->volume_number,
-                'type'          => $v->type,
-                'isbn'          => $v->isbn,
-                'published_at'  => $v->published_at?->toDateString(),
-                'cover_url'     => $this->storage->url($v->cover_path),
+                'type' => $v->type,
+                'isbn' => $v->isbn,
+                'published_at' => $v->published_at?->toDateString(),
+                'cover_url' => $this->storage->url($v->cover_path),
             ]);
 
         return Inertia::render('Admin/Series/Edit', [
@@ -146,8 +145,8 @@ class SeriesController extends Controller
                     'synopsis', 'status', 'type', 'total_volumes', 'score', 'rank',
                 ]),
                 'published_from' => $series->published_from?->toDateString(),
-                'published_to'   => $series->published_to?->toDateString(),
-                'cover_url'      => $this->storage->url($series->cover_path),
+                'published_to' => $series->published_to?->toDateString(),
+                'cover_url' => $this->storage->url($series->cover_path),
             ],
             'volumes' => $volumes,
         ]);
@@ -193,7 +192,7 @@ class SeriesController extends Controller
     public function bulkDestroy(Request $request): RedirectResponse
     {
         $request->validate([
-            'ids'   => ['required', 'array', 'min:1'],
+            'ids' => ['required', 'array', 'min:1'],
             'ids.*' => ['uuid', 'exists:series,id'],
         ]);
 
@@ -219,7 +218,9 @@ class SeriesController extends Controller
     {
         try {
             $response = Http::timeout(20)->get($url);
-            if (! $response->successful()) return null;
+            if (! $response->successful()) {
+                return null;
+            }
 
             $ext = pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
 

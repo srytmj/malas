@@ -63,8 +63,6 @@ jobs:
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
-            php artisan icons:cache
-            php artisan filament:cache-components
             php artisan optimize
 
             php artisan queue:restart

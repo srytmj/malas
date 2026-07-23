@@ -26,7 +26,7 @@ class VolumeController extends Controller
         }
 
         $existing = $series->volumes()->pluck('volume_number')->all();
-        $created  = 0;
+        $created = 0;
 
         for ($i = 1; $i <= $series->total_volumes; $i++) {
             if (! in_array($i, $existing)) {
@@ -46,7 +46,7 @@ class VolumeController extends Controller
     {
         $this->authorize('create', Volume::class);
 
-        $data              = $request->validated();
+        $data = $request->validated();
         $data['series_id'] = $series->id;
         $data['cover_path'] = $request->hasFile('cover')
             ? $this->storage->storeUploadedFile($request->file('cover'), 'covers/volumes')
@@ -65,13 +65,13 @@ class VolumeController extends Controller
 
         return Inertia::render('Admin/Series/EditVolume', [
             'volume' => [
-                'id'            => $volume->id,
-                'series_id'     => $volume->series_id,
+                'id' => $volume->id,
+                'series_id' => $volume->series_id,
                 'volume_number' => $volume->volume_number,
-                'type'          => $volume->type,
-                'isbn'          => $volume->isbn,
-                'published_at'  => $volume->published_at?->toDateString(),
-                'cover_url'     => $this->storage->url($volume->cover_path),
+                'type' => $volume->type,
+                'isbn' => $volume->isbn,
+                'published_at' => $volume->published_at?->toDateString(),
+                'cover_url' => $this->storage->url($volume->cover_path),
             ],
             'series' => $volume->series->only(['id', 'title_romaji']),
         ]);
@@ -125,7 +125,9 @@ class VolumeController extends Controller
     {
         try {
             $response = Http::timeout(20)->get($url);
-            if (! $response->successful()) return null;
+            if (! $response->successful()) {
+                return null;
+            }
 
             $ext = pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
 

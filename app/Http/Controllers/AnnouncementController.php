@@ -13,7 +13,7 @@ class AnnouncementController extends Controller
 
         abort_unless($announcement->is_active, 403);
 
-        if (!$user->dismissedAnnouncements()->where('announcement_id', $announcement->id)->exists()) {
+        if (! $user->dismissedAnnouncements()->where('announcement_id', $announcement->id)->exists()) {
             $user->dismissedAnnouncements()->attach($announcement->id, [
                 'dismissed_at' => now(),
             ]);

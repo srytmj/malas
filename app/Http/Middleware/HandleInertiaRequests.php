@@ -18,7 +18,7 @@ class HandleInertiaRequests extends Middleware
 
     public function share(Request $request): array
     {
-        $user  = $request->user();
+        $user = $request->user();
         $menus = [];
 
         if ($user) {
@@ -33,22 +33,22 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'flash' => [
                 'success' => session('success'),
-                'error'   => session('error'),
-                'info'    => session('info'),
+                'error' => session('error'),
+                'info' => session('info'),
             ],
             'auth' => [
                 'user' => $user ? [
-                    'id'         => $user->id,
-                    'name'       => $user->name,
-                    'username'   => $user->username,
-                    'email'      => $user->email,
-                    'avatar'     => $user->avatar,
-                    'role'       => $user->role,
-                    'is_banned'  => $user->is_banned,
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'username' => $user->username,
+                    'email' => $user->email,
+                    'avatar' => $user->avatar,
+                    'role' => $user->role,
+                    'is_banned' => $user->is_banned,
                     'ban_reason' => $user->ban_reason,
                 ] : null,
             ],
-            'menus'         => $menus,
+            'menus' => $menus,
             'announcements' => $user
                 ? Announcement::active()
                     ->whereDoesntHave('dismissedByUsers', fn ($q) => $q->where('users.id', $user->id))

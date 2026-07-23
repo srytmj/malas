@@ -17,27 +17,25 @@ class SeriesController extends Controller
     public function index(): Response
     {
         $series = Series::query()
-            ->when(request('search'), fn ($q, $s) =>
-                $q->where(fn ($sub) =>
-                    $sub->where('title_romaji', 'like', "%{$s}%")
-                        ->orWhere('title_english', 'like', "%{$s}%")
-                ))
+            ->when(request('search'), fn ($q, $s) => $q->where(fn ($sub) => $sub->where('title_romaji', 'like', "%{$s}%")
+                ->orWhere('title_english', 'like', "%{$s}%")
+            ))
             ->when(request('status'), fn ($q, $s) => $q->where('status', $s))
-            ->when(request('type'),   fn ($q, $t) => $q->where('type', $t))
+            ->when(request('type'), fn ($q, $t) => $q->where('type', $t))
             ->withCount('volumes')
             ->latest()
             ->paginate(24)
             ->withQueryString()
             ->through(fn ($s) => [
-                'id'            => $s->id,
-                'title_romaji'  => $s->title_romaji,
-                'title_english' => $s->title_english,
-                'cover_url'     => $this->storage->url($s->cover_path),
-                'status'        => $s->status,
-                'type'          => $s->type,
-                'total_volumes' => $s->total_volumes,
-                'volumes_count' => $s->volumes_count,
-                'score'         => $s->score,
+            'id' => $s->id,
+            'title_romaji' => $s->title_romaji,
+            'title_english' => $s->title_english,
+            'cover_url' => $this->storage->url($s->cover_path),
+            'status' => $s->status,
+            'type' => $s->type,
+            'total_volumes' => $s->total_volumes,
+            'volumes_count' => $s->volumes_count,
+            'score' => $s->score,
             ]);
 
         // Cek series mana yang sudah ada di koleksi user
@@ -47,9 +45,9 @@ class SeriesController extends Controller
             ->toArray();
 
         return Inertia::render('User/Catalog/Index', [
-            'series'              => $series,
+            'series' => $series,
             'collectionSeriesIds' => $collectionSeriesIds,
-            'filters'             => request()->only(['search', 'status', 'type']),
+            'filters' => request()->only(['search', 'status', 'type']),
         ]);
     }
 
@@ -57,28 +55,26 @@ class SeriesController extends Controller
     {
         $q = trim((string) $request->get('q', ''));
 
-        $series = Series::when($q, fn ($query) =>
-            $query->where(fn ($sub) =>
-                $sub->where('title_romaji', 'like', "%{$q}%")
-                    ->orWhere('title_english', 'like', "%{$q}%")
-            )
+        $series = Series::when($q, fn ($query) => $query->where(fn ($sub) => $sub->where('title_romaji', 'like', "%{$q}%")
+            ->orWhere('title_english', 'like', "%{$q}%")
         )
-        ->latest()
-        ->limit(24)
-        ->get(['id', 'title_romaji', 'title_english', 'cover_path', 'type', 'status'])
-        ->map(fn ($s) => [
-            'id'            => $s->id,
-            'title_romaji'  => $s->title_romaji,
-            'title_english' => $s->title_english,
-            'cover_url'     => $this->storage->url($s->cover_path),
-            'type'          => $s->type,
-            'status'        => $s->status,
-        ]);
+        )
+            ->latest()
+            ->limit(24)
+            ->get(['id', 'title_romaji', 'title_english', 'cover_path', 'type', 'status'])
+            ->map(fn ($s) => [
+                'id' => $s->id,
+                'title_romaji' => $s->title_romaji,
+                'title_english' => $s->title_english,
+                'cover_url' => $this->storage->url($s->cover_path),
+                'type' => $s->type,
+                'status' => $s->status,
+            ]);
 
         $collectionSeriesIds = auth()->user()->collections()->pluck('series_id')->toArray();
 
         return response()->json([
-            'results'             => $series->toArray(),
+            'results' => $series->toArray(),
             'collection_series_ids' => $collectionSeriesIds,
         ]);
     }
@@ -89,12 +85,12 @@ class SeriesController extends Controller
             ->orderBy('volume_number')
             ->get(['id', 'volume_number', 'type', 'isbn', 'published_at', 'cover_path'])
             ->map(fn ($v) => [
-                'id'            => $v->id,
+                'id' => $v->id,
                 'volume_number' => $v->volume_number,
-                'type'          => $v->type,
-                'isbn'          => $v->isbn,
-                'published_at'  => $v->published_at?->toDateString(),
-                'cover_url'     => $this->storage->url($v->cover_path),
+                'type' => $v->type,
+                'isbn' => $v->isbn,
+                'published_at' => $v->published_at?->toDateString(),
+                'cover_url' => $this->storage->url($v->cover_path),
             ]);
 
         $collection = auth()->user()
@@ -110,10 +106,10 @@ class SeriesController extends Controller
                     'genres', 'authors', 'themes', 'demographics',
                 ]),
                 'published_from' => $series->published_from?->toDateString(),
-                'published_to'   => $series->published_to?->toDateString(),
-                'cover_url'      => $this->storage->url($series->cover_path),
+                'published_to' => $series->published_to?->toDateString(),
+                'cover_url' => $this->storage->url($series->cover_path),
             ],
-            'volumes'    => $volumes,
+            'volumes' => $volumes,
             'collection' => $collection ? ['id' => $collection->id] : null,
         ]);
     }

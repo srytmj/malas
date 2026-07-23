@@ -37,10 +37,10 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
-            'is_banned'         => 'boolean',
-            'banned_at'         => 'datetime',
-            'deleted_at'        => 'datetime',
+            'password' => 'hashed',
+            'is_banned' => 'boolean',
+            'banned_at' => 'datetime',
+            'deleted_at' => 'datetime',
         ];
     }
 
@@ -67,6 +67,6 @@ class User extends Authenticatable
     public function dismissedAnnouncements(): BelongsToMany
     {
         return $this->belongsToMany(Announcement::class, 'announcement_user')
-                    ->withPivot('dismissed_at');
+            ->withPivot('dismissed_at');
     }
 }

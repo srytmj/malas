@@ -1,13 +1,14 @@
 <?php
 
+use App\Http\Controllers\Admin\AniListController;
 use App\Http\Controllers\Admin\AnnouncementController as AdminAnnouncementController;
 use App\Http\Controllers\Admin\CollectionController as AdminCollectionController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
-use App\Http\Controllers\Admin\AniListController;
+use App\Http\Controllers\Admin\DatabaseBackupController;
+use App\Http\Controllers\Admin\ImageSearchController;
 use App\Http\Controllers\Admin\LoanController as AdminLoanController;
 use App\Http\Controllers\Admin\MenuController as AdminMenuController;
 use App\Http\Controllers\Admin\SeriesController as AdminSeriesController;
-use App\Http\Controllers\Admin\DatabaseBackupController;
 use App\Http\Controllers\Admin\StorageSettingController;
 use App\Http\Controllers\Admin\TicketController as AdminTicketController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
@@ -89,7 +90,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'not_banned', 'check
     Route::get('/anilist/search', [AniListController::class, 'searchJson'])->name('anilist.search');
     Route::get('/anilist/status', [AniListController::class, 'statusPage'])->name('anilist.status.page');
     Route::get('/anilist/status/check', [AniListController::class, 'statusCheck'])->name('anilist.status');
-    Route::get('/images/search', [\App\Http\Controllers\Admin\ImageSearchController::class, 'search'])->name('images.search');
+    Route::get('/images/search', [ImageSearchController::class, 'search'])->name('images.search');
     Route::post('/anilist/import', [AniListController::class, 'import'])->name('anilist.import');
     Route::delete('/series/bulk', [AdminSeriesController::class, 'bulkDestroy'])->name('series.bulk-destroy');
     Route::resource('series', AdminSeriesController::class);
@@ -101,29 +102,29 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'not_banned', 'check
         ->except(['show']);
 
     // Users
-    Route::get('/users',                    [AdminUserController::class, 'index'])      ->name('users.index');
-    Route::get('/users/{user}',             [AdminUserController::class, 'show'])       ->name('users.show');
-    Route::patch('/users/{user}/ban',       [AdminUserController::class, 'ban'])        ->name('users.ban');
-    Route::patch('/users/{user}/unban',     [AdminUserController::class, 'unban'])      ->name('users.unban');
-    Route::patch('/users/{user}/role',      [AdminUserController::class, 'changeRole']) ->name('users.role');
+    Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
+    Route::get('/users/{user}', [AdminUserController::class, 'show'])->name('users.show');
+    Route::patch('/users/{user}/ban', [AdminUserController::class, 'ban'])->name('users.ban');
+    Route::patch('/users/{user}/unban', [AdminUserController::class, 'unban'])->name('users.unban');
+    Route::patch('/users/{user}/role', [AdminUserController::class, 'changeRole'])->name('users.role');
 
     // Menus
-    Route::get('/menus',              [AdminMenuController::class, 'index'])  ->name('menus.index');
-    Route::get('/menus/{menu}/edit',  [AdminMenuController::class, 'edit'])   ->name('menus.edit');
+    Route::get('/menus', [AdminMenuController::class, 'index'])->name('menus.index');
+    Route::get('/menus/{menu}/edit', [AdminMenuController::class, 'edit'])->name('menus.edit');
     Route::match(['put', 'patch'], '/menus/{menu}', [AdminMenuController::class, 'update'])->name('menus.update');
 
     // Tiket dari user
-    Route::get('/tickets',                [AdminTicketController::class, 'index'])   ->name('tickets.index');
-    Route::get('/tickets/{ticket}',        [AdminTicketController::class, 'show'])    ->name('tickets.show');
+    Route::get('/tickets', [AdminTicketController::class, 'index'])->name('tickets.index');
+    Route::get('/tickets/{ticket}', [AdminTicketController::class, 'show'])->name('tickets.show');
     Route::patch('/tickets/{ticket}/respond', [AdminTicketController::class, 'respond'])->name('tickets.respond');
 
     // Pengaturan penyimpanan (super_admin only, ditegakkan lewat role_access menu + Policy)
-    Route::get('/settings/storage',       [StorageSettingController::class, 'edit'])            ->name('settings.storage.edit');
-    Route::put('/settings/storage',       [StorageSettingController::class, 'update'])          ->name('settings.storage.update');
-    Route::post('/settings/storage/test', [StorageSettingController::class, 'testConnection'])  ->name('settings.storage.test');
+    Route::get('/settings/storage', [StorageSettingController::class, 'edit'])->name('settings.storage.edit');
+    Route::put('/settings/storage', [StorageSettingController::class, 'update'])->name('settings.storage.update');
+    Route::post('/settings/storage/test', [StorageSettingController::class, 'testConnection'])->name('settings.storage.test');
 
     // Backup & import database (super_admin only)
-    Route::get('/settings/database',         [DatabaseBackupController::class, 'index'])    ->name('settings.db.index');
-    Route::get('/settings/database/download',[DatabaseBackupController::class, 'download'])->name('settings.db.download');
-    Route::post('/settings/database/import', [DatabaseBackupController::class, 'import'])  ->name('settings.db.import');
+    Route::get('/settings/database', [DatabaseBackupController::class, 'index'])->name('settings.db.index');
+    Route::get('/settings/database/download', [DatabaseBackupController::class, 'download'])->name('settings.db.download');
+    Route::post('/settings/database/import', [DatabaseBackupController::class, 'import'])->name('settings.db.import');
 });

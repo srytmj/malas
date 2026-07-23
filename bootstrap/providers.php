@@ -1,6 +1,9 @@
 <?php
 
+use App\EnvKit\EnvKitDebugServiceProvider;
+use App\Providers\AppServiceProvider;
+
 return [
-    App\Providers\AppServiceProvider::class,
-    App\EnvKit\EnvKitDebugServiceProvider::class,
+    AppServiceProvider::class,
+    EnvKitDebugServiceProvider::class,
 ];

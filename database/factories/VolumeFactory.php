@@ -12,9 +12,9 @@ class VolumeFactory extends Factory
     public function definition(): array
     {
         return [
-            'series_id'     => Series::factory(),
+            'series_id' => Series::factory(),
             'volume_number' => fake()->numberBetween(1, 99),
-            'type'          => 'regular',
+            'type' => 'regular',
         ];
     }
 }

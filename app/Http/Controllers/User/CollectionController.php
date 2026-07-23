@@ -5,7 +5,6 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\Collection;
 use App\Models\CollectionVolume;
-use App\Models\Series;
 use App\Services\StorageSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,15 +25,15 @@ class CollectionController extends Controller
             ->latest()
             ->get()
             ->map(fn ($c) => [
-                'id'                  => $c->id,
-                'series_id'           => $c->series_id,
-                'title_romaji'        => $c->series->title_romaji,
-                'title_english'       => $c->series->title_english,
-                'cover_url'           => $this->storage->url($c->series->cover_path),
-                'total_volumes'       => $c->series->total_volumes,
+                'id' => $c->id,
+                'series_id' => $c->series_id,
+                'title_romaji' => $c->series->title_romaji,
+                'title_english' => $c->series->title_english,
+                'cover_url' => $this->storage->url($c->series->cover_path),
+                'total_volumes' => $c->series->total_volumes,
                 'collection_volumes_count' => $c->collection_volumes_count,
-                'status'              => $c->series->status,
-                'type'                => $c->series->type,
+                'status' => $c->series->status,
+                'type' => $c->series->type,
             ]);
 
         return Inertia::render('User/Collection/Index', [
@@ -47,19 +46,20 @@ class CollectionController extends Controller
         $this->authorize('create', Collection::class);
 
         $request->validate([
-            'series_ids'   => ['required', 'array', 'min:1'],
+            'series_ids' => ['required', 'array', 'min:1'],
             'series_ids.*' => ['uuid', 'exists:series,id'],
         ]);
 
-        $user       = auth()->user();
+        $user = auth()->user();
         $existingIds = $user->collections()->pluck('series_id')->toArray();
 
-        $added   = 0;
+        $added = 0;
         $skipped = 0;
 
         foreach ($request->series_ids as $seriesId) {
             if (in_array($seriesId, $existingIds)) {
                 $skipped++;
+
                 continue;
             }
             $user->collections()->create(['series_id' => $seriesId]);
@@ -72,7 +72,7 @@ class CollectionController extends Controller
         }
 
         $msg = "{$added} series berhasil ditambahkan ke koleksi."
-            . ($skipped > 0 ? " {$skipped} dilewati (sudah ada)." : '');
+            .($skipped > 0 ? " {$skipped} dilewati (sudah ada)." : '');
 
         return redirect()->back()->with('success', $msg);
     }
@@ -88,21 +88,21 @@ class CollectionController extends Controller
             ->orderBy('volume_number')
             ->get()
             ->map(fn ($cv) => [
-                'id'            => $cv->id,
+                'id' => $cv->id,
                 'volume_number' => $cv->volume_number,
-                'format'        => $cv->format,
-                'active_loan'   => $cv->activeLoans->first() ? [
-                    'id'            => $cv->activeLoans->first()->id,
+                'format' => $cv->format,
+                'active_loan' => $cv->activeLoans->first() ? [
+                    'id' => $cv->activeLoans->first()->id,
                     'borrower_name' => $cv->activeLoans->first()->borrower_name,
-                    'loaned_at'     => $cv->activeLoans->first()->loaned_at?->toDateString(),
-                    'due_at'        => $cv->activeLoans->first()->due_at?->toDateString(),
-                    'is_overdue'    => $cv->activeLoans->first()->isOverdue(),
+                    'loaned_at' => $cv->activeLoans->first()->loaned_at?->toDateString(),
+                    'due_at' => $cv->activeLoans->first()->due_at?->toDateString(),
+                    'is_overdue' => $cv->activeLoans->first()->isOverdue(),
                 ] : null,
             ]);
 
         return Inertia::render('User/Collection/Show', [
             'collection' => [
-                'id'        => $collection->id,
+                'id' => $collection->id,
                 'series_id' => $collection->series_id,
             ],
             'series' => [
@@ -131,7 +131,7 @@ class CollectionController extends Controller
 
         $request->validate([
             'volumes' => ['required', 'string'],
-            'format'  => ['required', Rule::in(['physical', 'ebook', 'online', 'webtoon'])],
+            'format' => ['required', Rule::in(['physical', 'ebook', 'online', 'webtoon'])],
         ]);
 
         $numbers = collect(explode(',', $request->volumes))
@@ -139,10 +139,14 @@ class CollectionController extends Controller
                 $segment = trim($segment);
                 if (str_contains($segment, '-')) {
                     [$a, $b] = array_map('intval', explode('-', $segment, 2));
-                    if ($a > $b) [$a, $b] = [$b, $a];
+                    if ($a > $b) {
+                        [$a, $b] = [$b, $a];
+                    }
+
                     return $a > 0 ? range($a, $b) : [];
                 }
                 $n = (int) $segment;
+
                 return $n > 0 ? [$n] : [];
             })
             ->unique()
@@ -165,17 +169,18 @@ class CollectionController extends Controller
         foreach ($numbers as $number) {
             if (in_array($number, $existing)) {
                 $skipped++;
+
                 continue;
             }
             $collection->collectionVolumes()->create([
                 'volume_number' => $number,
-                'format'        => $request->format,
+                'format' => $request->format,
             ]);
             $created++;
         }
 
         $message = $created > 0
-            ? "{$created} volume berhasil ditambahkan" . ($skipped > 0 ? ", {$skipped} dilewati (sudah ada)." : '.')
+            ? "{$created} volume berhasil ditambahkan".($skipped > 0 ? ", {$skipped} dilewati (sudah ada)." : '.')
             : 'Semua volume yang diinput sudah ada di koleksimu.';
 
         return redirect()->back()->with($created > 0 ? 'success' : 'info', $message);
@@ -197,7 +202,7 @@ class CollectionController extends Controller
         $this->authorize('update', $collection);
 
         $request->validate([
-            'volume_ids'   => ['required', 'array', 'min:1'],
+            'volume_ids' => ['required', 'array', 'min:1'],
             'volume_ids.*' => ['uuid'],
         ]);
 

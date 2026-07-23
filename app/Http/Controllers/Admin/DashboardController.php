@@ -17,10 +17,10 @@ class DashboardController extends Controller
     public function index(Request $request): Response
     {
         $stats = [
-            'series_count'       => Series::count(),
-            'volumes_count'      => Volume::count(),
-            'collections_count'  => Collection::count(),
-            'users_count'        => User::where('role', 'user')->count(),
+            'series_count' => Series::count(),
+            'volumes_count' => Volume::count(),
+            'collections_count' => Collection::count(),
+            'users_count' => User::where('role', 'user')->count(),
             'active_loans_count' => Loan::whereNull('returned_at')->count(),
         ];
 
@@ -30,7 +30,7 @@ class DashboardController extends Controller
             ->toArray();
 
         return Inertia::render('Admin/Dashboard', [
-            'stats'          => $stats,
+            'stats' => $stats,
             'series_by_status' => $seriesByStatus,
         ]);
     }

@@ -11,24 +11,24 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         User::factory()->create([
-            'name'     => 'Super Admin',
-            'email'    => 'superadmin@malas.dev',
+            'name' => 'Super Admin',
+            'email' => 'superadmin@malas.dev',
             'password' => Hash::make('password'),
-            'role'     => 'super_admin',
+            'role' => 'super_admin',
         ]);
 
         User::factory()->create([
-            'name'     => 'Admin',
-            'email'    => 'admin@malas.dev',
+            'name' => 'Admin',
+            'email' => 'admin@malas.dev',
             'password' => Hash::make('password'),
-            'role'     => 'admin',
+            'role' => 'admin',
         ]);
 
         User::factory()->create([
-            'name'     => 'QA User',
-            'email'    => 'qa@malas.dev',
+            'name' => 'QA User',
+            'email' => 'qa@malas.dev',
             'password' => Hash::make('password'),
-            'role'     => 'user',
+            'role' => 'user',
         ]);
 
         User::factory()->count(3)->create([

@@ -24,11 +24,11 @@ class TicketController extends Controller
             ->latest()
             ->paginate(15)
             ->through(fn ($t) => [
-                'id'         => $t->id,
-                'subject'    => $t->subject,
-                'type'       => $t->type,
-                'status'     => $t->status,
-                'series'     => $t->series ? ['id' => $t->series->id, 'title_romaji' => $t->series->title_romaji] : null,
+                'id' => $t->id,
+                'subject' => $t->subject,
+                'type' => $t->type,
+                'status' => $t->status,
+                'series' => $t->series ? ['id' => $t->series->id, 'title_romaji' => $t->series->title_romaji] : null,
                 'created_at' => $t->created_at->toDateString(),
             ]);
 
@@ -51,9 +51,9 @@ class TicketController extends Controller
 
         return Inertia::render('User/Tickets/Create', [
             'series' => $series ? [
-                'id'           => $series->id,
+                'id' => $series->id,
                 'title_romaji' => $series->title_romaji,
-                'cover_url'    => $this->storage->url($series->cover_path),
+                'cover_url' => $this->storage->url($series->cover_path),
             ] : null,
         ]);
     }
@@ -72,16 +72,16 @@ class TicketController extends Controller
 
         return Inertia::render('User/Tickets/Show', [
             'ticket' => [
-                'id'             => $ticket->id,
-                'subject'        => $ticket->subject,
-                'type'           => $ticket->type,
-                'message'        => $ticket->message,
-                'status'         => $ticket->status,
+                'id' => $ticket->id,
+                'subject' => $ticket->subject,
+                'type' => $ticket->type,
+                'message' => $ticket->message,
+                'status' => $ticket->status,
                 'admin_response' => $ticket->admin_response,
-                'responded_at'   => $ticket->responded_at?->toDateTimeString(),
-                'created_at'     => $ticket->created_at->toDateTimeString(),
-                'series'         => $ticket->series ? [
-                    'id'           => $ticket->series->id,
+                'responded_at' => $ticket->responded_at?->toDateTimeString(),
+                'created_at' => $ticket->created_at->toDateTimeString(),
+                'series' => $ticket->series ? [
+                    'id' => $ticket->series->id,
                     'title_romaji' => $ticket->series->title_romaji,
                 ] : null,
             ],

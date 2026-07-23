@@ -19,11 +19,11 @@ class AnnouncementController extends Controller
         $announcements = Announcement::latest()
             ->paginate(20)
             ->through(fn ($a) => [
-                'id'         => $a->id,
-                'title'      => $a->title,
-                'type'       => $a->type,
-                'is_active'  => $a->is_active,
-                'starts_at'  => $a->starts_at?->toDateTimeString(),
+                'id' => $a->id,
+                'title' => $a->title,
+                'type' => $a->type,
+                'is_active' => $a->is_active,
+                'starts_at' => $a->starts_at?->toDateTimeString(),
                 'expires_at' => $a->expires_at?->toDateTimeString(),
                 'created_at' => $a->created_at->toDateTimeString(),
             ]);
@@ -56,12 +56,12 @@ class AnnouncementController extends Controller
 
         return Inertia::render('Admin/Announcements/Edit', [
             'announcement' => [
-                'id'         => $announcement->id,
-                'title'      => $announcement->title,
-                'body'       => $announcement->body,
-                'type'       => $announcement->type,
-                'is_active'  => $announcement->is_active,
-                'starts_at'  => $announcement->starts_at?->format('Y-m-d\TH:i'),
+                'id' => $announcement->id,
+                'title' => $announcement->title,
+                'body' => $announcement->body,
+                'type' => $announcement->type,
+                'is_active' => $announcement->is_active,
+                'starts_at' => $announcement->starts_at?->format('Y-m-d\TH:i'),
                 'expires_at' => $announcement->expires_at?->format('Y-m-d\TH:i'),
             ],
         ]);

@@ -24,16 +24,16 @@ class LoanController extends Controller
             ->latest('loaned_at')
             ->paginate(20)
             ->through(fn ($l) => [
-                'id'            => $l->id,
+                'id' => $l->id,
                 'collection_id' => $l->collection_id,
-                'series_title'  => $l->collection->series->title_romaji,
+                'series_title' => $l->collection->series->title_romaji,
                 'volume_number' => $l->collectionVolume?->volume_number,
                 'borrower_name' => $l->borrower_name,
-                'loaned_at'     => $l->loaned_at?->toDateString(),
-                'due_at'        => $l->due_at?->toDateString(),
-                'returned_at'   => $l->returned_at?->toDateString(),
-                'notes'         => $l->notes,
-                'is_overdue'    => $l->isOverdue(),
+                'loaned_at' => $l->loaned_at?->toDateString(),
+                'due_at' => $l->due_at?->toDateString(),
+                'returned_at' => $l->returned_at?->toDateString(),
+                'notes' => $l->notes,
+                'is_overdue' => $l->isOverdue(),
             ]);
 
         return Inertia::render('User/Loans/Index', [
@@ -47,10 +47,10 @@ class LoanController extends Controller
 
         $data = $request->validate([
             'collection_volume_id' => ['required', 'uuid', 'exists:collection_volumes,id'],
-            'borrower_name'        => ['required', 'string', 'max:255'],
-            'loaned_at'            => ['required', 'date'],
-            'due_at'               => ['nullable', 'date', 'after:loaned_at'],
-            'notes'                => ['nullable', 'string', 'max:1000'],
+            'borrower_name' => ['required', 'string', 'max:255'],
+            'loaned_at' => ['required', 'date'],
+            'due_at' => ['nullable', 'date', 'after:loaned_at'],
+            'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
         $cv = CollectionVolume::findOrFail($data['collection_volume_id']);

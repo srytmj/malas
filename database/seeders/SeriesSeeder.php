@@ -29,9 +29,9 @@ class SeriesSeeder extends Seeder
             $volumeCount = min($data['total_volumes'] ?? 3, 5);
             for ($i = 1; $i <= $volumeCount; $i++) {
                 Volume::create([
-                    'series_id'     => $series->id,
+                    'series_id' => $series->id,
                     'volume_number' => $i,
-                    'type'          => 'regular',
+                    'type' => 'regular',
                 ]);
             }
         }
