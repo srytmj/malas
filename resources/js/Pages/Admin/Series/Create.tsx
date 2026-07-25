@@ -33,6 +33,23 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+const STATUS_LABELS: Record<string, string> = {
+    publishing: 'Publishing',
+    finished: 'Selesai',
+    on_hiatus: 'Hiatus',
+    discontinued: 'Discontinued',
+    not_yet_published: 'Belum Terbit',
+};
+
+const TYPE_LABELS: Record<string, string> = {
+    manga: 'Manga',
+    manhwa: 'Manhwa',
+    manhua: 'Manhua',
+    novel: 'Novel',
+    one_shot: 'One Shot',
+    doujinshi: 'Doujinshi',
+};
+
 function FieldError({ message }: { message?: string }) {
     if (!message) return null;
     return <p className="text-sm text-destructive">{message}</p>;
@@ -112,7 +129,7 @@ export default function SeriesCreate() {
                             name="status"
                             render={({ field }) => (
                                 <Select value={field.value} onValueChange={field.onChange}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectTrigger><SelectValue>{(value: string) => STATUS_LABELS[value] ?? value}</SelectValue></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="publishing">Publishing</SelectItem>
                                         <SelectItem value="finished">Selesai</SelectItem>
@@ -133,7 +150,7 @@ export default function SeriesCreate() {
                             name="type"
                             render={({ field }) => (
                                 <Select value={field.value} onValueChange={field.onChange}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectTrigger><SelectValue>{(value: string) => TYPE_LABELS[value] ?? value}</SelectValue></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="manga">Manga</SelectItem>
                                         <SelectItem value="manhwa">Manhwa</SelectItem>

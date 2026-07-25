@@ -17,7 +17,6 @@ interface CollectionRow {
     owned_volumes_count: number;
     total_volumes: number | null;
     condition: CollectionCondition;
-    acquired_at: string | null;
 }
 
 interface UserData {
@@ -66,21 +65,20 @@ export default function AdminCollectionsShow({ user, collections }: Props) {
                 </div>
             </div>
 
-            <div className="rounded-lg border">
+            <div className="max-h-[70vh] overflow-auto rounded-lg border">
                 <Table>
-                    <TableHeader>
+                    <TableHeader className="sticky top-0 z-10 bg-card">
                         <TableRow>
                             <TableHead>Series</TableHead>
                             <TableHead className="w-28">Tipe</TableHead>
                             <TableHead className="w-32 text-right">Volume Dimiliki</TableHead>
                             <TableHead className="w-24">Kondisi</TableHead>
-                            <TableHead className="w-32">Tanggal</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {collections.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
+                                <TableCell colSpan={4} className="py-12 text-center text-muted-foreground">
                                     Belum ada koleksi.
                                 </TableCell>
                             </TableRow>
@@ -94,9 +92,6 @@ export default function AdminCollectionsShow({ user, collections }: Props) {
                                 </TableCell>
                                 <TableCell>
                                     <Badge variant="outline">{CONDITION_LABELS[c.condition]}</Badge>
-                                </TableCell>
-                                <TableCell className="text-sm text-muted-foreground">
-                                    {c.acquired_at ?? '—'}
                                 </TableCell>
                             </TableRow>
                         ))}

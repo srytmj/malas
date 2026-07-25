@@ -36,12 +36,13 @@ step "Install dependency sistem"
 info "Update package list..."
 $SUDO apt-get update -qq
 
-info "Install Nginx, PHP 8.2, MySQL 8, Node 20, Composer..."
+info "Install Nginx, PHP 8.2, MySQL 8, Node 20, Composer, Supervisor..."
 $SUDO apt-get install -y -qq \
     nginx \
     mysql-server \
     php8.2 php8.2-fpm php8.2-mysql php8.2-mbstring php8.2-xml \
     php8.2-bcmath php8.2-curl php8.2-zip php8.2-intl php8.2-sqlite3 \
+    supervisor \
     unzip curl git
 
 # Node 20 via NodeSource
@@ -214,6 +215,33 @@ $SUDO rm -f /etc/nginx/sites-enabled/default
 $SUDO nginx -t && $SUDO systemctl reload nginx
 $SUDO systemctl enable nginx php8.2-fpm mysql
 success "Nginx dikonfigurasi untuk ${APP_DOMAIN}."
+
+# =============================================================================
+step "Konfigurasi queue worker (Supervisor)"
+# =============================================================================
+SUPERVISOR_CONF="/etc/supervisor/conf.d/malas-worker.conf"
+
+$SUDO tee "$SUPERVISOR_CONF" > /dev/null <<SUPERVISOR
+[program:malas-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=php ${PROJECT_PATH}/artisan queue:work --sleep=3 --tries=3 --max-time=3600
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+numprocs=1
+user=www-data
+redirect_stderr=true
+stdout_logfile=${PROJECT_PATH}/storage/logs/worker.log
+stopwaitsecs=3600
+SUPERVISOR
+
+$SUDO systemctl enable supervisor
+$SUDO systemctl restart supervisor
+$SUDO supervisorctl reread
+$SUDO supervisorctl update
+$SUDO supervisorctl start malas-worker:* || true
+success "Queue worker aktif (dibutuhkan untuk migrasi storage, backup, dan job antrian lainnya)."
 
 # =============================================================================
 echo ""

@@ -4,6 +4,45 @@ Semua perubahan penting pada MALAS dicatat di file ini. Format mengikuti prinsip
 
 ---
 
+## 2026-07-25 — UX Overhaul: Katalog, Koleksiku, Admin Tools, Konten 18+
+
+Batch besar perbaikan & fitur di sisi user dan admin, plus infrastruktur queue worker untuk deployment.
+
+### Fixed
+- Pagination Katalog & Admin Series balik ke halaman 1 sendiri — `useEffect` debounce search yang tidak seharusnya jalan di setiap mount (termasuk saat pindah halaman), sekarang di-skip pada render pertama.
+
+### Added — User Side
+- Modal "Tambah Series" di Koleksiku diperbesar, grid pemilihan lebih lega.
+- Toggle tampilan Grid/Table + sort (nama, tanggal ditambahkan, jumlah volume) di Koleksiku, tersimpan per-device via `localStorage`.
+- Toggle Grid/Table untuk daftar volume yang dimiliki di halaman detail koleksi.
+- Filter "sudah/belum di koleksi" di Katalog.
+- Checklist volume di koleksi kini bisa diklik di area manapun dalam kotak cover, tidak harus tepat di checkbox.
+- Tombol refresh cepat di sebelah search — Katalog, Koleksiku, Admin Series.
+- Filter status series (publishing/selesai/hiatus/dll) di Koleksiku.
+- Genre series ditampilkan di kartu Koleksiku.
+- Kondisi koleksi opsional (mint/bagus/cukup/buruk), bisa diubah dari halaman detail koleksi.
+- Widget "tiket terakhir" di dashboard user.
+- Galeri media tambahan (screenshot/artwork) di halaman detail Katalog; badge jumlah volume di kartu grid katalog dihapus (dianggap tidak informatif).
+- Avatar user (dengan fallback inisial) ditampilkan konsisten di sidebar.
+
+### Added — Admin Side
+- Halaman Koleksi admin direstruktur: daftar dikelompokkan per user (dengan drill-down), bukan tabel flat semua koleksi.
+- Import AniList tidak lagi pindah halaman setelah import — tetap di halaman cari, dengan tombol "lihat di katalog" untuk series yang sudah diimpor.
+- Sidebar admin & user direstruktur jadi kategori/sub-kategori collapsible (mis. grup "AniList", grup "Lainnya").
+- Halaman Storage Settings + Database Backup digabung jadi satu halaman `/admin/settings` bertab.
+- Filter "sembunyikan konten 18+" saat mencari di AniList, plus badge 18+ pada hasil.
+- Pengaturan global "blur konten 18+" (tab Konten di halaman Pengaturan) — cover series 18+ otomatis di-blur di seluruh halaman user, klik untuk membuka sementara (gaya Reddit/Instagram).
+- Log aktivitas admin — mencatat aksi sensitif (hapus/bulk-delete series & volume, ban/unban/ganti role user, import database, ubah pengaturan storage/konten) dengan halaman viewer baru.
+- Upload galeri media tambahan per series dari halaman Edit Series.
+- Migrasi file storage otomatis (Local ↔ S3) saat driver/bucket/endpoint diganti — berjalan di background lewat queue job, status ditampilkan di halaman Pengaturan.
+
+### Changed — Infrastruktur Deployment
+- `deploy.sh` sekarang install & konfigurasi **Supervisor** untuk queue worker (`malas-worker`) — wajib supaya job antrian seperti migrasi storage benar-benar berjalan di production.
+- `update.sh` menjalankan `php artisan queue:restart` setelah update kode, supaya worker yang sedang berjalan pakai kode terbaru.
+- `docs/DEPLOYMENT.md` diperbarui: prasyarat Supervisor, langkah manual setup queue worker, troubleshooting job antrian tidak jalan.
+
+---
+
 ## 2026-07-23 — Admin Series Bulk Delete
 
 ### Added

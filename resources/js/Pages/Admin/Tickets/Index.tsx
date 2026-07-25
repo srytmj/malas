@@ -29,6 +29,14 @@ interface Props extends PageProps {
     filters: { status: string | null };
 }
 
+const STATUS_FILTER_LABELS: Record<string, string> = {
+    all: 'Semua status',
+    open: 'Terbuka',
+    in_progress: 'Diproses',
+    resolved: 'Selesai',
+    closed: 'Ditutup',
+};
+
 export default function AdminTicketsIndex({ tickets, filters }: Props) {
     function applyFilter(status: string | null) {
         router.get(
@@ -49,10 +57,12 @@ export default function AdminTicketsIndex({ tickets, filters }: Props) {
         >
             <Head title="Tiket" />
 
-            <div className="mb-4">
+            <div className="sticky top-0 z-10 mb-4 bg-background pb-2">
                 <Select value={filters.status ?? 'all'} onValueChange={applyFilter}>
                     <SelectTrigger className="w-44">
-                        <SelectValue placeholder="Semua status" />
+                        <SelectValue placeholder="Semua status">
+                            {(value: string) => STATUS_FILTER_LABELS[value] ?? 'Semua status'}
+                        </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">Semua status</SelectItem>
@@ -72,9 +82,9 @@ export default function AdminTicketsIndex({ tickets, filters }: Props) {
                 />
             ) : (
                 <>
-                    <div className="rounded-lg border">
+                    <div className="max-h-[70vh] overflow-auto rounded-lg border">
                         <Table>
-                            <TableHeader>
+                            <TableHeader className="sticky top-0 z-10 bg-card">
                                 <TableRow>
                                     <TableHead>Subjek</TableHead>
                                     <TableHead>Pengguna</TableHead>

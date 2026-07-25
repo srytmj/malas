@@ -33,6 +33,12 @@ const ticketSchema = z.object({
 });
 type TicketFormValues = z.infer<typeof ticketSchema>;
 
+const TICKET_TYPE_LABELS: Record<string, string> = {
+    catalog_request: 'Request Katalog',
+    title_revision: 'Revisi Judul',
+    other: 'Lainnya',
+};
+
 function FieldError({ message }: { message?: string }) {
     if (!message) return null;
     return <p className="text-xs text-destructive">{message}</p>;
@@ -116,7 +122,9 @@ export default function TicketCreate({ series }: Props) {
                             render={({ field }) => (
                                 <Select value={field.value} onValueChange={field.onChange}>
                                     <SelectTrigger>
-                                        <SelectValue />
+                                        <SelectValue>
+                                            {(value: string) => TICKET_TYPE_LABELS[value] ?? value}
+                                        </SelectValue>
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="catalog_request">Request Katalog</SelectItem>

@@ -57,9 +57,9 @@ export default function TicketsIndex({ tickets }: Props) {
                 />
             ) : (
                 <>
-                    <div className="rounded-lg border">
+                    <div className="max-h-[70vh] overflow-auto rounded-lg border">
                         <Table>
-                            <TableHeader>
+                            <TableHeader className="sticky top-0 z-10 bg-card">
                                 <TableRow>
                                     <TableHead>Subjek</TableHead>
                                     <TableHead className="w-40">Tipe</TableHead>

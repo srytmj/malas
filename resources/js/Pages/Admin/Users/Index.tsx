@@ -46,6 +46,12 @@ const ROLE_LABELS: Record<string, string> = {
     user:        'User',
 };
 
+const STATUS_FILTER_LABELS: Record<string, string> = {
+    all: 'Semua status',
+    active: 'Aktif',
+    banned: 'Di-ban',
+};
+
 const ROLE_VARIANTS: Record<string, 'default' | 'secondary' | 'outline'> = {
     super_admin: 'default',
     admin:       'secondary',
@@ -80,7 +86,7 @@ export default function UsersIndex({ users, filters }: Props) {
         >
             <Head title="Pengguna" />
             {/* Filters */}
-            <div className="mb-4 flex flex-wrap gap-2">
+            <div className="sticky top-0 z-10 mb-4 flex flex-wrap gap-2 bg-background pb-2">
                 <form onSubmit={handleSearch} className="flex gap-2">
                     <div className="relative">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -99,7 +105,9 @@ export default function UsersIndex({ users, filters }: Props) {
                     onValueChange={(v) => applyFilter({ role: v === 'all' || !v ? '' : v })}
                 >
                     <SelectTrigger className="w-36">
-                        <SelectValue placeholder="Semua role" />
+                        <SelectValue placeholder="Semua role">
+                            {(value: string) => (value === 'all' ? 'Semua role' : ROLE_LABELS[value] ?? value)}
+                        </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">Semua role</SelectItem>
@@ -114,7 +122,9 @@ export default function UsersIndex({ users, filters }: Props) {
                     onValueChange={(v) => applyFilter({ status: v === 'all' || !v ? '' : v })}
                 >
                     <SelectTrigger className="w-36">
-                        <SelectValue placeholder="Semua status" />
+                        <SelectValue placeholder="Semua status">
+                            {(value: string) => STATUS_FILTER_LABELS[value] ?? 'Semua status'}
+                        </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">Semua status</SelectItem>
@@ -132,9 +142,9 @@ export default function UsersIndex({ users, filters }: Props) {
                 />
             ) : (
                 <>
-                    <div className="rounded-lg border">
+                    <div className="max-h-[70vh] overflow-auto rounded-lg border">
                         <Table>
-                            <TableHeader>
+                            <TableHeader className="sticky top-0 z-10 bg-card">
                                 <TableRow>
                                     <TableHead className="w-10" />
                                     <TableHead>Nama</TableHead>

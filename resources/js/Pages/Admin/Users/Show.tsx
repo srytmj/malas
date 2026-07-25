@@ -257,7 +257,9 @@ export default function UserShow({ user, collections_count, can }: Props) {
                             <Label>Role baru</Label>
                             <Select value={selectedRole} onValueChange={(v) => v !== null && setSelectedRole(v)}>
                                 <SelectTrigger>
-                                    <SelectValue />
+                                    <SelectValue>
+                                        {(value: string) => ROLE_LABELS[value] ?? value}
+                                    </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="user">User</SelectItem>

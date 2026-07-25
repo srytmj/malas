@@ -30,12 +30,36 @@ interface SeriesRow {
 interface Props extends PageProps {
     series: PaginatedData<SeriesRow>;
     collectionSeriesIds: string[];
-    filters: { search?: string | null; status?: string | null; type?: string | null };
+    filters: { search?: string | null; status?: string | null; type?: string | null; ownership?: string | null };
 }
 
+const STATUS_LABELS: Record<string, string> = {
+    '': 'Semua status',
+    publishing: 'Publishing',
+    finished: 'Selesai',
+    on_hiatus: 'Hiatus',
+    discontinued: 'Discontinued',
+    not_yet_published: 'Belum Terbit',
+};
+
+const TYPE_LABELS: Record<string, string> = {
+    '': 'Semua tipe',
+    manga: 'Manga',
+    manhwa: 'Manhwa',
+    manhua: 'Manhua',
+    novel: 'Novel',
+    one_shot: 'One Shot',
+    doujinshi: 'Doujinshi',
+};
+
+const OWNERSHIP_LABELS: Record<string, string> = {
+    '': 'Semua koleksi',
+    owned: 'Sudah di koleksi',
+    not_owned: 'Belum di koleksi',
+};
+
 export default function CatalogIndex({ series, collectionSeriesIds, filters }: Props) {
-    const [search, setSearch]     = useState(filters.search ?? '');
-    const [ownership, setOwnership] = useState('');
+    const [search, setSearch]         = useState(filters.search ?? '');
     const [refreshing, setRefreshing] = useState(false);
     const isFirstRender = useRef(true);
 
@@ -68,12 +92,6 @@ export default function CatalogIndex({ series, collectionSeriesIds, filters }: P
     }
 
     const collectionSet = new Set(collectionSeriesIds);
-
-    const visibleSeries = series.data.filter((s) => {
-        if (ownership === 'owned') return collectionSet.has(s.id);
-        if (ownership === 'not_owned') return !collectionSet.has(s.id);
-        return true;
-    });
 
     return (
         <UserLayout
@@ -108,7 +126,9 @@ export default function CatalogIndex({ series, collectionSeriesIds, filters }: P
                     onValueChange={(v) => handleFilter('status', v ?? '')}
                 >
                     <SelectTrigger className="w-36">
-                        <SelectValue placeholder="Semua status" />
+                        <SelectValue placeholder="Semua status">
+                            {(value: string) => STATUS_LABELS[value] ?? STATUS_LABELS['']}
+                        </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="">Semua status</SelectItem>
@@ -124,7 +144,9 @@ export default function CatalogIndex({ series, collectionSeriesIds, filters }: P
                     onValueChange={(v) => handleFilter('type', v ?? '')}
                 >
                     <SelectTrigger className="w-36">
-                        <SelectValue placeholder="Semua tipe" />
+                        <SelectValue placeholder="Semua tipe">
+                            {(value: string) => TYPE_LABELS[value] ?? TYPE_LABELS['']}
+                        </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="">Semua tipe</SelectItem>
@@ -136,9 +158,14 @@ export default function CatalogIndex({ series, collectionSeriesIds, filters }: P
                         <SelectItem value="doujinshi">Doujinshi</SelectItem>
                     </SelectContent>
                 </Select>
-                <Select value={ownership} onValueChange={(v) => setOwnership(v ?? '')}>
+                <Select
+                    value={filters.ownership ?? ''}
+                    onValueChange={(v) => handleFilter('ownership', v ?? '')}
+                >
                     <SelectTrigger className="w-44">
-                        <SelectValue placeholder="Semua koleksi" />
+                        <SelectValue placeholder="Semua koleksi">
+                            {(value: string) => OWNERSHIP_LABELS[value] ?? OWNERSHIP_LABELS['']}
+                        </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="">Semua koleksi</SelectItem>
@@ -149,7 +176,7 @@ export default function CatalogIndex({ series, collectionSeriesIds, filters }: P
             </div>
 
             {/* Grid */}
-            {visibleSeries.length === 0 ? (
+            {series.data.length === 0 ? (
                 <div className="py-20 text-center">
                     <p className="text-muted-foreground">Tidak ada series ditemukan.</p>
                     {filters.search && (
@@ -167,7 +194,7 @@ export default function CatalogIndex({ series, collectionSeriesIds, filters }: P
                 </div>
             ) : (
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                    {visibleSeries.map((s) => (
+                    {series.data.map((s) => (
                         <SeriesCard
                             key={s.id}
                             {...s}

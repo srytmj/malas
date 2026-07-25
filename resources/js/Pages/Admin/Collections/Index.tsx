@@ -34,9 +34,9 @@ export default function AdminCollectionsIndex({ users }: Props) {
             }
         >
             <Head title="Semua Koleksi" />
-            <div className="rounded-lg border">
+            <div className="max-h-[75vh] overflow-auto rounded-lg border">
                 <Table>
-                    <TableHeader>
+                    <TableHeader className="sticky top-0 z-10 bg-card">
                         <TableRow>
                             <TableHead className="w-10" />
                             <TableHead>Pengguna</TableHead>

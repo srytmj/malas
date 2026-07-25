@@ -30,6 +30,7 @@ Semua platform membutuhkan:
 | Node.js | 20+ |
 | Composer | 2.x |
 | Nginx | terbaru |
+| Supervisor | terbaru — wajib untuk queue worker (migrasi storage, backup, dll) |
 
 Sebelum mulai, pastikan kamu punya:
 - Akses SSH ke server
@@ -70,12 +71,13 @@ bash deploy.sh
 ```
 
 Script akan:
-- Install PHP 8.2, MySQL 8, Nginx, Node 20, Composer
+- Install PHP 8.2, MySQL 8, Nginx, Node 20, Composer, Supervisor
 - Membuat database dan user MySQL
 - Setup file `.env` (script akan bertanya domain, DB credentials, SSO credentials)
 - Jalankan `composer install`, `npm run build`
 - Migrasi database + seed menu
 - Konfigurasi Nginx otomatis
+- Konfigurasi queue worker (Supervisor) — dibutuhkan untuk job antrian seperti migrasi file storage otomatis saat driver diganti
 - Print instruksi untuk setup domain
 
 **3. Ikuti instruksi di akhir script**
@@ -92,7 +94,7 @@ Gunakan ini kalau ingin kontrol penuh atau script gagal di tengah jalan.
 
 ```bash
 sudo apt update
-sudo apt install -y nginx mysql-server \
+sudo apt install -y nginx mysql-server supervisor \
     php8.2 php8.2-fpm php8.2-mysql php8.2-mbstring php8.2-xml \
     php8.2-bcmath php8.2-curl php8.2-zip php8.2-intl \
     unzip curl git
@@ -236,6 +238,42 @@ sudo ln -s /etc/nginx/sites-available/malas /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl reload nginx
 sudo systemctl enable nginx php8.2-fpm mysql
+```
+
+### 10. Konfigurasi queue worker (Supervisor)
+
+Wajib — job antrian (migrasi file storage otomatis saat driver diganti, dll) tidak akan pernah jalan tanpa worker aktif.
+
+```bash
+sudo nano /etc/supervisor/conf.d/malas-worker.conf
+```
+
+```ini
+[program:malas-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=php /var/www/malas/artisan queue:work --sleep=3 --tries=3 --max-time=3600
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+numprocs=1
+user=www-data
+redirect_stderr=true
+stdout_logfile=/var/www/malas/storage/logs/worker.log
+stopwaitsecs=3600
+```
+
+```bash
+sudo systemctl enable supervisor
+sudo systemctl restart supervisor
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl start malas-worker:*
+```
+
+Cek statusnya:
+```bash
+sudo supervisorctl status malas-worker:*
 ```
 
 ---
@@ -435,7 +473,8 @@ Script ini akan:
 3. Rebuild frontend jika ada perubahan di `resources/`
 4. Jalankan migration baru jika ada (tidak menimpa data yang sudah ada)
 5. Clear & rebuild semua cache
-6. Aktifkan maintenance mode selama proses, matikan setelah selesai
+6. Restart queue worker (`php artisan queue:restart`) supaya worker pakai kode terbaru
+7. Aktifkan maintenance mode selama proses, matikan setelah selesai
 
 ### Update manual (jika tidak pakai script)
 
@@ -449,6 +488,7 @@ php artisan migrate --force
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
+php artisan queue:restart
 php artisan up
 ```
 
@@ -506,6 +546,24 @@ php artisan migrate:status
 php artisan migrate:rollback
 
 # Jangan pernah pakai migrate:fresh di production!
+```
+
+### Migrasi storage / job antrian tidak jalan
+
+Job seperti migrasi otomatis file saat driver storage diganti butuh queue worker aktif via Supervisor.
+
+```bash
+# Cek status worker
+sudo supervisorctl status malas-worker:*
+
+# Kalau tidak jalan / belum ada, setup dulu — lihat bagian "Konfigurasi queue worker (Supervisor)"
+# di Metode 2: Manual Step-by-Step, atau jalankan ulang bash deploy.sh
+
+# Restart worker manual
+sudo supervisorctl restart malas-worker:*
+
+# Cek log worker kalau job gagal terus
+tail -n 50 /var/www/malas/storage/logs/worker.log
 ```
 
 ### Login SSO tidak berfungsi

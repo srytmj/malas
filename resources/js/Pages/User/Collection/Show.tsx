@@ -41,6 +41,13 @@ const CONDITION_LABELS: Record<CollectionCondition, string> = {
     poor: 'Buruk',
 };
 
+const FORMAT_LABELS: Record<string, string> = {
+    physical: 'Fisik',
+    ebook: 'Ebook',
+    online: 'Online',
+    webtoon: 'Webtoon',
+};
+
 interface ActiveLoan {
     id: string;
     borrower_name: string;
@@ -302,7 +309,9 @@ export default function CollectionShow({ collection, series, volumes }: Props) {
                             disabled={updatingCondition}
                         >
                             <SelectTrigger className="h-7 w-28 text-xs">
-                                <SelectValue />
+                                <SelectValue>
+                                    {(value: CollectionCondition) => CONDITION_LABELS[value]}
+                                </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                                 {(Object.keys(CONDITION_LABELS) as CollectionCondition[]).map((c) => (
@@ -447,9 +456,9 @@ export default function CollectionShow({ collection, series, volumes }: Props) {
                         ))}
                     </div>
                 ) : (
-                    <div className="rounded-lg border">
+                    <div className="max-h-[70vh] overflow-auto rounded-lg border">
                         <Table>
-                            <TableHeader>
+                            <TableHeader className="sticky top-0 z-10 bg-card">
                                 <TableRow>
                                     <TableHead className="w-10" />
                                     <TableHead className="w-20">Volume</TableHead>
@@ -556,7 +565,9 @@ export default function CollectionShow({ collection, series, volumes }: Props) {
                                 render={({ field }) => (
                                     <Select value={field.value} onValueChange={field.onChange}>
                                         <SelectTrigger>
-                                            <SelectValue />
+                                            <SelectValue>
+                                                {(value: string) => FORMAT_LABELS[value] ?? value}
+                                            </SelectValue>
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="physical">Fisik</SelectItem>

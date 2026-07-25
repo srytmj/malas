@@ -55,7 +55,6 @@ class CollectionController extends Controller
                 'owned_volumes_count' => $c->collection_volumes_count,
                 'total_volumes' => $c->series->total_volumes,
                 'condition' => $c->condition,
-                'acquired_at' => $c->acquired_at?->toDateString(),
             ]);
 
         return Inertia::render('Admin/Collections/Show', [

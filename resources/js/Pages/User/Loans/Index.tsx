@@ -57,9 +57,9 @@ export default function LoansIndex({ loans }: Props) {
                 />
             ) : (
                 <>
-                    <div className="rounded-lg border">
+                    <div className="max-h-[70vh] overflow-auto rounded-lg border">
                         <Table>
-                            <TableHeader>
+                            <TableHeader className="sticky top-0 z-10 bg-card">
                                 <TableRow>
                                     <TableHead>Series / Volume</TableHead>
                                     <TableHead>Peminjam</TableHead>

@@ -85,6 +85,12 @@ php artisan optimize
 success "Cache diperbarui."
 
 # =============================================================================
+step "Restart queue worker"
+# =============================================================================
+php artisan queue:restart
+success "Queue worker akan reload dengan kode terbaru setelah job berjalan selesai."
+
+# =============================================================================
 step "Nonaktifkan maintenance mode"
 # =============================================================================
 php artisan up

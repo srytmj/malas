@@ -27,6 +27,13 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+const ANNOUNCEMENT_TYPE_LABELS: Record<string, string> = {
+    info: 'Info',
+    warning: 'Peringatan',
+    danger: 'Bahaya',
+    success: 'Sukses',
+};
+
 function FieldError({ message }: { message?: string }) {
     if (!message) return null;
     return <p className="text-sm text-destructive">{message}</p>;
@@ -112,7 +119,7 @@ export default function AnnouncementCreate() {
                             name="type"
                             render={({ field }) => (
                                 <Select value={field.value} onValueChange={field.onChange}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectTrigger><SelectValue>{(value: string) => ANNOUNCEMENT_TYPE_LABELS[value] ?? value}</SelectValue></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="info">Info</SelectItem>
                                         <SelectItem value="warning">Peringatan</SelectItem>

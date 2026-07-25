@@ -78,6 +78,12 @@ const volumeSchema = z.object({
 
 type VolumeFormValues = z.infer<typeof volumeSchema>;
 
+const VOLUME_TYPE_LABELS: Record<string, string> = {
+    regular: 'Regular',
+    digital: 'Digital',
+    bind_up: 'Bind-up',
+};
+
 function FieldError({ message }: { message?: string }) {
     if (!message) return null;
     return <p className="text-sm text-destructive">{message}</p>;
@@ -377,7 +383,7 @@ export default function SeriesShow({ series, volumes, can, ownerships }: Props) 
                                     name="type"
                                     render={({ field }) => (
                                         <Select value={field.value} onValueChange={field.onChange}>
-                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectTrigger><SelectValue>{(value: string) => VOLUME_TYPE_LABELS[value] ?? value}</SelectValue></SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="regular">Regular</SelectItem>
                                                 <SelectItem value="digital">Digital</SelectItem>

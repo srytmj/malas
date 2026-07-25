@@ -42,6 +42,13 @@ const respondSchema = z.object({
 });
 type RespondFormValues = z.infer<typeof respondSchema>;
 
+const TICKET_STATUS_LABELS: Record<string, string> = {
+    open: 'Terbuka',
+    in_progress: 'Diproses',
+    resolved: 'Selesai',
+    closed: 'Ditutup',
+};
+
 function FieldError({ message }: { message?: string }) {
     if (!message) return null;
     return <p className="text-xs text-destructive">{message}</p>;
@@ -129,7 +136,9 @@ export default function AdminTicketShow({ ticket, can }: Props) {
                                         render={({ field }) => (
                                             <Select value={field.value} onValueChange={field.onChange}>
                                                 <SelectTrigger className="w-48">
-                                                    <SelectValue />
+                                                    <SelectValue>
+                                                        {(value: string) => TICKET_STATUS_LABELS[value] ?? value}
+                                                    </SelectValue>
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="open">Terbuka</SelectItem>

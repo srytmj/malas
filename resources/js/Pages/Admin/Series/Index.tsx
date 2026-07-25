@@ -176,7 +176,7 @@ export default function SeriesIndex({ series, filters }: Props) {
         >
             <Head title="Series" />
             {/* Filters */}
-            <div className="mb-4 flex flex-wrap items-center gap-2">
+            <div className="sticky top-0 z-10 mb-4 flex flex-wrap items-center gap-2 bg-background pb-2">
                 <Input
                     placeholder="Cari judul..."
                     value={search}
@@ -198,7 +198,9 @@ export default function SeriesIndex({ series, filters }: Props) {
                     onValueChange={(v) => handleFilter('status', v ?? '')}
                 >
                     <SelectTrigger className="w-40">
-                        <SelectValue placeholder="Semua status" />
+                        <SelectValue placeholder="Semua status">
+                            {(value: string) => STATUSES.find((s) => s.value === value)?.label ?? 'Semua status'}
+                        </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="">Semua status</SelectItem>
@@ -212,7 +214,9 @@ export default function SeriesIndex({ series, filters }: Props) {
                     onValueChange={(v) => handleFilter('type', v ?? '')}
                 >
                     <SelectTrigger className="w-40">
-                        <SelectValue placeholder="Semua tipe" />
+                        <SelectValue placeholder="Semua tipe">
+                            {(value: string) => TYPES.find((t) => t.value === value)?.label ?? 'Semua tipe'}
+                        </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="">Semua tipe</SelectItem>
@@ -224,9 +228,9 @@ export default function SeriesIndex({ series, filters }: Props) {
             </div>
 
             {/* Table */}
-            <div className="rounded-lg border">
+            <div className="max-h-[70vh] overflow-auto rounded-lg border">
                 <Table>
-                    <TableHeader>
+                    <TableHeader className="sticky top-0 z-10 bg-card">
                         <TableRow>
                             <TableHead className="w-10">
                                 <Checkbox

@@ -89,9 +89,9 @@ export default function AnnouncementsIndex({ items }: Props) {
                 />
             ) : (
                 <>
-                    <div className="rounded-lg border">
+                    <div className="max-h-[75vh] overflow-auto rounded-lg border">
                         <Table>
-                            <TableHeader>
+                            <TableHeader className="sticky top-0 z-10 bg-card">
                                 <TableRow>
                                     <TableHead>Judul</TableHead>
                                     <TableHead className="w-28">Tipe</TableHead>

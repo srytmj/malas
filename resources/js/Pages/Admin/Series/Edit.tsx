@@ -103,6 +103,29 @@ const volumeSchema = z.object({
 type SeriesFormValues = z.infer<typeof seriesSchema>;
 type VolumeFormValues = z.infer<typeof volumeSchema>;
 
+const STATUS_LABELS: Record<string, string> = {
+    publishing: 'Publishing',
+    finished: 'Selesai',
+    on_hiatus: 'Hiatus',
+    discontinued: 'Discontinued',
+    not_yet_published: 'Belum Terbit',
+};
+
+const TYPE_LABELS: Record<string, string> = {
+    manga: 'Manga',
+    manhwa: 'Manhwa',
+    manhua: 'Manhua',
+    novel: 'Novel',
+    one_shot: 'One Shot',
+    doujinshi: 'Doujinshi',
+};
+
+const VOLUME_TYPE_LABELS: Record<string, string> = {
+    regular: 'Regular',
+    digital: 'Digital',
+    bind_up: 'Bind-up',
+};
+
 function FieldError({ message }: { message?: string }) {
     if (!message) return null;
     return <p className="text-xs text-destructive">{message}</p>;
@@ -676,7 +699,9 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                 render={({ field }) => (
                                     <Select value={field.value} onValueChange={field.onChange}>
                                         <SelectTrigger className="h-7 w-44 text-xs">
-                                            <SelectValue placeholder="Status" />
+                                            <SelectValue placeholder="Status">
+                                                {(value: string) => STATUS_LABELS[value] ?? 'Status'}
+                                            </SelectValue>
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="publishing">Publishing</SelectItem>
@@ -694,7 +719,9 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                 render={({ field }) => (
                                     <Select value={field.value} onValueChange={field.onChange}>
                                         <SelectTrigger className="h-7 w-36 text-xs">
-                                            <SelectValue placeholder="Tipe" />
+                                            <SelectValue placeholder="Tipe">
+                                                {(value: string) => TYPE_LABELS[value] ?? 'Tipe'}
+                                            </SelectValue>
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="manga">Manga</SelectItem>
@@ -853,7 +880,7 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                     name="type"
                                     render={({ field }) => (
                                         <Select value={field.value} onValueChange={field.onChange}>
-                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectTrigger><SelectValue>{(value: string) => VOLUME_TYPE_LABELS[value] ?? value}</SelectValue></SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="regular">Regular</SelectItem>
                                                 <SelectItem value="digital">Digital</SelectItem>
@@ -1052,7 +1079,7 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                             name="type"
                                             render={({ field }) => (
                                                 <Select value={field.value} onValueChange={field.onChange}>
-                                                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                                                    <SelectTrigger className="mt-1"><SelectValue>{(value: string) => VOLUME_TYPE_LABELS[value] ?? value}</SelectValue></SelectTrigger>
                                                     <SelectContent>
                                                         <SelectItem value="regular">Regular</SelectItem>
                                                         <SelectItem value="digital">Digital</SelectItem>

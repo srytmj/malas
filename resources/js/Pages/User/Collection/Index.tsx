@@ -248,7 +248,7 @@ export default function CollectionIndex({ collections }: Props) {
                 />
             ) : (
                 <>
-                    <div className="mb-4 flex flex-wrap items-center gap-2">
+                    <div className="sticky top-0 z-10 mb-4 flex flex-wrap items-center gap-2 bg-background pb-2">
                         <div className="relative max-w-sm flex-1">
                             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
@@ -270,7 +270,9 @@ export default function CollectionIndex({ collections }: Props) {
                         </Button>
                         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? '')}>
                             <SelectTrigger className="w-40">
-                                <SelectValue placeholder="Semua status" />
+                                <SelectValue placeholder="Semua status">
+                                    {(value: string) => STATUS_OPTIONS.find((s) => s.value === value)?.label ?? 'Semua status'}
+                                </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="">Semua status</SelectItem>
@@ -281,7 +283,9 @@ export default function CollectionIndex({ collections }: Props) {
                         </Select>
                         <Select value={sort} onValueChange={(v) => setSort((v ?? 'added_desc') as SortValue)}>
                             <SelectTrigger className="w-44">
-                                <SelectValue placeholder="Urutkan" />
+                                <SelectValue placeholder="Urutkan">
+                                    {(value: string) => SORT_OPTIONS.find((s) => s.value === value)?.label ?? 'Urutkan'}
+                                </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                                 {SORT_OPTIONS.map((s) => (
@@ -366,9 +370,9 @@ export default function CollectionIndex({ collections }: Props) {
                             ))}
                         </div>
                     ) : (
-                        <div className="rounded-lg border">
+                        <div className="max-h-[70vh] overflow-auto rounded-lg border">
                             <Table>
-                                <TableHeader>
+                                <TableHeader className="sticky top-0 z-10 bg-card">
                                     <TableRow>
                                         <TableHead className="w-12" />
                                         <TableHead>Judul</TableHead>

@@ -155,7 +155,9 @@ function StorageTab({ setting }: { setting: StorageSettingData }) {
                             render={({ field }) => (
                                 <Select value={field.value} onValueChange={field.onChange}>
                                     <SelectTrigger>
-                                        <SelectValue />
+                                        <SelectValue>
+                                            {(value: string) => (value === 's3' ? 'S3-compatible (R2, AWS S3, dll)' : 'Local (disk server)')}
+                                        </SelectValue>
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="local">Local (disk server)</SelectItem>

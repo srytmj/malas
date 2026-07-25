@@ -16,12 +16,20 @@ class SeriesController extends Controller
 
     public function index(): Response
     {
+        // Cek series mana yang sudah ada di koleksi user
+        $collectionSeriesIds = auth()->user()
+            ->collections()
+            ->pluck('series_id')
+            ->toArray();
+
         $series = Series::query()
             ->when(request('search'), fn ($q, $s) => $q->where(fn ($sub) => $sub->where('title_romaji', 'like', "%{$s}%")
                 ->orWhere('title_english', 'like', "%{$s}%")
             ))
             ->when(request('status'), fn ($q, $s) => $q->where('status', $s))
             ->when(request('type'), fn ($q, $t) => $q->where('type', $t))
+            ->when(request('ownership') === 'owned', fn ($q) => $q->whereIn('id', $collectionSeriesIds))
+            ->when(request('ownership') === 'not_owned', fn ($q) => $q->whereNotIn('id', $collectionSeriesIds))
             ->withCount('volumes')
             ->latest()
             ->paginate(24)
@@ -39,16 +47,10 @@ class SeriesController extends Controller
                 'is_adult' => $s->is_adult,
             ]);
 
-        // Cek series mana yang sudah ada di koleksi user
-        $collectionSeriesIds = auth()->user()
-            ->collections()
-            ->pluck('series_id')
-            ->toArray();
-
         return Inertia::render('User/Catalog/Index', [
             'series' => $series,
             'collectionSeriesIds' => $collectionSeriesIds,
-            'filters' => request()->only(['search', 'status', 'type']),
+            'filters' => request()->only(['search', 'status', 'type', 'ownership']),
         ]);
     }
 
