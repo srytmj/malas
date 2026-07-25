@@ -1,13 +1,23 @@
 import { useEffect, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { BookOpen, Library, Loader2, Plus, Search, Trash2 } from 'lucide-react';
+import {
+    BookOpen, LayoutGrid, Library, List, Loader2, Plus, RefreshCw, Search, Trash2,
+} from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import EmptyState from '@/Components/app/EmptyState';
+import { AdultBlurOverlay } from '@/Components/app/AdultBlurOverlay';
 import { SeriesStatusBadge } from '@/Components/app/StatusBadge';
+import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { ScrollArea } from '@/Components/ui/scroll-area';
+import {
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/Components/ui/select';
+import {
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/Components/ui/table';
 import {
     Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/Components/ui/dialog';
@@ -25,6 +35,10 @@ interface CollectionRow {
     collection_volumes_count: number;
     status: SeriesStatus;
     type: SeriesType;
+    genres: string[];
+    condition: 'mint' | 'good' | 'fair' | 'poor';
+    created_at: string;
+    is_adult: boolean;
 }
 
 interface SeriesResult {
@@ -40,17 +54,76 @@ interface Props extends PageProps {
     collections: CollectionRow[];
 }
 
+const STATUS_OPTIONS: { value: SeriesStatus; label: string }[] = [
+    { value: 'publishing',        label: 'Publishing' },
+    { value: 'finished',          label: 'Selesai' },
+    { value: 'on_hiatus',         label: 'Hiatus' },
+    { value: 'discontinued',      label: 'Discontinued' },
+    { value: 'not_yet_published', label: 'Belum Terbit' },
+];
+
+const SORT_OPTIONS = [
+    { value: 'added_desc',   label: 'Baru ditambahkan' },
+    { value: 'added_asc',    label: 'Lama ditambahkan' },
+    { value: 'name_asc',     label: 'Nama A-Z' },
+    { value: 'name_desc',    label: 'Nama Z-A' },
+    { value: 'volumes_desc', label: 'Volume terbanyak' },
+    { value: 'volumes_asc',  label: 'Volume tersedikit' },
+] as const;
+
+type ViewMode = 'grid' | 'table';
+type SortValue = typeof SORT_OPTIONS[number]['value'];
+
+const VIEW_KEY = 'malas.collection.view';
+const SORT_KEY = 'malas.collection.sort';
+
+function readLocal<T extends string>(key: string, fallback: T): T {
+    if (typeof window === 'undefined') return fallback;
+    return (window.localStorage.getItem(key) as T) || fallback;
+}
+
 export default function CollectionIndex({ collections }: Props) {
     const [deleteTarget, setDeleteTarget]   = useState<CollectionRow | null>(null);
     const [deleting, setDeleting]           = useState(false);
     const [filterQuery, setFilterQuery]     = useState('');
+    const [statusFilter, setStatusFilter]   = useState('');
+    const [view, setView]                   = useState<ViewMode>(() => readLocal<ViewMode>(VIEW_KEY, 'grid'));
+    const [sort, setSort]                   = useState<SortValue>(() => readLocal<SortValue>(SORT_KEY, 'added_desc'));
+    const [refreshing, setRefreshing]       = useState(false);
 
-    const filteredCollections = collections.filter((c) => {
-        const q = filterQuery.trim().toLowerCase();
-        if (!q) return true;
-        return c.title_romaji.toLowerCase().includes(q)
-            || (c.title_english?.toLowerCase().includes(q) ?? false);
-    });
+    useEffect(() => {
+        window.localStorage.setItem(VIEW_KEY, view);
+    }, [view]);
+
+    useEffect(() => {
+        window.localStorage.setItem(SORT_KEY, sort);
+    }, [sort]);
+
+    function handleRefresh() {
+        setRefreshing(true);
+        router.reload({ onFinish: () => setRefreshing(false) });
+    }
+
+    const filteredCollections = collections
+        .filter((c) => {
+            const q = filterQuery.trim().toLowerCase();
+            const matchesQuery = !q
+                || c.title_romaji.toLowerCase().includes(q)
+                || (c.title_english?.toLowerCase().includes(q) ?? false);
+            const matchesStatus = !statusFilter || c.status === statusFilter;
+            return matchesQuery && matchesStatus;
+        })
+        .sort((a, b) => {
+            switch (sort) {
+                case 'name_asc': return a.title_romaji.localeCompare(b.title_romaji);
+                case 'name_desc': return b.title_romaji.localeCompare(a.title_romaji);
+                case 'added_asc': return a.created_at.localeCompare(b.created_at);
+                case 'volumes_desc': return b.collection_volumes_count - a.collection_volumes_count;
+                case 'volumes_asc': return a.collection_volumes_count - b.collection_volumes_count;
+                case 'added_desc':
+                default: return b.created_at.localeCompare(a.created_at);
+            }
+        });
 
     // Add series dialog
     const [addOpen, setAddOpen]             = useState(false);
@@ -118,6 +191,22 @@ export default function CollectionIndex({ collections }: Props) {
         });
     }
 
+    function GenreBadges({ genres }: { genres: string[] }) {
+        if (genres.length === 0) return null;
+        const shown = genres.slice(0, 3);
+        const rest  = genres.length - shown.length;
+        return (
+            <div className="flex flex-wrap gap-1">
+                {shown.map((g) => (
+                    <Badge key={g} variant="outline" className="text-[10px] px-1.5 py-0">{g}</Badge>
+                ))}
+                {rest > 0 && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-muted-foreground">+{rest}</Badge>
+                )}
+            </div>
+        );
+    }
+
     return (
         <UserLayout
             header={
@@ -159,74 +248,183 @@ export default function CollectionIndex({ collections }: Props) {
                 />
             ) : (
                 <>
-                    <div className="relative mb-4 max-w-sm">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                            className="pl-9"
-                            placeholder="Cari di koleksimu..."
-                            value={filterQuery}
-                            onChange={(e) => setFilterQuery(e.target.value)}
-                        />
+                    <div className="mb-4 flex flex-wrap items-center gap-2">
+                        <div className="relative max-w-sm flex-1">
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                className="pl-9"
+                                placeholder="Cari di koleksimu..."
+                                value={filterQuery}
+                                onChange={(e) => setFilterQuery(e.target.value)}
+                            />
+                        </div>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={handleRefresh}
+                            disabled={refreshing}
+                            aria-label="Segarkan"
+                        >
+                            <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} />
+                        </Button>
+                        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? '')}>
+                            <SelectTrigger className="w-40">
+                                <SelectValue placeholder="Semua status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="">Semua status</SelectItem>
+                                {STATUS_OPTIONS.map((s) => (
+                                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Select value={sort} onValueChange={(v) => setSort((v ?? 'added_desc') as SortValue)}>
+                            <SelectTrigger className="w-44">
+                                <SelectValue placeholder="Urutkan" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {SORT_OPTIONS.map((s) => (
+                                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <div className="ml-auto flex items-center gap-1 rounded-md border p-0.5">
+                            <Button
+                                type="button"
+                                variant={view === 'grid' ? 'secondary' : 'ghost'}
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => setView('grid')}
+                                aria-label="Tampilan grid"
+                            >
+                                <LayoutGrid className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                                type="button"
+                                variant={view === 'table' ? 'secondary' : 'ghost'}
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => setView('table')}
+                                aria-label="Tampilan tabel"
+                            >
+                                <List className="h-3.5 w-3.5" />
+                            </Button>
+                        </div>
                     </div>
 
                     {filteredCollections.length === 0 ? (
                         <p className="py-12 text-center text-sm text-muted-foreground">
-                            Tidak ada koleksi yang cocok dengan "{filterQuery}".
+                            Tidak ada koleksi yang cocok dengan filter saat ini.
                         </p>
-                    ) : (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {filteredCollections.map((c) => (
-                        <div
-                            key={c.id}
-                            className="flex overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-sm cursor-pointer"
-                            onClick={() => router.visit(route('collection.show', c.id))}
-                        >
-                            <div className="w-20 shrink-0 overflow-hidden bg-muted">
-                                {c.cover_url ? (
-                                    <img src={c.cover_url} alt={c.title_romaji} className="h-full w-full object-cover" />
-                                ) : (
-                                    <div className="flex h-full items-center justify-center">
-                                        <BookOpen className="h-6 w-6 text-muted-foreground/40" />
-                                    </div>
-                                )}
-                            </div>
+                    ) : view === 'grid' ? (
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {filteredCollections.map((c) => (
+                                <div
+                                    key={c.id}
+                                    className="flex overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-sm cursor-pointer"
+                                    onClick={() => router.visit(route('collection.show', c.id))}
+                                >
+                                    <AdultBlurOverlay isAdult={c.is_adult} className="w-20 shrink-0 overflow-hidden bg-muted">
+                                        {c.cover_url ? (
+                                            <img src={c.cover_url} alt={c.title_romaji} className="h-full w-full object-cover" />
+                                        ) : (
+                                            <div className="flex h-full items-center justify-center">
+                                                <BookOpen className="h-6 w-6 text-muted-foreground/40" />
+                                            </div>
+                                        )}
+                                    </AdultBlurOverlay>
 
-                            <div className="flex flex-1 flex-col justify-between p-3 min-w-0">
-                                <div>
-                                    <p className="line-clamp-2 text-sm font-medium">{c.title_romaji}</p>
-                                    {c.title_english && (
-                                        <p className="line-clamp-1 text-xs text-muted-foreground">{c.title_english}</p>
-                                    )}
-                                    <div className="mt-1.5">
-                                        <SeriesStatusBadge status={c.status} />
+                                    <div className="flex flex-1 flex-col justify-between p-3 min-w-0">
+                                        <div className="space-y-1">
+                                            <p className="line-clamp-2 text-sm font-medium">{c.title_romaji}</p>
+                                            {c.title_english && (
+                                                <p className="line-clamp-1 text-xs text-muted-foreground">{c.title_english}</p>
+                                            )}
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                                <SeriesStatusBadge status={c.status} />
+                                            </div>
+                                            <GenreBadges genres={c.genres} />
+                                        </div>
+
+                                        <div className="flex items-center justify-between mt-2">
+                                            <p className="text-xs text-muted-foreground">
+                                                Dimiliki: <span className="font-medium text-foreground">{c.collection_volumes_count}</span>
+                                                {c.total_volumes ? `/${c.total_volumes}` : ''}
+                                            </p>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-7 w-7 text-destructive/60 hover:text-destructive"
+                                                onClick={(e) => { e.stopPropagation(); setDeleteTarget(c); }}
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
-
-                                <div className="flex items-center justify-between mt-2">
-                                    <p className="text-xs text-muted-foreground">
-                                        Dimiliki: <span className="font-medium text-foreground">{c.collection_volumes_count}</span>
-                                        {c.total_volumes ? `/${c.total_volumes}` : ''}
-                                    </p>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7 text-destructive/60 hover:text-destructive"
-                                        onClick={(e) => { e.stopPropagation(); setDeleteTarget(c); }}
-                                    >
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                    </Button>
-                                </div>
-                            </div>
+                            ))}
                         </div>
-                    ))}
-                </div>
+                    ) : (
+                        <div className="rounded-lg border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-12" />
+                                        <TableHead>Judul</TableHead>
+                                        <TableHead className="w-36">Status</TableHead>
+                                        <TableHead>Genre</TableHead>
+                                        <TableHead className="w-24 text-right">Volume</TableHead>
+                                        <TableHead className="w-12" />
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredCollections.map((c) => (
+                                        <TableRow
+                                            key={c.id}
+                                            className="cursor-pointer"
+                                            onClick={() => router.visit(route('collection.show', c.id))}
+                                        >
+                                            <TableCell>
+                                                <AdultBlurOverlay isAdult={c.is_adult} className="h-10 w-7 overflow-hidden rounded bg-muted">
+                                                    {c.cover_url && (
+                                                        <img src={c.cover_url} alt={c.title_romaji} className="h-full w-full object-cover" />
+                                                    )}
+                                                </AdultBlurOverlay>
+                                            </TableCell>
+                                            <TableCell>
+                                                <p className="font-medium">{c.title_romaji}</p>
+                                                {c.title_english && (
+                                                    <p className="text-xs text-muted-foreground">{c.title_english}</p>
+                                                )}
+                                            </TableCell>
+                                            <TableCell><SeriesStatusBadge status={c.status} /></TableCell>
+                                            <TableCell><GenreBadges genres={c.genres} /></TableCell>
+                                            <TableCell className="text-right">
+                                                {c.collection_volumes_count}{c.total_volumes ? `/${c.total_volumes}` : ''}
+                                            </TableCell>
+                                            <TableCell onClick={(e) => e.stopPropagation()}>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-7 w-7 text-destructive/60 hover:text-destructive"
+                                                    onClick={() => setDeleteTarget(c)}
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
                     )}
                 </>
             )}
 
             {/* Add Series Dialog */}
             <Dialog open={addOpen} onOpenChange={(open) => { setAddOpen(open); if (!open) { setSelectedIds(new Set()); setSearchQuery(''); } }}>
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="max-w-4xl">
                     <DialogHeader>
                         <DialogTitle>Tambah Series ke Koleksi</DialogTitle>
                         <DialogDescription>Pilih satu atau lebih series. Klik gambar untuk memilih.</DialogDescription>
@@ -243,7 +441,7 @@ export default function CollectionIndex({ collections }: Props) {
                         />
                     </div>
 
-                    <ScrollArea className="max-h-[380px]">
+                    <ScrollArea className="max-h-[480px]">
                         {searchLoading && (
                             <div className="flex items-center justify-center py-10 text-muted-foreground">
                                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -272,7 +470,7 @@ export default function CollectionIndex({ collections }: Props) {
                         )}
 
                         {!searchLoading && searchResults.length > 0 && (
-                            <div className="grid grid-cols-3 gap-2 pb-1 sm:grid-cols-4">
+                            <div className="grid grid-cols-3 gap-2 pb-1 sm:grid-cols-5 lg:grid-cols-6">
                                 {searchResults.map((s) => {
                                     const isInCollection = inCollectionIds.has(s.id);
                                     const isSelected     = selectedIds.has(s.id);

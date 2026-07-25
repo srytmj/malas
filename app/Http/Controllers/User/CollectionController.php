@@ -34,6 +34,10 @@ class CollectionController extends Controller
                 'collection_volumes_count' => $c->collection_volumes_count,
                 'status' => $c->series->status,
                 'type' => $c->series->type,
+                'genres' => $c->series->genres ?? [],
+                'condition' => $c->condition,
+                'created_at' => $c->created_at->toIso8601String(),
+                'is_adult' => $c->series->is_adult,
             ]);
 
         return Inertia::render('User/Collection/Index', [
@@ -104,11 +108,13 @@ class CollectionController extends Controller
             'collection' => [
                 'id' => $collection->id,
                 'series_id' => $collection->series_id,
+                'condition' => $collection->condition,
             ],
             'series' => [
                 ...$series->only([
-                    'id', 'title_romaji', 'title_english', 'status', 'type', 'total_volumes',
+                    'id', 'title_romaji', 'title_english', 'status', 'type', 'total_volumes', 'is_adult',
                 ]),
+                'genres' => $series->genres ?? [],
                 'cover_url' => $this->storage->url($series->cover_path),
             ],
             'volumes' => $collectionVolumes,
@@ -123,6 +129,19 @@ class CollectionController extends Controller
 
         return redirect()->route('collection.index')
             ->with('success', 'Koleksi berhasil dihapus.');
+    }
+
+    public function updateCondition(Request $request, Collection $collection): RedirectResponse
+    {
+        $this->authorize('update', $collection);
+
+        $request->validate([
+            'condition' => ['required', Rule::in(['mint', 'good', 'fair', 'poor'])],
+        ]);
+
+        $collection->update(['condition' => $request->condition]);
+
+        return redirect()->back()->with('success', 'Kondisi koleksi berhasil diperbarui.');
     }
 
     public function storeVolumes(Request $request, Collection $collection): RedirectResponse

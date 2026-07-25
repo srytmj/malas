@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Collection;
 use App\Models\Loan;
 use App\Models\Series;
+use App\Models\Ticket;
 use App\Models\User;
 use App\Models\Volume;
 use Illuminate\Http\Request;
@@ -22,6 +23,8 @@ class DashboardController extends Controller
             'collections_count' => Collection::count(),
             'users_count' => User::where('role', 'user')->count(),
             'active_loans_count' => Loan::whereNull('returned_at')->count(),
+            'open_tickets_count' => Ticket::where('status', 'open')->count(),
+            'in_progress_tickets_count' => Ticket::where('status', 'in_progress')->count(),
         ];
 
         $seriesByStatus = Series::selectRaw('status, count(*) as total')

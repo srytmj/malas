@@ -8,6 +8,7 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import EmptyState from '@/Components/app/EmptyState';
 import { SeriesTypeBadge, VolumeTypeBadge } from '@/Components/app/StatusBadge';
+import { SeriesMediaGallery, type SeriesMediaItem } from '@/Components/app/SeriesMediaGallery';
 import { Button, buttonVariants } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Textarea } from '@/Components/ui/textarea';
@@ -75,6 +76,7 @@ interface SeriesData {
 interface Props extends PageProps {
     series: SeriesData;
     volumes: VolumeRow[];
+    media: SeriesMediaItem[];
 }
 
 const seriesSchema = z.object({
@@ -106,7 +108,7 @@ function FieldError({ message }: { message?: string }) {
     return <p className="text-xs text-destructive">{message}</p>;
 }
 
-export default function SeriesEdit({ series, volumes }: Props) {
+export default function SeriesEdit({ series, volumes, media }: Props) {
     // Series form state
     const [coverMode, setCoverMode]         = useState<'local' | 'url'>('local');
     const [coverFile, setCoverFile]         = useState<File | null>(null);
@@ -739,6 +741,9 @@ export default function SeriesEdit({ series, volumes }: Props) {
                         />
                     </div>
                 </div>
+
+                {/* Galeri media tambahan */}
+                <SeriesMediaGallery seriesId={series.id} media={media} />
 
                 {/* Volumes — full management */}
                 <div className="mt-8">

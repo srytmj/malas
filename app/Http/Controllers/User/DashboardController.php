@@ -4,6 +4,7 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\Loan;
+use App\Models\Ticket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -31,6 +32,10 @@ class DashboardController extends Controller
             ->where('due_at', '<', now())
             ->count();
 
+        $latestTicket = Ticket::where('user_id', $user->id)
+            ->latest()
+            ->first(['id', 'subject', 'status']);
+
         return Inertia::render('User/Dashboard', [
             'stats' => [
                 'series_count' => $collectionIds->count(),
@@ -38,6 +43,11 @@ class DashboardController extends Controller
                 'active_loans_count' => $activeLoansCount,
                 'overdue_count' => $overdueCount,
             ],
+            'latest_ticket' => $latestTicket ? [
+                'id' => $latestTicket->id,
+                'subject' => $latestTicket->subject,
+                'status' => $latestTicket->status,
+            ] : null,
         ]);
     }
 }

@@ -1,13 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
+import { RefreshCw } from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import { SeriesCard } from '@/Components/app/SeriesCard';
 import { Pagination } from '@/Components/app/Pagination';
+import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/Components/ui/select';
+import { cn } from '@/lib/utils';
 import { PageProps } from '@/types';
 import { type PaginatedData, type SeriesStatus, type SeriesType } from '@/lib/types';
 
@@ -21,6 +24,7 @@ interface SeriesRow {
     total_volumes: number | null;
     volumes_count: number;
     score: number | null;
+    is_adult: boolean;
 }
 
 interface Props extends PageProps {
@@ -30,9 +34,16 @@ interface Props extends PageProps {
 }
 
 export default function CatalogIndex({ series, collectionSeriesIds, filters }: Props) {
-    const [search, setSearch] = useState(filters.search ?? '');
+    const [search, setSearch]     = useState(filters.search ?? '');
+    const [ownership, setOwnership] = useState('');
+    const [refreshing, setRefreshing] = useState(false);
+    const isFirstRender = useRef(true);
 
     useEffect(() => {
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
         const t = setTimeout(() => {
             router.get(
                 route('catalog.index'),
@@ -51,7 +62,18 @@ export default function CatalogIndex({ series, collectionSeriesIds, filters }: P
         );
     }
 
+    function handleRefresh() {
+        setRefreshing(true);
+        router.reload({ onFinish: () => setRefreshing(false) });
+    }
+
     const collectionSet = new Set(collectionSeriesIds);
+
+    const visibleSeries = series.data.filter((s) => {
+        if (ownership === 'owned') return collectionSet.has(s.id);
+        if (ownership === 'not_owned') return !collectionSet.has(s.id);
+        return true;
+    });
 
     return (
         <UserLayout
@@ -64,13 +86,23 @@ export default function CatalogIndex({ series, collectionSeriesIds, filters }: P
         >
             <Head title="Katalog" />
             {/* Filters */}
-            <div className="mb-5 flex flex-wrap gap-2">
+            <div className="mb-5 flex flex-wrap items-center gap-2">
                 <Input
                     placeholder="Cari judul..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="w-56"
                 />
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={handleRefresh}
+                    disabled={refreshing}
+                    aria-label="Segarkan"
+                >
+                    <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} />
+                </Button>
                 <Select
                     value={filters.status ?? ''}
                     onValueChange={(v) => handleFilter('status', v ?? '')}
@@ -104,10 +136,20 @@ export default function CatalogIndex({ series, collectionSeriesIds, filters }: P
                         <SelectItem value="doujinshi">Doujinshi</SelectItem>
                     </SelectContent>
                 </Select>
+                <Select value={ownership} onValueChange={(v) => setOwnership(v ?? '')}>
+                    <SelectTrigger className="w-44">
+                        <SelectValue placeholder="Semua koleksi" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="">Semua koleksi</SelectItem>
+                        <SelectItem value="owned">Sudah di koleksi</SelectItem>
+                        <SelectItem value="not_owned">Belum di koleksi</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
 
             {/* Grid */}
-            {series.data.length === 0 ? (
+            {visibleSeries.length === 0 ? (
                 <div className="py-20 text-center">
                     <p className="text-muted-foreground">Tidak ada series ditemukan.</p>
                     {filters.search && (
@@ -125,7 +167,7 @@ export default function CatalogIndex({ series, collectionSeriesIds, filters }: P
                 </div>
             ) : (
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                    {series.data.map((s) => (
+                    {visibleSeries.map((s) => (
                         <SeriesCard
                             key={s.id}
                             {...s}

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreVolumeRequest;
 use App\Http\Requests\Admin\UpdateVolumeRequest;
+use App\Models\ActivityLog;
 use App\Models\Series;
 use App\Models\Volume;
 use App\Services\StorageSettingsService;
@@ -110,6 +111,12 @@ class VolumeController extends Controller
         $this->authorize('delete', $volume);
 
         $seriesId = $volume->series_id;
+
+        ActivityLog::record(
+            'volume.delete',
+            "Menghapus volume #{$volume->volume_number} dari series \"{$volume->series->title_romaji}\".",
+            $volume
+        );
 
         if ($volume->cover_path) {
             $this->storage->delete($volume->cover_path);

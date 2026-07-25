@@ -1,16 +1,17 @@
 import { PropsWithChildren, ReactNode, useState } from 'react';
-import { Link, router, usePage } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import {
-    BookOpen, HandCoins, LayoutDashboard, Library, LogOut,
-    Menu as MenuIcon, Moon, Settings, Sun, Ticket, X,
+    BookOpen, HandCoins, Layers, LayoutDashboard, Library, LogOut,
+    Menu as MenuIcon, Moon, Settings, Sun, Ticket, User, X,
     type LucideIcon,
 } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/Components/ui/avatar';
 import { Button } from '@/Components/ui/button';
 import { ScrollArea } from '@/Components/ui/scroll-area';
-import { cn } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
 import { useFlash } from '@/hooks/useFlash';
 import AnnouncementBanner from '@/Components/app/AnnouncementBanner';
+import { SidebarNav } from '@/Components/app/SidebarNav';
 import { type MenuItem } from '@/types';
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -20,29 +21,9 @@ const ICON_MAP: Record<string, LucideIcon> = {
     'hand-coins':       HandCoins,
     'settings':         Settings,
     'ticket':           Ticket,
+    'user':             User,
+    'layers':           Layers,
 };
-
-function NavItem({ item, onClick }: { item: MenuItem; onClick?: () => void }) {
-    const Icon    = item.icon ? (ICON_MAP[item.icon] ?? null) : null;
-    const isActive = route().current(item.route_name);
-    const href    = route().has(item.route_name) ? route(item.route_name) : '#';
-
-    return (
-        <Link
-            href={href}
-            onClick={onClick}
-            className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-            )}
-        >
-            {Icon && <Icon className="h-4 w-4 shrink-0" />}
-            <span>{item.label}</span>
-        </Link>
-    );
-}
 
 function SidebarContent({ menus, onNavClick }: { menus: MenuItem[]; onNavClick?: () => void }) {
     const { auth } = usePage().props;
@@ -61,11 +42,7 @@ function SidebarContent({ menus, onNavClick }: { menus: MenuItem[]; onNavClick?:
 
             <ScrollArea className="min-h-0 flex-1">
                 <nav className="px-2 py-3">
-                    <div className="space-y-0.5">
-                        {menus.map(item => (
-                            <NavItem key={item.key} item={item} onClick={onNavClick} />
-                        ))}
-                    </div>
+                    <SidebarNav menus={menus} iconMap={ICON_MAP} onNavClick={onNavClick} />
                 </nav>
             </ScrollArea>
 
@@ -82,9 +59,15 @@ function SidebarContent({ menus, onNavClick }: { menus: MenuItem[]; onNavClick?:
                     {theme === 'dark' ? 'Mode Terang' : 'Mode Gelap'}
                 </Button>
 
-                <div className="px-3 py-2">
-                    <p className="text-sm font-medium truncate">{user.name}</p>
-                    <p className="text-xs text-muted-foreground">Anggota</p>
+                <div className="flex items-center gap-2.5 px-3 py-2">
+                    <Avatar className="h-8 w-8 shrink-0">
+                        <AvatarImage src={user.avatar || undefined} alt={user.name} />
+                        <AvatarFallback className="text-xs">{user.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{user.name}</p>
+                        <p className="text-xs text-muted-foreground">Anggota</p>
+                    </div>
                 </div>
 
                 <Button

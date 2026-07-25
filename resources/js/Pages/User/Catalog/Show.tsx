@@ -4,6 +4,7 @@ import { BookOpen, ExternalLink, Library, Ticket } from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import { VolumeGrid } from '@/Components/app/VolumeGrid';
+import { AdultBlurOverlay } from '@/Components/app/AdultBlurOverlay';
 import { SeriesStatusBadge, SeriesTypeBadge } from '@/Components/app/StatusBadge';
 import { Badge } from '@/Components/ui/badge';
 import { Button, buttonVariants } from '@/Components/ui/button';
@@ -39,15 +40,23 @@ interface SeriesData {
     authors: string[] | null;
     themes: string[] | null;
     demographics: string[] | null;
+    is_adult: boolean;
+}
+
+interface MediaItem {
+    id: string;
+    image_url: string | null;
+    caption: string | null;
 }
 
 interface Props extends PageProps {
     series: SeriesData;
     volumes: VolumeRow[];
+    media: MediaItem[];
     collection: { id: string } | null;
 }
 
-export default function CatalogShow({ series, volumes, collection }: Props) {
+export default function CatalogShow({ series, volumes, media, collection }: Props) {
     const [adding, setAdding] = useState(false);
 
     function handleAddToCollection() {
@@ -102,13 +111,15 @@ export default function CatalogShow({ series, volumes, collection }: Props) {
             {/* Series info */}
             <div className="grid gap-6 lg:grid-cols-[auto_1fr]">
                 <div className="shrink-0">
-                    {series.cover_url ? (
-                        <img src={series.cover_url} alt={series.title_romaji} className="w-36 rounded-lg object-cover shadow-sm" />
-                    ) : (
-                        <div className="flex h-52 w-36 items-center justify-center rounded-lg bg-muted">
-                            <BookOpen className="h-10 w-10 text-muted-foreground" />
-                        </div>
-                    )}
+                    <AdultBlurOverlay isAdult={series.is_adult} className="h-52 w-36 overflow-hidden rounded-lg bg-muted shadow-sm">
+                        {series.cover_url ? (
+                            <img src={series.cover_url} alt={series.title_romaji} className="h-full w-full object-cover" />
+                        ) : (
+                            <div className="flex h-full w-full items-center justify-center">
+                                <BookOpen className="h-10 w-10 text-muted-foreground" />
+                            </div>
+                        )}
+                    </AdultBlurOverlay>
                 </div>
 
                 <div className="space-y-3">
@@ -180,6 +191,22 @@ export default function CatalogShow({ series, volumes, collection }: Props) {
                     )}
                 </div>
             </div>
+
+            {/* Galeri media */}
+            {media.length > 0 && (
+                <div className="mt-8">
+                    <h2 className="mb-3 text-base font-semibold">Galeri</h2>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                        {media.map((m) => (
+                            <div key={m.id} className="aspect-video overflow-hidden rounded-lg border bg-muted">
+                                {m.image_url && (
+                                    <img src={m.image_url} alt={m.caption ?? series.title_romaji} className="h-full w-full object-cover" />
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Volume list */}
             <div className="mt-8">

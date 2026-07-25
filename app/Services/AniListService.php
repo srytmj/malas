@@ -20,6 +20,7 @@ class AniListService
         averageScore
         description(asHtml: false)
         genres
+        isAdult
         coverImage { large }
         startDate { year month day }
         endDate { year month day }
@@ -36,20 +37,25 @@ class AniListService
 
     public function __construct(private StorageSettingsService $storage) {}
 
-    public function searchManga(string $query, int $page = 1): array
+    public function searchManga(string $query, int $page = 1, bool $excludeAdult = false): array
     {
         $gql = <<<GRAPHQL
-            query (\$search: String, \$page: Int) {
+            query (\$search: String, \$page: Int, \$isAdult: Boolean) {
                 Page(page: \$page, perPage: 24) {
                     pageInfo { currentPage hasNextPage lastPage }
-                    media(search: \$search, type: MANGA, sort: SEARCH_MATCH) {
+                    media(search: \$search, type: MANGA, sort: SEARCH_MATCH, isAdult: \$isAdult) {
                         {$this->mediaFields()}
                     }
                 }
             }
         GRAPHQL;
 
-        $data = $this->request($gql, ['search' => $query, 'page' => $page]);
+        $variables = ['search' => $query, 'page' => $page];
+        if ($excludeAdult) {
+            $variables['isAdult'] = false;
+        }
+
+        $data = $this->request($gql, $variables);
 
         return [
             'data' => $data['Page']['media'] ?? [],

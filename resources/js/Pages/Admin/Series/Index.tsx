@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { Plus, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Plus, MoreHorizontal, Pencil, RefreshCw, Trash2 } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import { Pagination } from '@/Components/app/Pagination';
@@ -65,6 +65,8 @@ export default function SeriesIndex({ series, filters }: Props) {
     const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set());
     const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
     const [bulkDeleting, setBulkDeleting]   = useState(false);
+    const [refreshing, setRefreshing]       = useState(false);
+    const isFirstRender = useRef(true);
 
     useEffect(() => {
         // Reset pilihan saat halaman/filter berubah
@@ -72,6 +74,10 @@ export default function SeriesIndex({ series, filters }: Props) {
     }, [series.current_page]);
 
     useEffect(() => {
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
         const t = setTimeout(() => {
             router.get(
                 route('admin.series.index'),
@@ -88,6 +94,11 @@ export default function SeriesIndex({ series, filters }: Props) {
             { ...filters, search, [key]: value || undefined },
             { preserveState: true, preserveScroll: true, replace: true },
         );
+    }
+
+    function handleRefresh() {
+        setRefreshing(true);
+        router.reload({ onFinish: () => setRefreshing(false) });
     }
 
     function handleDelete() {
@@ -165,13 +176,23 @@ export default function SeriesIndex({ series, filters }: Props) {
         >
             <Head title="Series" />
             {/* Filters */}
-            <div className="mb-4 flex flex-wrap gap-2">
+            <div className="mb-4 flex flex-wrap items-center gap-2">
                 <Input
                     placeholder="Cari judul..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="w-56"
                 />
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={handleRefresh}
+                    disabled={refreshing}
+                    aria-label="Segarkan"
+                >
+                    <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} />
+                </Button>
                 <Select
                     value={filters.status ?? ''}
                     onValueChange={(v) => handleFilter('status', v ?? '')}

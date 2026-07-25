@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { Head, router } from '@inertiajs/react';
-import { Search, BookOpen, Download, RefreshCw, CheckCircle, X } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import {
+    Search, BookOpen, Download, RefreshCw, CheckCircle, ExternalLink, X,
+} from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
-import { Button } from '@/Components/ui/button';
+import { Button, buttonVariants } from '@/Components/ui/button';
+import { Checkbox } from '@/Components/ui/checkbox';
 import { Input } from '@/Components/ui/input';
+import { Label } from '@/Components/ui/label';
 import { SeriesStatusBadge, SeriesTypeBadge } from '@/Components/app/StatusBadge';
 import { PageProps } from '@/types';
 import { type SeriesStatus, type SeriesType } from '@/lib/types';
@@ -21,6 +25,8 @@ interface AniListResult {
     synopsis: string | null;
     published_from: string | null;
     already_imported: boolean;
+    series_id: string | null;
+    is_adult: boolean;
 }
 
 interface Props extends PageProps {
@@ -30,15 +36,16 @@ interface Props extends PageProps {
         hasNextPage?: boolean;
         currentPage?: number;
     };
-    filters: { q: string };
+    filters: { q: string; hide_adult: boolean };
     error: string | null;
 }
 
 export default function AniListIndex({ results, pagination, filters, error }: Props) {
-    const [search, setSearch]       = useState(filters.q);
-    const [preview, setPreview]     = useState<AniListResult | null>(null);
-    const [importing, setImporting] = useState(false);
-    const debounceRef               = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [search, setSearch]         = useState(filters.q);
+    const [hideAdult, setHideAdult]   = useState(filters.hide_adult);
+    const [preview, setPreview]       = useState<AniListResult | null>(null);
+    const [importing, setImporting]   = useState(false);
+    const debounceRef                 = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -46,13 +53,13 @@ export default function AniListIndex({ results, pagination, filters, error }: Pr
             if (search.trim()) {
                 router.get(
                     route('admin.anilist.index'),
-                    { q: search.trim() },
+                    { q: search.trim(), hide_adult: hideAdult ? '1' : '0' },
                     { preserveState: true, replace: true },
                 );
             }
         }, 500);
         return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-    }, [search]);
+    }, [search, hideAdult]);
 
     function handleImport(item: AniListResult) {
         setImporting(true);
@@ -69,6 +76,7 @@ export default function AniListIndex({ results, pagination, filters, error }: Pr
                 score:          item.score,
                 synopsis:       item.synopsis,
                 published_from: item.published_from,
+                is_adult:       item.is_adult,
             },
             {
                 onFinish: () => { setImporting(false); setPreview(null); },
@@ -79,7 +87,7 @@ export default function AniListIndex({ results, pagination, filters, error }: Pr
     function goToPage(page: number) {
         router.get(
             route('admin.anilist.index'),
-            { q: search.trim(), page },
+            { q: search.trim(), page, hide_adult: hideAdult ? '1' : '0' },
             { preserveState: true, replace: true },
         );
     }
@@ -97,14 +105,26 @@ export default function AniListIndex({ results, pagination, filters, error }: Pr
         >
             <Head title="Cari Manga (AniList)" />
             {/* Search */}
-            <div className="relative mb-6 max-w-lg">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                    className="pl-9"
-                    placeholder="Cari judul manga, manhwa, novel..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                />
+            <div className="mb-6 flex flex-wrap items-center gap-4">
+                <div className="relative max-w-lg flex-1">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        className="pl-9"
+                        placeholder="Cari judul manga, manhwa, novel..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
+                </div>
+                <div className="flex items-center gap-2">
+                    <Checkbox
+                        id="hide_adult"
+                        checked={hideAdult}
+                        onCheckedChange={(v) => setHideAdult(v === true)}
+                    />
+                    <Label htmlFor="hide_adult" className="text-sm font-normal text-muted-foreground">
+                        Sembunyikan konten 18+
+                    </Label>
+                </div>
             </div>
 
             {/* Error state */}
@@ -166,6 +186,11 @@ export default function AniListIndex({ results, pagination, filters, error }: Pr
                                         {item.score && (
                                             <div className="absolute top-2 right-2 rounded bg-black/60 px-1.5 py-0.5 text-xs font-medium text-white">
                                                 ★ {item.score}
+                                            </div>
+                                        )}
+                                        {item.is_adult && (
+                                            <div className="absolute top-2 left-2 rounded bg-destructive px-1.5 py-0.5 text-xs font-bold text-destructive-foreground">
+                                                18+
                                             </div>
                                         )}
                                     </div>
@@ -238,6 +263,14 @@ export default function AniListIndex({ results, pagination, filters, error }: Pr
                                                 <Download className="mr-1.5 h-3.5 w-3.5" />
                                                 {importing ? 'Mengimpor...' : item.already_imported ? 'Perbarui' : 'Import'}
                                             </Button>
+                                            {item.already_imported && item.series_id && (
+                                                <Link
+                                                    href={route('admin.series.show', item.series_id)}
+                                                    className={buttonVariants({ variant: 'outline', size: 'sm' })}
+                                                >
+                                                    <ExternalLink className="h-3.5 w-3.5" />
+                                                </Link>
+                                            )}
                                         </div>
                                     </div>
                                 )}

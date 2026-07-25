@@ -31,6 +31,7 @@ class Series extends Model
         'authors',
         'themes',
         'demographics',
+        'is_adult',
     ];
 
     protected function casts(): array
@@ -44,6 +45,7 @@ class Series extends Model
             'authors' => 'array',
             'themes' => 'array',
             'demographics' => 'array',
+            'is_adult' => 'boolean',
         ];
     }
 
@@ -55,5 +57,10 @@ class Series extends Model
     public function collections(): HasMany
     {
         return $this->hasMany(Collection::class);
+    }
+
+    public function media(): HasMany
+    {
+        return $this->hasMany(SeriesMedia::class)->orderBy('sort_order');
     }
 }

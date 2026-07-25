@@ -10,7 +10,7 @@ class MenuSeeder extends Seeder
     public function run(): void
     {
         $menus = [
-            // Admin menus
+            // Admin menus — utama (top-level, tidak dikelompokkan)
             [
                 'key' => 'admin.dashboard',
                 'label' => 'Dashboard',
@@ -51,28 +51,23 @@ class MenuSeeder extends Seeder
                 'sort_order' => 5,
                 'role_access' => ['admin', 'super_admin'],
             ],
+
+            // Kategori: AniList
             [
-                'key' => 'admin.menus',
-                'label' => 'Menu',
-                'icon' => 'menu',
-                'route_name' => 'admin.menus.index',
+                'key' => 'category.anilist',
+                'label' => 'AniList',
+                'icon' => 'search',
+                'route_name' => null,
                 'sort_order' => 6,
                 'role_access' => ['admin', 'super_admin'],
             ],
             [
-                'key' => 'admin.announcements',
-                'label' => 'Pengumuman',
-                'icon' => 'megaphone',
-                'route_name' => 'admin.announcements.index',
-                'sort_order' => 7,
-                'role_access' => ['admin', 'super_admin'],
-            ],
-            [
                 'key' => 'admin.anilist',
-                'label' => 'Cari Manga (AniList)',
+                'label' => 'Cari Manga',
                 'icon' => 'search',
                 'route_name' => 'admin.anilist.index',
-                'sort_order' => 8,
+                'parent_key' => 'category.anilist',
+                'sort_order' => 1,
                 'role_access' => ['admin', 'super_admin'],
             ],
             [
@@ -80,7 +75,36 @@ class MenuSeeder extends Seeder
                 'label' => 'Status AniList',
                 'icon' => 'activity',
                 'route_name' => 'admin.anilist.status.page',
-                'sort_order' => 9,
+                'parent_key' => 'category.anilist',
+                'sort_order' => 2,
+                'role_access' => ['admin', 'super_admin'],
+            ],
+
+            // Kategori: Lainnya (shared — anggota berbeda per role, difilter otomatis lewat role_access masing-masing)
+            [
+                'key' => 'category.lainnya',
+                'label' => 'Lainnya',
+                'icon' => 'layers',
+                'route_name' => null,
+                'sort_order' => 7,
+                'role_access' => ['user', 'admin', 'super_admin'],
+            ],
+            [
+                'key' => 'admin.menus',
+                'label' => 'Menu',
+                'icon' => 'menu',
+                'route_name' => 'admin.menus.index',
+                'parent_key' => 'category.lainnya',
+                'sort_order' => 1,
+                'role_access' => ['admin', 'super_admin'],
+            ],
+            [
+                'key' => 'admin.announcements',
+                'label' => 'Pengumuman',
+                'icon' => 'megaphone',
+                'route_name' => 'admin.announcements.index',
+                'parent_key' => 'category.lainnya',
+                'sort_order' => 2,
                 'role_access' => ['admin', 'super_admin'],
             ],
             [
@@ -88,26 +112,30 @@ class MenuSeeder extends Seeder
                 'label' => 'Tiket',
                 'icon' => 'ticket',
                 'route_name' => 'admin.tickets.index',
-                'sort_order' => 10,
+                'parent_key' => 'category.lainnya',
+                'sort_order' => 3,
                 'role_access' => ['admin', 'super_admin'],
             ],
             [
-                'key' => 'admin.settings.storage',
-                'label' => 'Penyimpanan',
-                'icon' => 'hard-drive',
-                'route_name' => 'admin.settings.storage.edit',
-                'sort_order' => 11,
+                'key' => 'admin.settings',
+                'label' => 'Pengaturan',
+                'icon' => 'settings',
+                'route_name' => 'admin.settings.index',
+                'parent_key' => 'category.lainnya',
+                'sort_order' => 4,
                 'role_access' => ['super_admin'],
             ],
             [
-                'key' => 'admin.settings.database',
-                'label' => 'Backup Database',
-                'icon' => 'database',
-                'route_name' => 'admin.settings.db.index',
-                'sort_order' => 12,
-                'role_access' => ['super_admin'],
+                'key' => 'admin.activity-logs',
+                'label' => 'Log Aktivitas',
+                'icon' => 'activity',
+                'route_name' => 'admin.activity-logs.index',
+                'parent_key' => 'category.lainnya',
+                'sort_order' => 5,
+                'role_access' => ['admin', 'super_admin'],
             ],
-            // User menus
+
+            // User menus — utama (top-level, tidak dikelompokkan)
             [
                 'key' => 'user.dashboard',
                 'label' => 'Dashboard',
@@ -145,16 +173,19 @@ class MenuSeeder extends Seeder
                 'label' => 'Tiket',
                 'icon' => 'ticket',
                 'route_name' => 'tickets.index',
+                'parent_key' => 'category.lainnya',
                 'sort_order' => 5,
                 'role_access' => ['user'],
             ],
-            // Shared — all roles
+
+            // Shared — profil (semua role), masuk kategori "Lainnya"
             [
                 'key' => 'settings',
-                'label' => 'Pengaturan',
-                'icon' => 'settings',
+                'label' => 'Profil',
+                'icon' => 'user',
                 'route_name' => 'settings.index',
-                'sort_order' => 50,
+                'parent_key' => 'category.lainnya',
+                'sort_order' => 6,
                 'role_access' => ['user', 'admin', 'super_admin'],
             ],
         ];

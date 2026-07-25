@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\TestStorageConnectionRequest;
 use App\Http\Requests\Admin\UpdateStorageSettingRequest;
+use App\Jobs\MigrateStorageFilesJob;
+use App\Models\ActivityLog;
 use App\Models\StorageSetting;
 use App\Services\StorageSettingsService;
 use Illuminate\Http\JsonResponse;
@@ -22,7 +24,7 @@ class StorageSettingController extends Controller
 
         $this->authorize('view', $setting);
 
-        return Inertia::render('Admin/Settings/Storage', [
+        return Inertia::render('Admin/Settings/Index', [
             'setting' => [
                 'driver' => $setting->driver,
                 'access_key_id' => $setting->access_key_id,
@@ -32,6 +34,8 @@ class StorageSettingController extends Controller
                 'url' => $setting->url,
                 // secret_access_key is never sent to the frontend
                 'has_secret' => filled($setting->secret_access_key),
+                'migration_status' => $setting->migration_status,
+                'migration_message' => $setting->migration_message,
             ],
         ]);
     }
@@ -42,6 +46,7 @@ class StorageSettingController extends Controller
 
         $this->authorize('update', $setting);
 
+        $oldConfig = $setting->only(['driver', 'access_key_id', 'secret_access_key', 'bucket', 'endpoint', 'region', 'url']);
         $data = $request->validated();
 
         // Keep the existing encrypted secret if the admin left it blank
@@ -53,6 +58,21 @@ class StorageSettingController extends Controller
         $setting->fill($data)->save();
 
         $this->storage->forgetCache();
+
+        ActivityLog::record('storage_settings.update', "Mengubah pengaturan storage (driver: {$oldConfig['driver']} → {$setting->driver}).");
+
+        // Lokasi file efektif berubah — migrasi otomatis di background supaya file lama tidak "hilang" dari UI.
+        $locationChanged = $oldConfig['driver'] !== $setting->driver
+            || $oldConfig['access_key_id'] !== $setting->access_key_id
+            || $oldConfig['bucket'] !== $setting->bucket
+            || $oldConfig['endpoint'] !== $setting->endpoint
+            || $oldConfig['region'] !== $setting->region;
+
+        if ($locationChanged) {
+            MigrateStorageFilesJob::dispatch($oldConfig);
+
+            return redirect()->back()->with('success', 'Pengaturan penyimpanan disimpan. File lama sedang dipindahkan ke lokasi baru di latar belakang.');
+        }
 
         return redirect()->back()->with('success', 'Pengaturan penyimpanan berhasil disimpan.');
     }

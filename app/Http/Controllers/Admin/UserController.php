@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,12 +28,13 @@ class UserController extends Controller
             ->paginate(20)
             ->withQueryString()
             ->through(fn ($u) => [
-            'id' => $u->id,
-            'name' => $u->name,
-            'email' => $u->email,
-            'role' => $u->role,
-            'is_banned' => $u->is_banned,
-            'created_at' => $u->created_at->toDateString(),
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'avatar' => $u->avatar,
+                'role' => $u->role,
+                'is_banned' => $u->is_banned,
+                'created_at' => $u->created_at->toDateString(),
             ]);
 
         return Inertia::render('Admin/Users/Index', [
@@ -80,6 +82,8 @@ class UserController extends Controller
             'banned_at' => now(),
         ]);
 
+        ActivityLog::record('user.ban', "Mem-ban {$user->name} ({$user->email}). Alasan: {$request->ban_reason}", $user);
+
         // Force logout the banned user
         DB::table('sessions')->where('user_id', $user->id)->delete();
 
@@ -96,6 +100,8 @@ class UserController extends Controller
             'banned_at' => null,
         ]);
 
+        ActivityLog::record('user.unban', "Meng-unban {$user->name} ({$user->email}).", $user);
+
         return redirect()->back()->with('success', "{$user->name} berhasil di-unban.");
     }
 
@@ -107,7 +113,14 @@ class UserController extends Controller
             'role' => ['required', 'in:admin,user,super_admin'],
         ]);
 
+        $oldRole = $user->role;
         $user->update(['role' => $request->role]);
+
+        ActivityLog::record(
+            'user.role_change',
+            "Mengubah role {$user->name} ({$user->email}) dari {$oldRole} ke {$request->role}.",
+            $user
+        );
 
         return redirect()->back()->with('success', "Role {$user->name} berhasil diubah ke {$request->role}.");
     }

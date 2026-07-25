@@ -3,11 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Inertia\Inertia;
-use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DatabaseBackupController extends Controller
@@ -23,13 +22,6 @@ class DatabaseBackupController extends Controller
         'failed_jobs',
         'password_reset_tokens',
     ];
-
-    public function index(): Response
-    {
-        abort_unless(auth()->user()->hasRole('super_admin'), 403);
-
-        return Inertia::render('Admin/Settings/Database');
-    }
 
     public function download(): StreamedResponse
     {
@@ -130,6 +122,8 @@ class DatabaseBackupController extends Controller
 
             DB::statement('SET FOREIGN_KEY_CHECKS=1');
             DB::commit();
+
+            ActivityLog::record('database.import', 'Mengimpor database dari file backup: '.$request->file('backup_file')->getClientOriginalName().'.');
 
             return back()->with('success', 'Database berhasil diimpor. Semua data (kecuali user) telah dipulihkan dari backup.');
         } catch (\Throwable $e) {

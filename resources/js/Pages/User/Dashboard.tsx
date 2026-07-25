@@ -1,9 +1,11 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
-import { BookOpen, Library, HandCoins, AlertTriangle } from 'lucide-react';
+import { TicketStatusBadge } from '@/Components/app/StatusBadge';
+import { BookOpen, Library, HandCoins, AlertTriangle, Ticket as TicketIcon } from 'lucide-react';
 import { PageProps } from '@/types';
+import { type TicketStatus } from '@/lib/types';
 
 interface Stats {
     series_count: number;
@@ -12,11 +14,18 @@ interface Stats {
     overdue_count: number;
 }
 
-interface Props extends PageProps {
-    stats: Stats;
+interface LatestTicket {
+    id: string;
+    subject: string;
+    status: TicketStatus;
 }
 
-export default function UserDashboard({ auth, stats }: Props) {
+interface Props extends PageProps {
+    stats: Stats;
+    latest_ticket: LatestTicket | null;
+}
+
+export default function UserDashboard({ auth, stats, latest_ticket }: Props) {
     return (
         <UserLayout header={<PageHeader title="Dashboard" description={`Selamat datang, ${auth.user?.name}.`} />}>
             <Head title="Dashboard" />
@@ -67,6 +76,25 @@ export default function UserDashboard({ auth, stats }: Props) {
                     </CardContent>
                 </Card>
             </div>
+
+            {latest_ticket && (
+                <div className="mt-6">
+                    <Link href={route('tickets.show', latest_ticket.id)} className="block">
+                        <Card className="transition-shadow hover:shadow-sm">
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                                    <TicketIcon className="h-4 w-4" />
+                                    Tiket Terakhir
+                                </CardTitle>
+                                <TicketStatusBadge status={latest_ticket.status} />
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-sm font-medium">{latest_ticket.subject}</p>
+                            </CardContent>
+                        </Card>
+                    </Link>
+                </div>
+            )}
         </UserLayout>
     );
 }

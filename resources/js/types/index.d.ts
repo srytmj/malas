@@ -13,7 +13,7 @@ export interface MenuItem {
     key: string;
     label: string;
     icon: string | null;
-    route_name: string;
+    route_name: string | null;
     parent_key: string | null;
     sort_order: number;
     is_maintenance: boolean;
@@ -33,6 +33,9 @@ export type PageProps<
         user: User | null;
     };
     menus: MenuItem[];
+    site_settings: {
+        blur_adult_content: boolean;
+    };
     flash: {
         success: string | null;
         error: string | null;

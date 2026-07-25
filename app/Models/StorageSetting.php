@@ -17,6 +17,8 @@ class StorageSetting extends Model
         'endpoint',
         'region',
         'url',
+        'migration_status',
+        'migration_message',
     ];
 
     protected function casts(): array

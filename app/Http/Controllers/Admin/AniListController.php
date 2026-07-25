@@ -22,10 +22,11 @@ class AniListController extends Controller
         $results = [];
         $pagination = [];
         $error = null;
+        $hideAdult = $request->boolean('hide_adult', true);
 
         if ($q = $request->get('q')) {
             try {
-                $raw = $this->anilist->searchManga(trim($q), (int) $request->get('page', 1));
+                $raw = $this->anilist->searchManga(trim($q), (int) $request->get('page', 1), $hideAdult);
                 $results = $this->formatResults($raw['data']);
                 $pagination = $raw['pagination'];
             } catch (\Exception $e) {
@@ -36,7 +37,7 @@ class AniListController extends Controller
         return Inertia::render('Admin/AniList/Index', [
             'results' => $results,
             'pagination' => $pagination,
-            'filters' => ['q' => $request->get('q', '')],
+            'filters' => ['q' => $request->get('q', ''), 'hide_adult' => $hideAdult],
             'error' => $error,
         ]);
     }
@@ -105,6 +106,7 @@ class AniListController extends Controller
             'score' => ['nullable', 'numeric'],
             'synopsis' => ['nullable', 'string'],
             'published_from' => ['nullable', 'string'],
+            'is_adult' => ['nullable', 'boolean'],
         ]);
 
         $anilistId = (int) $request->anilist_id;
@@ -152,8 +154,7 @@ class AniListController extends Controller
             $message .= " {$generated} volume dibuat otomatis.";
         }
 
-        return redirect()->route('admin.series.show', $series)
-            ->with('success', $message);
+        return redirect()->back()->with('success', $message);
     }
 
     private function mapFromRequest(Request $request): array
@@ -170,6 +171,7 @@ class AniListController extends Controller
             'published_to' => null,
             'total_volumes' => $request->volumes ? (int) $request->volumes : null,
             'score' => $request->score ? (float) $request->score : null,
+            'is_adult' => $request->boolean('is_adult'),
         ];
     }
 
@@ -193,6 +195,7 @@ class AniListController extends Controller
             'authors' => $this->extractAuthors($data['staff']['edges'] ?? []),
             'themes' => $this->extractTags($tags, 'Theme-', 8),
             'demographics' => $this->extractTags($tags, 'Demographic', 5),
+            'is_adult' => $data['isAdult'] ?? false,
         ];
     }
 
@@ -299,7 +302,7 @@ class AniListController extends Controller
     private function formatResults(array $data): array
     {
         $anilistIds = array_column($data, 'id');
-        $imported = Series::whereIn('anilist_id', $anilistIds)->pluck('anilist_id')->flip()->toArray();
+        $imported = Series::whereIn('anilist_id', $anilistIds)->pluck('id', 'anilist_id')->toArray();
 
         return array_map(fn ($item) => [
             'anilist_id' => $item['id'],
@@ -313,6 +316,8 @@ class AniListController extends Controller
             'synopsis' => $this->cleanDescription($item['description'] ?? null),
             'published_from' => $this->buildDate($item['startDate'] ?? null),
             'already_imported' => isset($imported[$item['id']]),
+            'series_id' => $imported[$item['id']] ?? null,
+            'is_adult' => $item['isAdult'] ?? false,
         ], $data);
     }
 }

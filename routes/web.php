@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\AniListController;
 use App\Http\Controllers\Admin\AnnouncementController as AdminAnnouncementController;
 use App\Http\Controllers\Admin\CollectionController as AdminCollectionController;
@@ -9,6 +10,8 @@ use App\Http\Controllers\Admin\ImageSearchController;
 use App\Http\Controllers\Admin\LoanController as AdminLoanController;
 use App\Http\Controllers\Admin\MenuController as AdminMenuController;
 use App\Http\Controllers\Admin\SeriesController as AdminSeriesController;
+use App\Http\Controllers\Admin\SeriesMediaController;
+use App\Http\Controllers\Admin\SiteSettingController;
 use App\Http\Controllers\Admin\StorageSettingController;
 use App\Http\Controllers\Admin\TicketController as AdminTicketController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
@@ -58,6 +61,7 @@ Route::middleware(['auth', 'not_banned', 'check.menu'])->group(function () {
     Route::post('/my-collection', [CollectionController::class, 'store'])->name('collection.store');
     Route::get('/my-collection/{collection}', [CollectionController::class, 'show'])->name('collection.show');
     Route::delete('/my-collection/{collection}', [CollectionController::class, 'destroy'])->name('collection.destroy');
+    Route::patch('/my-collection/{collection}/condition', [CollectionController::class, 'updateCondition'])->name('collection.condition.update');
     Route::post('/my-collection/{collection}/volumes', [CollectionController::class, 'storeVolumes'])->name('collection.volumes.store');
     Route::delete('/my-collection/{collection}/volumes/bulk', [CollectionController::class, 'destroyVolumes'])->name('collection.volumes.destroyBulk');
     Route::delete('/my-collection/{collection}/volumes/{collectionVolume}', [CollectionController::class, 'destroyVolume'])->name('collection.volumes.destroy');
@@ -85,6 +89,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'not_banned', 'check
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/collections', [AdminCollectionController::class, 'index'])->name('collections.index');
+    Route::get('/collections/{user}', [AdminCollectionController::class, 'show'])->name('collections.show');
     Route::get('/loans', [AdminLoanController::class, 'index'])->name('loans.index');
     Route::get('/anilist', [AniListController::class, 'index'])->name('anilist.index');
     Route::get('/anilist/search', [AniListController::class, 'searchJson'])->name('anilist.search');
@@ -95,6 +100,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'not_banned', 'check
     Route::delete('/series/bulk', [AdminSeriesController::class, 'bulkDestroy'])->name('series.bulk-destroy');
     Route::resource('series', AdminSeriesController::class);
     Route::post('series/{series}/volumes/generate', [AdminVolumeController::class, 'generate'])->name('series.volumes.generate');
+    Route::post('series/{series}/media', [SeriesMediaController::class, 'store'])->name('series.media.store');
+    Route::delete('series/media/{seriesMedia}', [SeriesMediaController::class, 'destroy'])->name('series.media.destroy');
     Route::resource('series.volumes', AdminVolumeController::class)
         ->shallow()
         ->except(['index', 'show', 'create']);
@@ -113,18 +120,21 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'not_banned', 'check
     Route::get('/menus/{menu}/edit', [AdminMenuController::class, 'edit'])->name('menus.edit');
     Route::match(['put', 'patch'], '/menus/{menu}', [AdminMenuController::class, 'update'])->name('menus.update');
 
+    // Log aktivitas admin
+    Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
+
     // Tiket dari user
     Route::get('/tickets', [AdminTicketController::class, 'index'])->name('tickets.index');
     Route::get('/tickets/{ticket}', [AdminTicketController::class, 'show'])->name('tickets.show');
     Route::patch('/tickets/{ticket}/respond', [AdminTicketController::class, 'respond'])->name('tickets.respond');
 
-    // Pengaturan penyimpanan (super_admin only, ditegakkan lewat role_access menu + Policy)
-    Route::get('/settings/storage', [StorageSettingController::class, 'edit'])->name('settings.storage.edit');
+    // Pengaturan — satu halaman, tab Penyimpanan + Database + Konten (super_admin only, ditegakkan lewat role_access menu + Policy)
+    Route::get('/settings', [StorageSettingController::class, 'edit'])->name('settings.index');
     Route::put('/settings/storage', [StorageSettingController::class, 'update'])->name('settings.storage.update');
     Route::post('/settings/storage/test', [StorageSettingController::class, 'testConnection'])->name('settings.storage.test');
+    Route::put('/settings/content', [SiteSettingController::class, 'update'])->name('settings.content.update');
 
     // Backup & import database (super_admin only)
-    Route::get('/settings/database', [DatabaseBackupController::class, 'index'])->name('settings.db.index');
     Route::get('/settings/database/download', [DatabaseBackupController::class, 'download'])->name('settings.db.download');
     Route::post('/settings/database/import', [DatabaseBackupController::class, 'import'])->name('settings.db.import');
 });

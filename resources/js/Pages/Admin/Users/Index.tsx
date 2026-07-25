@@ -5,6 +5,7 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import EmptyState from '@/Components/app/EmptyState';
 import { Pagination } from '@/Components/app/Pagination';
+import { Avatar, AvatarFallback, AvatarImage } from '@/Components/ui/avatar';
 import { Button, buttonVariants } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
 import { Input } from '@/Components/ui/input';
@@ -22,6 +23,7 @@ interface UserRow {
     id: string;
     name: string;
     email: string;
+    avatar: string | null;
     role: 'super_admin' | 'admin' | 'user';
     is_banned: boolean;
     created_at: string;
@@ -134,6 +136,7 @@ export default function UsersIndex({ users, filters }: Props) {
                         <Table>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead className="w-10" />
                                     <TableHead>Nama</TableHead>
                                     <TableHead>Email</TableHead>
                                     <TableHead className="w-28">Role</TableHead>
@@ -145,6 +148,12 @@ export default function UsersIndex({ users, filters }: Props) {
                             <TableBody>
                                 {users.data.map((u) => (
                                     <TableRow key={u.id}>
+                                        <TableCell>
+                                            <Avatar className="h-8 w-8">
+                                                <AvatarImage src={u.avatar || undefined} alt={u.name} />
+                                                <AvatarFallback className="text-xs">{u.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                                            </Avatar>
+                                        </TableCell>
                                         <TableCell className="font-medium">{u.name}</TableCell>
                                         <TableCell className="text-sm text-muted-foreground">{u.email}</TableCell>
                                         <TableCell>

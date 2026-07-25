@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { BookOpen } from 'lucide-react';
 import { SeriesStatusBadge, SeriesTypeBadge } from '@/Components/app/StatusBadge';
+import { AdultBlurOverlay } from '@/Components/app/AdultBlurOverlay';
 import { Badge } from '@/Components/ui/badge';
 import { type SeriesStatus, type SeriesType } from '@/lib/types';
 
@@ -16,6 +17,7 @@ interface SeriesCardProps {
     score: number | null;
     href: string;
     inCollection?: boolean;
+    is_adult?: boolean;
 }
 
 export function SeriesCard({
@@ -24,16 +26,15 @@ export function SeriesCard({
     cover_url,
     status,
     type,
-    total_volumes,
-    volumes_count,
     score,
     href,
     inCollection,
+    is_adult,
 }: SeriesCardProps) {
     return (
         <Link href={href} className="group flex flex-col overflow-hidden rounded-lg border bg-card text-card-foreground transition-shadow hover:shadow-md">
             {/* Cover */}
-            <div className="relative aspect-[2/3] overflow-hidden bg-muted">
+            <AdultBlurOverlay isAdult={!!is_adult} className="aspect-[2/3] overflow-hidden bg-muted">
                 {cover_url ? (
                     <img
                         src={cover_url}
@@ -55,7 +56,7 @@ export function SeriesCard({
                         ★ {Number(score).toFixed(1)}
                     </div>
                 )}
-            </div>
+            </AdultBlurOverlay>
 
             {/* Info */}
             <div className="flex flex-1 flex-col gap-1.5 p-3">
@@ -67,9 +68,6 @@ export function SeriesCard({
                     <SeriesTypeBadge type={type} />
                     <SeriesStatusBadge status={status} />
                 </div>
-                <p className="text-xs text-muted-foreground">
-                    {volumes_count}{total_volumes ? `/${total_volumes}` : ''} volume
-                </p>
             </div>
         </Link>
     );

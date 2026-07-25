@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreSeriesRequest;
 use App\Http\Requests\Admin\UpdateSeriesRequest;
+use App\Models\ActivityLog;
 use App\Models\CollectionVolume;
 use App\Models\Series;
 use App\Models\Volume;
@@ -35,15 +36,15 @@ class SeriesController extends Controller
             ->paginate(20)
             ->withQueryString()
             ->through(fn ($s) => [
-            'id' => $s->id,
-            'title_romaji' => $s->title_romaji,
-            'title_english' => $s->title_english,
-            'cover_url' => $this->storage->url($s->cover_path),
-            'status' => $s->status,
-            'type' => $s->type,
-            'total_volumes' => $s->total_volumes,
-            'volumes_count' => $s->volumes_count,
-            'score' => $s->score,
+                'id' => $s->id,
+                'title_romaji' => $s->title_romaji,
+                'title_english' => $s->title_english,
+                'cover_url' => $this->storage->url($s->cover_path),
+                'status' => $s->status,
+                'type' => $s->type,
+                'total_volumes' => $s->total_volumes,
+                'volumes_count' => $s->volumes_count,
+                'score' => $s->score,
             ]);
 
         return Inertia::render('Admin/Series/Index', [
@@ -149,6 +150,11 @@ class SeriesController extends Controller
                 'cover_url' => $this->storage->url($series->cover_path),
             ],
             'volumes' => $volumes,
+            'media' => $series->media->map(fn ($m) => [
+                'id' => $m->id,
+                'image_url' => $this->storage->url($m->image_path),
+                'caption' => $m->caption,
+            ]),
         ]);
     }
 
@@ -183,6 +189,8 @@ class SeriesController extends Controller
     public function destroy(Series $series): RedirectResponse
     {
         $this->authorize('delete', $series);
+
+        ActivityLog::record('series.delete', "Menghapus series \"{$series->title_romaji}\".", $series);
         $series->delete();
 
         return redirect()->route('admin.series.index')
@@ -203,6 +211,8 @@ class SeriesController extends Controller
         }
 
         $count = $series->count();
+        $titles = $series->pluck('title_romaji')->implode(', ');
+        ActivityLog::record('series.bulk_delete', "Menghapus {$count} series sekaligus: {$titles}.");
         Series::whereIn('id', $request->ids)->delete();
 
         return redirect()->route('admin.series.index')

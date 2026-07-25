@@ -1,36 +1,35 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
+import { ChevronRight } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import { Pagination } from '@/Components/app/Pagination';
-import { SeriesTypeBadge } from '@/Components/app/StatusBadge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/Components/ui/avatar';
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/Components/ui/table';
 import { PageProps } from '@/types';
-import { type PaginatedData, type SeriesType } from '@/lib/types';
+import { type PaginatedData } from '@/lib/types';
 
-interface CollectionRow {
+interface UserCollectionRow {
     id: string;
-    user_name: string;
-    user_email: string;
-    series_title: string;
-    series_type: SeriesType;
+    name: string;
+    email: string;
+    avatar: string | null;
+    collections_count: number;
     owned_volumes_count: number;
-    total_volumes: number | null;
-    acquired_at: string | null;
 }
 
 interface Props extends PageProps {
-    collections: PaginatedData<CollectionRow>;
+    users: PaginatedData<UserCollectionRow>;
 }
 
-export default function AdminCollectionsIndex({ collections }: Props) {
+export default function AdminCollectionsIndex({ users }: Props) {
     return (
         <AdminLayout
             header={
                 <PageHeader
                     title="Semua Koleksi"
-                    description={`${collections.total} koleksi terdaftar`}
+                    description={`${users.total} pengguna memiliki koleksi`}
                 />
             }
         >
@@ -39,34 +38,42 @@ export default function AdminCollectionsIndex({ collections }: Props) {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>User</TableHead>
-                            <TableHead>Series</TableHead>
-                            <TableHead className="w-28">Tipe</TableHead>
+                            <TableHead className="w-10" />
+                            <TableHead>Pengguna</TableHead>
+                            <TableHead className="w-32 text-right">Series</TableHead>
                             <TableHead className="w-32 text-right">Volume Dimiliki</TableHead>
-                            <TableHead className="w-32">Tanggal</TableHead>
+                            <TableHead className="w-10" />
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {collections.data.length === 0 ? (
+                        {users.data.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
                                     Belum ada koleksi.
                                 </TableCell>
                             </TableRow>
-                        ) : collections.data.map((c) => (
-                            <TableRow key={c.id}>
+                        ) : users.data.map((u) => (
+                            <TableRow
+                                key={u.id}
+                                className="cursor-pointer"
+                                onClick={() => router.visit(route('admin.collections.show', u.id))}
+                            >
                                 <TableCell>
-                                    <p className="font-medium">{c.user_name}</p>
-                                    <p className="text-xs text-muted-foreground">{c.user_email}</p>
+                                    <Avatar className="h-8 w-8">
+                                        <AvatarImage src={u.avatar || undefined} alt={u.name} />
+                                        <AvatarFallback className="text-xs">{u.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                                    </Avatar>
                                 </TableCell>
-                                <TableCell className="font-medium">{c.series_title}</TableCell>
-                                <TableCell><SeriesTypeBadge type={c.series_type} /></TableCell>
-                                <TableCell className="text-right">
-                                    {c.owned_volumes_count}
-                                    {c.total_volumes ? `/${c.total_volumes}` : ''}
+                                <TableCell>
+                                    <p className="font-medium">{u.name}</p>
+                                    <p className="text-xs text-muted-foreground">{u.email}</p>
                                 </TableCell>
-                                <TableCell className="text-sm text-muted-foreground">
-                                    {c.acquired_at ?? '—'}
+                                <TableCell className="text-right">{u.collections_count}</TableCell>
+                                <TableCell className="text-right">{u.owned_volumes_count}</TableCell>
+                                <TableCell>
+                                    <Link href={route('admin.collections.show', u.id)}>
+                                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                    </Link>
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -75,7 +82,7 @@ export default function AdminCollectionsIndex({ collections }: Props) {
             </div>
 
             <div className="mt-4">
-                <Pagination data={collections} />
+                <Pagination data={users} />
             </div>
         </AdminLayout>
     );
