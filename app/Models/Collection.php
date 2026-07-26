@@ -18,6 +18,8 @@ class Collection extends Model
         'condition',
         'acquired_at',
         'notes',
+        'personal_rating',
+        'personal_review',
     ];
 
     protected function casts(): array

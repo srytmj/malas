@@ -1,17 +1,21 @@
 import { useEffect, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import {
-    BookOpen, LayoutGrid, Library, List, Loader2, Plus, RefreshCw, Search, Trash2,
+    BookOpen, Eye, LayoutGrid, Library, List, Loader2, Plus, RefreshCw, Search, Trash2,
 } from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
-import EmptyState from '@/Components/app/EmptyState';
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/Components/ui/empty';
 import { AdultBlurOverlay } from '@/Components/app/AdultBlurOverlay';
 import { SeriesStatusBadge } from '@/Components/app/StatusBadge';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { ScrollArea } from '@/Components/ui/scroll-area';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/Components/ui/hover-card';
+import {
+    ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger,
+} from '@/Components/ui/context-menu';
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/Components/ui/select';
@@ -33,6 +37,7 @@ interface CollectionRow {
     cover_url: string | null;
     total_volumes: number | null;
     collection_volumes_count: number;
+    read_volumes_count: number;
     status: SeriesStatus;
     type: SeriesType;
     genres: string[];
@@ -224,31 +229,35 @@ export default function CollectionIndex({ collections }: Props) {
         >
             <Head title="Koleksiku" />
             {collections.length === 0 ? (
-                <EmptyState
-                    title="Koleksi masih kosong"
-                    description="Tambahkan series untuk mulai melacak volume yang kamu miliki."
-                    icon={Library}
-                    action={
-                        <div className="flex flex-col items-center gap-3">
-                            <Button onClick={() => setAddOpen(true)}>
-                                <Plus className="mr-1.5 h-4 w-4" />
-                                Tambah Series
-                            </Button>
-                            <p className="text-sm text-muted-foreground">
-                                Koleksimu belum ada di katalog?{' '}
-                                <Link
-                                    href={route('tickets.create')}
-                                    className="font-medium text-primary underline-offset-4 hover:underline"
-                                >
-                                    Request lewat tiket
-                                </Link>
-                            </p>
-                        </div>
-                    }
-                />
+                <Empty>
+                    <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                            <Library />
+                        </EmptyMedia>
+                        <EmptyTitle>Koleksi masih kosong</EmptyTitle>
+                        <EmptyDescription>
+                            Tambahkan series untuk mulai melacak volume yang kamu miliki.
+                        </EmptyDescription>
+                    </EmptyHeader>
+                    <EmptyContent>
+                        <Button onClick={() => setAddOpen(true)}>
+                            <Plus className="mr-1.5 h-4 w-4" />
+                            Tambah Series
+                        </Button>
+                        <p className="text-sm text-muted-foreground">
+                            Koleksimu belum ada di katalog?{' '}
+                            <Link
+                                href={route('tickets.create')}
+                                className="font-medium text-primary underline-offset-4 hover:underline"
+                            >
+                                Request lewat tiket
+                            </Link>
+                        </p>
+                    </EmptyContent>
+                </Empty>
             ) : (
                 <>
-                    <div className="sticky top-0 z-10 mb-4 flex flex-wrap items-center gap-2 bg-background pb-2">
+                    <div className="mb-4 flex flex-wrap items-center gap-2">
                         <div className="relative max-w-sm flex-1">
                             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
@@ -322,39 +331,41 @@ export default function CollectionIndex({ collections }: Props) {
                             Tidak ada koleksi yang cocok dengan filter saat ini.
                         </p>
                     ) : view === 'grid' ? (
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(160px,1fr))]">
                             {filteredCollections.map((c) => (
                                 <div
                                     key={c.id}
-                                    className="flex overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-sm cursor-pointer"
+                                    className="group flex flex-col overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-md cursor-pointer"
                                     onClick={() => router.visit(route('collection.show', c.id))}
                                 >
-                                    <AdultBlurOverlay isAdult={c.is_adult} className="w-20 shrink-0 overflow-hidden bg-muted">
+                                    <AdultBlurOverlay isAdult={c.is_adult} className="aspect-[2/3] w-full overflow-hidden bg-muted">
                                         {c.cover_url ? (
-                                            <img src={c.cover_url} alt={c.title_romaji} className="h-full w-full object-cover" />
+                                            <img
+                                                src={c.cover_url}
+                                                alt={c.title_romaji}
+                                                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                            />
                                         ) : (
                                             <div className="flex h-full items-center justify-center">
-                                                <BookOpen className="h-6 w-6 text-muted-foreground/40" />
+                                                <BookOpen className="h-10 w-10 text-muted-foreground/40" />
                                             </div>
                                         )}
                                     </AdultBlurOverlay>
 
-                                    <div className="flex flex-1 flex-col justify-between p-3 min-w-0">
-                                        <div className="space-y-1">
-                                            <p className="line-clamp-2 text-sm font-medium">{c.title_romaji}</p>
-                                            {c.title_english && (
-                                                <p className="line-clamp-1 text-xs text-muted-foreground">{c.title_english}</p>
-                                            )}
-                                            <div className="flex flex-wrap items-center gap-1.5">
-                                                <SeriesStatusBadge status={c.status} />
-                                            </div>
-                                            <GenreBadges genres={c.genres} />
+                                    <div className="flex flex-1 flex-col gap-1.5 p-3">
+                                        <p className="line-clamp-2 text-sm font-medium leading-tight">{c.title_romaji}</p>
+                                        {c.title_english && (
+                                            <p className="line-clamp-1 text-xs text-muted-foreground">{c.title_english}</p>
+                                        )}
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                            <SeriesStatusBadge status={c.status} />
                                         </div>
+                                        <GenreBadges genres={c.genres} />
 
-                                        <div className="flex items-center justify-between mt-2">
+                                        <div className="mt-auto flex items-center justify-between pt-1.5">
                                             <p className="text-xs text-muted-foreground">
-                                                Dimiliki: <span className="font-medium text-foreground">{c.collection_volumes_count}</span>
-                                                {c.total_volumes ? `/${c.total_volumes}` : ''}
+                                                <span className="font-medium text-foreground">{c.collection_volumes_count}</span>
+                                                {c.total_volumes ? `/${c.total_volumes}` : ''} vol.
                                             </p>
                                             <Button
                                                 variant="ghost"
@@ -370,9 +381,9 @@ export default function CollectionIndex({ collections }: Props) {
                             ))}
                         </div>
                     ) : (
-                        <div className="max-h-[70vh] overflow-auto rounded-lg border">
+                        <div className="rounded-lg border">
                             <Table>
-                                <TableHeader className="sticky top-0 z-10 bg-card">
+                                <TableHeader>
                                     <TableRow>
                                         <TableHead className="w-12" />
                                         <TableHead>Judul</TableHead>
@@ -384,40 +395,77 @@ export default function CollectionIndex({ collections }: Props) {
                                 </TableHeader>
                                 <TableBody>
                                     {filteredCollections.map((c) => (
-                                        <TableRow
-                                            key={c.id}
-                                            className="cursor-pointer"
-                                            onClick={() => router.visit(route('collection.show', c.id))}
-                                        >
-                                            <TableCell>
-                                                <AdultBlurOverlay isAdult={c.is_adult} className="h-10 w-7 overflow-hidden rounded bg-muted">
-                                                    {c.cover_url && (
-                                                        <img src={c.cover_url} alt={c.title_romaji} className="h-full w-full object-cover" />
+                                        <ContextMenu key={c.id}>
+                                            <ContextMenuTrigger
+                                                onClick={() => router.visit(route('collection.show', c.id))}
+                                                render={<TableRow className="cursor-pointer" />}
+                                            >
+                                                <TableCell>
+                                                    <AdultBlurOverlay isAdult={c.is_adult} className="h-10 w-7 overflow-hidden rounded bg-muted">
+                                                        {c.cover_url && (
+                                                            <img src={c.cover_url} alt={c.title_romaji} className="h-full w-full object-cover" />
+                                                        )}
+                                                    </AdultBlurOverlay>
+                                                </TableCell>
+                                                <TableCell onClick={(e) => e.stopPropagation()}>
+                                                    <HoverCard>
+                                                        <HoverCardTrigger
+                                                            render={<Link href={route('collection.show', c.id)} className="font-medium hover:underline" />}
+                                                        >
+                                                            {c.title_romaji}
+                                                        </HoverCardTrigger>
+                                                        <HoverCardContent>
+                                                            <div className="flex gap-3">
+                                                                <div className="h-24 w-16 shrink-0 overflow-hidden rounded bg-muted">
+                                                                    {c.cover_url ? (
+                                                                        <img src={c.cover_url} alt={c.title_romaji} className="h-full w-full object-cover" />
+                                                                    ) : null}
+                                                                </div>
+                                                                <div className="min-w-0 space-y-1.5">
+                                                                    <p className="font-medium leading-tight">{c.title_romaji}</p>
+                                                                    <SeriesStatusBadge status={c.status} />
+                                                                    <GenreBadges genres={c.genres} />
+                                                                </div>
+                                                            </div>
+                                                        </HoverCardContent>
+                                                    </HoverCard>
+                                                    {c.title_english && (
+                                                        <p className="text-xs text-muted-foreground">{c.title_english}</p>
                                                     )}
-                                                </AdultBlurOverlay>
-                                            </TableCell>
-                                            <TableCell>
-                                                <p className="font-medium">{c.title_romaji}</p>
-                                                {c.title_english && (
-                                                    <p className="text-xs text-muted-foreground">{c.title_english}</p>
-                                                )}
-                                            </TableCell>
-                                            <TableCell><SeriesStatusBadge status={c.status} /></TableCell>
-                                            <TableCell><GenreBadges genres={c.genres} /></TableCell>
-                                            <TableCell className="text-right">
-                                                {c.collection_volumes_count}{c.total_volumes ? `/${c.total_volumes}` : ''}
-                                            </TableCell>
-                                            <TableCell onClick={(e) => e.stopPropagation()}>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-7 w-7 text-destructive/60 hover:text-destructive"
-                                                    onClick={() => setDeleteTarget(c)}
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
+                                                </TableCell>
+                                                <TableCell><SeriesStatusBadge status={c.status} /></TableCell>
+                                                <TableCell><GenreBadges genres={c.genres} /></TableCell>
+                                                <TableCell className="text-right">
+                                                    <p>{c.collection_volumes_count}{c.total_volumes ? `/${c.total_volumes}` : ''}</p>
+                                                    {c.collection_volumes_count > 0 && (
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {c.read_volumes_count}/{c.collection_volumes_count} dibaca
+                                                        </p>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell onClick={(e) => e.stopPropagation()}>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-7 w-7 text-destructive/60 hover:text-destructive"
+                                                        onClick={() => setDeleteTarget(c)}
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                </TableCell>
+                                            </ContextMenuTrigger>
+                                            <ContextMenuContent>
+                                                <ContextMenuItem onClick={() => router.visit(route('collection.show', c.id))}>
+                                                    <Eye className="mr-2 h-4 w-4" />
+                                                    Lihat
+                                                </ContextMenuItem>
+                                                <ContextMenuSeparator />
+                                                <ContextMenuItem variant="destructive" onClick={() => setDeleteTarget(c)}>
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    Hapus dari Koleksi
+                                                </ContextMenuItem>
+                                            </ContextMenuContent>
+                                        </ContextMenu>
                                     ))}
                                 </TableBody>
                             </Table>

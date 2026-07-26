@@ -57,9 +57,9 @@ export default function TicketsIndex({ tickets }: Props) {
                 />
             ) : (
                 <>
-                    <div className="max-h-[70vh] overflow-auto rounded-lg border">
+                    <div className="rounded-lg border">
                         <Table>
-                            <TableHeader className="sticky top-0 z-10 bg-card">
+                            <TableHeader>
                                 <TableRow>
                                     <TableHead>Subjek</TableHead>
                                     <TableHead className="w-40">Tipe</TableHead>
@@ -89,7 +89,7 @@ export default function TicketsIndex({ tickets }: Props) {
                         </Table>
                     </div>
                     <div className="mt-4">
-                        <Pagination data={tickets} />
+                        <Pagination data={tickets} routeName="tickets.index" />
                     </div>
                 </>
             )}

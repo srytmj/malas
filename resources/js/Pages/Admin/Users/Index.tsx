@@ -86,7 +86,7 @@ export default function UsersIndex({ users, filters }: Props) {
         >
             <Head title="Pengguna" />
             {/* Filters */}
-            <div className="sticky top-0 z-10 mb-4 flex flex-wrap gap-2 bg-background pb-2">
+            <div className="mb-4 flex flex-wrap gap-2">
                 <form onSubmit={handleSearch} className="flex gap-2">
                     <div className="relative">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -142,9 +142,9 @@ export default function UsersIndex({ users, filters }: Props) {
                 />
             ) : (
                 <>
-                    <div className="max-h-[70vh] overflow-auto rounded-lg border">
+                    <div className="rounded-lg border">
                         <Table>
-                            <TableHeader className="sticky top-0 z-10 bg-card">
+                            <TableHeader>
                                 <TableRow>
                                     <TableHead className="w-10" />
                                     <TableHead>Nama</TableHead>
@@ -191,7 +191,13 @@ export default function UsersIndex({ users, filters }: Props) {
                         </Table>
                     </div>
 
-                    <div className="mt-4"><Pagination data={users} /></div>
+                    <div className="mt-4">
+                        <Pagination
+                            data={users}
+                            routeName="admin.users.index"
+                            filters={{ search, role: filters.role, status: filters.status }}
+                        />
+                    </div>
                 </>
             )}
         </AdminLayout>

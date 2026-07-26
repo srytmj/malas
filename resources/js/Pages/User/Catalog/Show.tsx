@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { BookOpen, ExternalLink, Library, Ticket } from 'lucide-react';
+import { BookOpen, ExternalLink, Library, Ticket, Users } from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import { VolumeGrid } from '@/Components/app/VolumeGrid';
@@ -8,6 +8,9 @@ import { AdultBlurOverlay } from '@/Components/app/AdultBlurOverlay';
 import { SeriesStatusBadge, SeriesTypeBadge } from '@/Components/app/StatusBadge';
 import { Badge } from '@/Components/ui/badge';
 import { Button, buttonVariants } from '@/Components/ui/button';
+import {
+    Avatar, AvatarFallback, AvatarGroup, AvatarGroupCount, AvatarImage,
+} from '@/Components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { PageProps } from '@/types';
 import { type SeriesStatus, type SeriesType, type VolumeType } from '@/lib/types';
@@ -49,14 +52,20 @@ interface MediaItem {
     caption: string | null;
 }
 
+interface CollectorAvatar {
+    id: string;
+    avatar: string | null;
+}
+
 interface Props extends PageProps {
     series: SeriesData;
     volumes: VolumeRow[];
     media: MediaItem[];
     collection: { id: string } | null;
+    collectors: { avatars: CollectorAvatar[]; count: number };
 }
 
-export default function CatalogShow({ series, volumes, media, collection }: Props) {
+export default function CatalogShow({ series, volumes, media, collection, collectors }: Props) {
     const [adding, setAdding] = useState(false);
 
     function handleAddToCollection() {
@@ -173,6 +182,29 @@ export default function CatalogShow({ series, volumes, media, collection }: Prop
                             </p>
                         </div>
                     </div>
+
+                    {collectors.count > 0 && (
+                        <div className="flex items-center gap-2.5">
+                            <AvatarGroup>
+                                {collectors.avatars.map((c) => (
+                                    <Avatar key={c.id} size="sm">
+                                        <AvatarImage src={c.avatar || undefined} alt="" />
+                                        <AvatarFallback>
+                                            <Users className="h-3 w-3" />
+                                        </AvatarFallback>
+                                    </Avatar>
+                                ))}
+                                {collectors.count > collectors.avatars.length && (
+                                    <AvatarGroupCount className="size-6 text-xs">
+                                        +{collectors.count - collectors.avatars.length}
+                                    </AvatarGroupCount>
+                                )}
+                            </AvatarGroup>
+                            <p className="text-sm text-muted-foreground">
+                                {collectors.count} orang mengoleksi manga ini
+                            </p>
+                        </div>
+                    )}
 
                     {series.synopsis && (
                         <p className="text-sm text-muted-foreground leading-relaxed">{series.synopsis}</p>

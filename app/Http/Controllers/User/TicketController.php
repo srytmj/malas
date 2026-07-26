@@ -22,7 +22,8 @@ class TicketController extends Controller
             ->tickets()
             ->with('series:id,title_romaji')
             ->latest()
-            ->paginate(15)
+            ->paginate($this->perPage(15))
+            ->withQueryString()
             ->through(fn ($t) => [
                 'id' => $t->id,
                 'subject' => $t->subject,

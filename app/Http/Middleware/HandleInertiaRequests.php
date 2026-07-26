@@ -43,6 +43,8 @@ class HandleInertiaRequests extends Middleware
                 'success' => session('success'),
                 'error' => session('error'),
                 'info' => session('info'),
+                'undo_url' => session('undo_url'),
+                'undo_payload' => session('undo_payload'),
             ],
             'auth' => [
                 'user' => $user ? [

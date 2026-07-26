@@ -17,7 +17,8 @@ class AnnouncementController extends Controller
         $this->authorize('viewAny', Announcement::class);
 
         $announcements = Announcement::latest()
-            ->paginate(20)
+            ->paginate($this->perPage())
+            ->withQueryString()
             ->through(fn ($a) => [
                 'id' => $a->id,
                 'title' => $a->title,

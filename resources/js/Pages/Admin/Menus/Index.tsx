@@ -66,9 +66,9 @@ export default function MenusIndex({ rows }: Props) {
                     icon={MenuIcon}
                 />
             ) : (
-                <div className="max-h-[75vh] overflow-auto rounded-lg border">
+                <div className="rounded-lg border">
                     <Table>
-                        <TableHeader className="sticky top-0 z-10 bg-card">
+                        <TableHeader>
                             <TableRow>
                                 <TableHead className="w-8">#</TableHead>
                                 <TableHead>Label</TableHead>

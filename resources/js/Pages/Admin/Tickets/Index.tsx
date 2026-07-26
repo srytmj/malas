@@ -57,7 +57,7 @@ export default function AdminTicketsIndex({ tickets, filters }: Props) {
         >
             <Head title="Tiket" />
 
-            <div className="sticky top-0 z-10 mb-4 bg-background pb-2">
+            <div className="mb-4">
                 <Select value={filters.status ?? 'all'} onValueChange={applyFilter}>
                     <SelectTrigger className="w-44">
                         <SelectValue placeholder="Semua status">
@@ -82,9 +82,9 @@ export default function AdminTicketsIndex({ tickets, filters }: Props) {
                 />
             ) : (
                 <>
-                    <div className="max-h-[70vh] overflow-auto rounded-lg border">
+                    <div className="rounded-lg border">
                         <Table>
-                            <TableHeader className="sticky top-0 z-10 bg-card">
+                            <TableHeader>
                                 <TableRow>
                                     <TableHead>Subjek</TableHead>
                                     <TableHead>Pengguna</TableHead>
@@ -115,7 +115,13 @@ export default function AdminTicketsIndex({ tickets, filters }: Props) {
                             </TableBody>
                         </Table>
                     </div>
-                    <div className="mt-4"><Pagination data={tickets} /></div>
+                    <div className="mt-4">
+                        <Pagination
+                            data={tickets}
+                            routeName="admin.tickets.index"
+                            filters={{ status: filters.status }}
+                        />
+                    </div>
                 </>
             )}
         </AdminLayout>

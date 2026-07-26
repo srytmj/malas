@@ -24,7 +24,8 @@ class CollectionController extends Controller
             ])
             ->whereHas('collections')
             ->orderByDesc('collections_count')
-            ->paginate(20)
+            ->paginate($this->perPage())
+            ->withQueryString()
             ->through(fn ($u) => [
                 'id' => $u->id,
                 'name' => $u->name,

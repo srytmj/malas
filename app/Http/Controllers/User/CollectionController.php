@@ -21,7 +21,10 @@ class CollectionController extends Controller
         $collections = auth()->user()
             ->collections()
             ->with('series')
-            ->withCount('collectionVolumes')
+            ->withCount([
+                'collectionVolumes',
+                'collectionVolumes as read_volumes_count' => fn ($q) => $q->whereNotNull('read_at'),
+            ])
             ->latest()
             ->get()
             ->map(fn ($c) => [
@@ -32,6 +35,7 @@ class CollectionController extends Controller
                 'cover_url' => $this->storage->url($c->series->cover_path),
                 'total_volumes' => $c->series->total_volumes,
                 'collection_volumes_count' => $c->collection_volumes_count,
+                'read_volumes_count' => $c->read_volumes_count,
                 'status' => $c->series->status,
                 'type' => $c->series->type,
                 'genres' => $c->series->genres ?? [],
@@ -95,6 +99,7 @@ class CollectionController extends Controller
                 'id' => $cv->id,
                 'volume_number' => $cv->volume_number,
                 'format' => $cv->format,
+                'read_at' => $cv->read_at?->toIso8601String(),
                 'active_loan' => $cv->activeLoans->first() ? [
                     'id' => $cv->activeLoans->first()->id,
                     'borrower_name' => $cv->activeLoans->first()->borrower_name,
@@ -104,20 +109,28 @@ class CollectionController extends Controller
                 ] : null,
             ]);
 
+        $lastReadVolume = $collectionVolumes->filter(fn ($cv) => $cv['read_at'] !== null)
+            ->max('volume_number');
+
         return Inertia::render('User/Collection/Show', [
             'collection' => [
                 'id' => $collection->id,
                 'series_id' => $collection->series_id,
                 'condition' => $collection->condition,
+                'personal_rating' => $collection->personal_rating,
+                'personal_review' => $collection->personal_review,
             ],
             'series' => [
                 ...$series->only([
                     'id', 'title_romaji', 'title_english', 'status', 'type', 'total_volumes', 'is_adult',
                 ]),
                 'genres' => $series->genres ?? [],
+                'themes' => $series->themes ?? [],
+                'demographics' => $series->demographics ?? [],
                 'cover_url' => $this->storage->url($series->cover_path),
             ],
             'volumes' => $collectionVolumes,
+            'last_read_volume' => $lastReadVolume,
         ]);
     }
 
@@ -230,5 +243,80 @@ class CollectionController extends Controller
             ->delete();
 
         return redirect()->back()->with('success', "{$deleted} volume berhasil dihapus dari koleksi.");
+    }
+
+    public function toggleVolumeRead(Collection $collection, CollectionVolume $collectionVolume): RedirectResponse
+    {
+        $this->authorize('update', $collection);
+
+        abort_if($collectionVolume->collection_id !== $collection->id, 403);
+
+        $nowRead = ! $collectionVolume->read_at;
+
+        $collectionVolume->update([
+            'read_at' => $nowRead ? now() : null,
+        ]);
+
+        return redirect()->back()->with([
+            'success' => $nowRead
+                ? "Volume {$collectionVolume->volume_number} ditandai sudah dibaca."
+                : "Volume {$collectionVolume->volume_number} ditandai belum dibaca.",
+            'undo_url' => route('collection.volumes.toggleRead', [
+                'collection' => $collection->id,
+                'collectionVolume' => $collectionVolume->id,
+            ]),
+        ]);
+    }
+
+    public function markAllVolumesRead(Collection $collection): RedirectResponse
+    {
+        $this->authorize('update', $collection);
+
+        $volumeIds = $collection->collectionVolumes()->whereNull('read_at')->pluck('id');
+
+        if ($volumeIds->isEmpty()) {
+            return redirect()->back()->with('info', 'Semua volume sudah ditandai dibaca.');
+        }
+
+        $collection->collectionVolumes()->whereIn('id', $volumeIds)->update(['read_at' => now()]);
+
+        return redirect()->back()->with([
+            'success' => "{$volumeIds->count()} volume ditandai sudah dibaca.",
+            'undo_url' => route('collection.volumes.unmarkRead', $collection->id),
+            'undo_payload' => ['volume_ids' => $volumeIds->values()],
+        ]);
+    }
+
+    public function unmarkVolumesRead(Request $request, Collection $collection): RedirectResponse
+    {
+        $this->authorize('update', $collection);
+
+        $request->validate([
+            'volume_ids' => ['required', 'array', 'min:1'],
+            'volume_ids.*' => ['uuid'],
+        ]);
+
+        $collection->collectionVolumes()
+            ->whereIn('id', $request->volume_ids)
+            ->update(['read_at' => null]);
+
+        return redirect()->back()->with('success', 'Perubahan dibatalkan.');
+    }
+
+    public function updateReview(Request $request, Collection $collection): RedirectResponse
+    {
+        $this->authorize('update', $collection);
+
+        $request->validate([
+            'personal_rating' => ['nullable', 'integer', 'min:-10', 'max:10'],
+            'personal_review' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $collection->update([
+            'personal_rating' => $request->personal_rating,
+            'personal_review' => $request->personal_review,
+        ]);
+
+        return redirect()->back()->with('success', 'Review berhasil disimpan.');
     }
 }

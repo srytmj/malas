@@ -32,9 +32,26 @@ class DashboardController extends Controller
             ->pluck('total', 'status')
             ->toArray();
 
+        $collectionsByType = Collection::query()
+            ->join('series', 'series.id', '=', 'collections.series_id')
+            ->selectRaw('series.type as type, count(*) as total')
+            ->groupBy('series.type')
+            ->pluck('total', 'type')
+            ->toArray();
+
+        $loansByStatus = [
+            'returned' => Loan::whereNotNull('returned_at')->count(),
+            'overdue' => Loan::whereNull('returned_at')->whereNotNull('due_at')->where('due_at', '<', now())->count(),
+            'active' => Loan::whereNull('returned_at')
+                ->where(fn ($q) => $q->whereNull('due_at')->orWhere('due_at', '>=', now()))
+                ->count(),
+        ];
+
         return Inertia::render('Admin/Dashboard', [
             'stats' => $stats,
             'series_by_status' => $seriesByStatus,
+            'collections_by_type' => $collectionsByType,
+            'loans_by_status' => $loansByStatus,
         ]);
     }
 }

@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\AniListController;
 use App\Http\Controllers\Admin\AnnouncementController as AdminAnnouncementController;
 use App\Http\Controllers\Admin\CollectionController as AdminCollectionController;
+use App\Http\Controllers\Admin\CommandSearchController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\DatabaseBackupController;
 use App\Http\Controllers\Admin\ImageSearchController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\User\CollectionController;
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use App\Http\Controllers\User\LoanController;
+use App\Http\Controllers\User\SearchController;
 use App\Http\Controllers\User\SeriesController as UserSeriesController;
 use App\Http\Controllers\User\TicketController;
 use Illuminate\Support\Facades\Route;
@@ -50,6 +52,8 @@ Route::get('/banned', function () {
 // User area
 Route::middleware(['auth', 'not_banned', 'check.menu'])->group(function () {
     Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/surprise-me', [UserDashboardController::class, 'surpriseMe'])->name('dashboard.surprise-me');
+    Route::get('/search', [SearchController::class, 'search'])->name('search');
 
     // Katalog (baca saja)
     Route::get('/catalog', [UserSeriesController::class, 'index'])->name('catalog.index');
@@ -62,9 +66,13 @@ Route::middleware(['auth', 'not_banned', 'check.menu'])->group(function () {
     Route::get('/my-collection/{collection}', [CollectionController::class, 'show'])->name('collection.show');
     Route::delete('/my-collection/{collection}', [CollectionController::class, 'destroy'])->name('collection.destroy');
     Route::patch('/my-collection/{collection}/condition', [CollectionController::class, 'updateCondition'])->name('collection.condition.update');
+    Route::patch('/my-collection/{collection}/review', [CollectionController::class, 'updateReview'])->name('collection.review.update');
     Route::post('/my-collection/{collection}/volumes', [CollectionController::class, 'storeVolumes'])->name('collection.volumes.store');
     Route::delete('/my-collection/{collection}/volumes/bulk', [CollectionController::class, 'destroyVolumes'])->name('collection.volumes.destroyBulk');
     Route::delete('/my-collection/{collection}/volumes/{collectionVolume}', [CollectionController::class, 'destroyVolume'])->name('collection.volumes.destroy');
+    Route::patch('/my-collection/{collection}/volumes/{collectionVolume}/read', [CollectionController::class, 'toggleVolumeRead'])->name('collection.volumes.toggleRead');
+    Route::patch('/my-collection/{collection}/volumes/read-all', [CollectionController::class, 'markAllVolumesRead'])->name('collection.volumes.readAll');
+    Route::patch('/my-collection/{collection}/volumes/unmark-read', [CollectionController::class, 'unmarkVolumesRead'])->name('collection.volumes.unmarkRead');
 
     // Pinjaman user
     Route::get('/my-loans', [LoanController::class, 'index'])->name('loans.index');
@@ -96,6 +104,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'not_banned', 'check
     Route::get('/anilist/status', [AniListController::class, 'statusPage'])->name('anilist.status.page');
     Route::get('/anilist/status/check', [AniListController::class, 'statusCheck'])->name('anilist.status');
     Route::get('/images/search', [ImageSearchController::class, 'search'])->name('images.search');
+    Route::get('/command-search', [CommandSearchController::class, 'search'])->name('command-search');
     Route::post('/anilist/import', [AniListController::class, 'import'])->name('anilist.import');
     Route::delete('/series/bulk', [AdminSeriesController::class, 'bulkDestroy'])->name('series.bulk-destroy');
     Route::resource('series', AdminSeriesController::class);

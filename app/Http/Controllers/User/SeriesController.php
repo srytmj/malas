@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Models\Collection;
 use App\Models\Series;
 use App\Services\StorageSettingsService;
 use Illuminate\Http\JsonResponse;
@@ -102,6 +103,16 @@ class SeriesController extends Controller
             ->where('series_id', $series->id)
             ->first();
 
+        $collectorsCount = Collection::where('series_id', $series->id)->count();
+        $collectors = Collection::where('series_id', $series->id)
+            ->with('user:id,avatar')
+            ->limit(8)
+            ->get()
+            ->pluck('user')
+            ->filter()
+            ->map(fn ($u) => ['id' => $u->id, 'avatar' => $u->avatar])
+            ->values();
+
         return Inertia::render('User/Catalog/Show', [
             'series' => [
                 ...$series->only([
@@ -120,6 +131,10 @@ class SeriesController extends Controller
                 'caption' => $m->caption,
             ]),
             'collection' => $collection ? ['id' => $collection->id] : null,
+            'collectors' => [
+                'avatars' => $collectors,
+                'count' => $collectorsCount,
+            ],
         ]);
     }
 }

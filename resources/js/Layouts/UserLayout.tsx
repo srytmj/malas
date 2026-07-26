@@ -2,7 +2,7 @@ import { PropsWithChildren, ReactNode, useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import {
     BookOpen, HandCoins, Layers, LayoutDashboard, Library, LogOut,
-    Menu as MenuIcon, Moon, Settings, Sun, Ticket, User, X,
+    Menu as MenuIcon, Moon, Search, Settings, Sun, Ticket, User, X,
     type LucideIcon,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/Components/ui/avatar';
@@ -12,6 +12,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useFlash } from '@/hooks/useFlash';
 import AnnouncementBanner from '@/Components/app/AnnouncementBanner';
 import { SidebarNav } from '@/Components/app/SidebarNav';
+import { GlobalSearch } from '@/Components/app/GlobalSearch';
 import { type MenuItem } from '@/types';
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -99,6 +100,8 @@ export default function UserLayout({ children, header }: UserLayoutProps) {
 
     return (
         <div className="flex h-screen overflow-hidden bg-background">
+            <GlobalSearch />
+
             {/* Desktop sidebar */}
             <aside className="hidden w-52 shrink-0 border-r bg-background lg:flex lg:flex-col">
                 <SidebarContent menus={menus} />
@@ -131,7 +134,30 @@ export default function UserLayout({ children, header }: UserLayoutProps) {
                             ? <X className="h-5 w-5" />
                             : <MenuIcon className="h-5 w-5" />}
                     </Button>
-                    <span className="text-base font-bold">MALAS</span>
+                    <span className="flex-1 text-base font-bold">MALAS</span>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => window.dispatchEvent(new Event('global-search:open'))}
+                        aria-label="Cari"
+                    >
+                        <Search className="h-5 w-5" />
+                    </Button>
+                </header>
+
+                {/* Desktop topbar */}
+                <header className="hidden h-14 items-center border-b px-6 lg:flex">
+                    <div className="mx-auto flex w-full max-w-md justify-center">
+                        <button
+                            type="button"
+                            onClick={() => window.dispatchEvent(new Event('global-search:open'))}
+                            className="flex w-full items-center gap-2 rounded-lg border border-input/50 bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent"
+                        >
+                            <Search className="h-4 w-4" />
+                            <span className="flex-1 text-left">Cari manga, koleksi, atau halaman...</span>
+                            <kbd className="rounded border bg-background px-1 py-0.5 font-mono text-[10px]">⌘K</kbd>
+                        </button>
+                    </div>
                 </header>
 
                 <AnnouncementBanner />

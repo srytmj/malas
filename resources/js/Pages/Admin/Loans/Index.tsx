@@ -46,9 +46,9 @@ export default function AdminLoansIndex({ loans }: Props) {
             }
         >
             <Head title="Semua Pinjaman" />
-            <div className="max-h-[75vh] overflow-auto rounded-lg border">
+            <div className="rounded-lg border">
                 <Table>
-                    <TableHeader className="sticky top-0 z-10 bg-card">
+                    <TableHeader>
                         <TableRow>
                             <TableHead>User</TableHead>
                             <TableHead>Series / Volume</TableHead>
@@ -89,7 +89,7 @@ export default function AdminLoansIndex({ loans }: Props) {
             </div>
 
             <div className="mt-4">
-                <Pagination data={loans} />
+                <Pagination data={loans} routeName="admin.loans.index" />
             </div>
         </AdminLayout>
     );

@@ -89,9 +89,9 @@ export default function AnnouncementsIndex({ items }: Props) {
                 />
             ) : (
                 <>
-                    <div className="max-h-[75vh] overflow-auto rounded-lg border">
+                    <div className="rounded-lg border">
                         <Table>
-                            <TableHeader className="sticky top-0 z-10 bg-card">
+                            <TableHeader>
                                 <TableRow>
                                     <TableHead>Judul</TableHead>
                                     <TableHead className="w-28">Tipe</TableHead>
@@ -131,6 +131,7 @@ export default function AnnouncementsIndex({ items }: Props) {
                                                 >
                                                     <Pencil className="h-3.5 w-3.5" />
                                                 </Button>
+                                                <div className="mx-1 h-5 w-px bg-border" />
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
@@ -147,7 +148,7 @@ export default function AnnouncementsIndex({ items }: Props) {
                         </Table>
                     </div>
 
-                    <div className="mt-4"><Pagination data={items} /></div>
+                    <div className="mt-4"><Pagination data={items} routeName="admin.announcements.index" /></div>
                 </>
             )}
 

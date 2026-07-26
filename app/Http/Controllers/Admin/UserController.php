@@ -25,7 +25,7 @@ class UserController extends Controller
             ->when(request('status') === 'banned', fn ($q) => $q->where('is_banned', true))
             ->when(request('status') === 'active', fn ($q) => $q->where('is_banned', false))
             ->orderBy('created_at', 'desc')
-            ->paginate(20)
+            ->paginate($this->perPage())
             ->withQueryString()
             ->through(fn ($u) => [
                 'id' => $u->id,

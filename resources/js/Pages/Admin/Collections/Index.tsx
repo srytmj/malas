@@ -34,9 +34,9 @@ export default function AdminCollectionsIndex({ users }: Props) {
             }
         >
             <Head title="Semua Koleksi" />
-            <div className="max-h-[75vh] overflow-auto rounded-lg border">
+            <div className="rounded-lg border">
                 <Table>
-                    <TableHeader className="sticky top-0 z-10 bg-card">
+                    <TableHeader>
                         <TableRow>
                             <TableHead className="w-10" />
                             <TableHead>Pengguna</TableHead>
@@ -82,7 +82,7 @@ export default function AdminCollectionsIndex({ users }: Props) {
             </div>
 
             <div className="mt-4">
-                <Pagination data={users} />
+                <Pagination data={users} routeName="admin.collections.index" />
             </div>
         </AdminLayout>
     );

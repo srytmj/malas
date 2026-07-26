@@ -65,9 +65,9 @@ export default function AdminCollectionsShow({ user, collections }: Props) {
                 </div>
             </div>
 
-            <div className="max-h-[70vh] overflow-auto rounded-lg border">
+            <div className="rounded-lg border">
                 <Table>
-                    <TableHeader className="sticky top-0 z-10 bg-card">
+                    <TableHeader>
                         <TableRow>
                             <TableHead>Series</TableHead>
                             <TableHead className="w-28">Tipe</TableHead>

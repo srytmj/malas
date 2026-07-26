@@ -33,7 +33,7 @@ class SeriesController extends Controller
             ->when(request('type'), fn ($q, $t) => $q->where('type', $t))
             ->withCount('volumes')
             ->latest()
-            ->paginate(20)
+            ->paginate($this->perPage())
             ->withQueryString()
             ->through(fn ($s) => [
                 'id' => $s->id,

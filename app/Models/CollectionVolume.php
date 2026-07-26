@@ -15,7 +15,15 @@ class CollectionVolume extends Model
         'collection_id',
         'volume_number',
         'format',
+        'read_at',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'read_at' => 'datetime',
+        ];
+    }
 
     public function collection(): BelongsTo
     {

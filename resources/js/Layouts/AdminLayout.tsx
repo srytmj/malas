@@ -12,6 +12,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useFlash } from '@/hooks/useFlash';
 import AnnouncementBanner from '@/Components/app/AnnouncementBanner';
 import { SidebarNav } from '@/Components/app/SidebarNav';
+import { CommandPalette } from '@/Components/app/CommandPalette';
 import { type MenuItem } from '@/types';
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -45,6 +46,18 @@ function SidebarContent({ menus, onNavClick }: { menus: MenuItem[]; onNavClick?:
         <div className="flex h-full flex-col">
             <div className="flex h-14 items-center border-b px-5">
                 <span className="text-base font-bold tracking-tight">MALAS</span>
+            </div>
+
+            <div className="px-2 pt-2">
+                <button
+                    type="button"
+                    onClick={() => window.dispatchEvent(new Event('command-palette:open'))}
+                    className="flex w-full items-center gap-2 rounded-lg border border-input/50 bg-muted/50 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent"
+                >
+                    <Search className="h-3.5 w-3.5" />
+                    <span className="flex-1 text-left">Cari cepat...</span>
+                    <kbd className="rounded border bg-background px-1 py-0.5 font-mono text-[10px]">⌘K</kbd>
+                </button>
             </div>
 
             <ScrollArea className="min-h-0 flex-1">
@@ -111,6 +124,8 @@ export default function AdminLayout({ children, header }: AdminLayoutProps) {
 
     return (
         <div className="flex h-screen overflow-hidden bg-background">
+            <CommandPalette />
+
             {/* Desktop sidebar */}
             <aside className="hidden w-56 shrink-0 border-r bg-background lg:flex lg:flex-col">
                 <SidebarContent menus={menus} />

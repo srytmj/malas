@@ -2,7 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import { BookMarked } from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
-import EmptyState from '@/Components/app/EmptyState';
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/Components/ui/empty';
 import { Pagination } from '@/Components/app/Pagination';
 import { Badge } from '@/Components/ui/badge';
 import {
@@ -50,16 +50,22 @@ export default function LoansIndex({ loans }: Props) {
         >
             <Head title="Pinjaman Saya" />
             {loans.data.length === 0 ? (
-                <EmptyState
-                    title="Belum ada pinjaman"
-                    description="Pinjamkan volume dari halaman koleksi untuk mulai mencatat."
-                    icon={BookMarked}
-                />
+                <Empty>
+                    <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                            <BookMarked />
+                        </EmptyMedia>
+                        <EmptyTitle>Belum ada pinjaman</EmptyTitle>
+                        <EmptyDescription>
+                            Pinjamkan volume dari halaman koleksi untuk mulai mencatat.
+                        </EmptyDescription>
+                    </EmptyHeader>
+                </Empty>
             ) : (
                 <>
-                    <div className="max-h-[70vh] overflow-auto rounded-lg border">
+                    <div className="rounded-lg border">
                         <Table>
-                            <TableHeader className="sticky top-0 z-10 bg-card">
+                            <TableHeader>
                                 <TableRow>
                                     <TableHead>Series / Volume</TableHead>
                                     <TableHead>Peminjam</TableHead>
@@ -101,7 +107,7 @@ export default function LoansIndex({ loans }: Props) {
                         </Table>
                     </div>
                     <div className="mt-4">
-                        <Pagination data={loans} />
+                        <Pagination data={loans} routeName="loans.index" />
                     </div>
                 </>
             )}

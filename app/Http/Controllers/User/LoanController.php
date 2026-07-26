@@ -22,7 +22,8 @@ class LoanController extends Controller
         $loans = Loan::whereIn('collection_id', $collectionIds)
             ->with(['collection.series', 'collectionVolume'])
             ->latest('loaned_at')
-            ->paginate(20)
+            ->paginate($this->perPage())
+            ->withQueryString()
             ->through(fn ($l) => [
                 'id' => $l->id,
                 'collection_id' => $l->collection_id,

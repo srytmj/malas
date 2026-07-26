@@ -4,7 +4,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
-    BookMarked, BookOpen, LayoutGrid, List, Plus, RotateCcw, Trash2,
+    BookMarked, BookOpen, Check, Eye, EyeOff, LayoutGrid, List, Plus, RotateCcw, Trash2, X,
 } from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -14,9 +14,11 @@ import { SeriesStatusBadge, SeriesTypeBadge, VolumeFormatBadge } from '@/Compone
 import { Badge } from '@/Components/ui/badge';
 import { Button, buttonVariants } from '@/Components/ui/button';
 import { Checkbox } from '@/Components/ui/checkbox';
+import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Textarea } from '@/Components/ui/textarea';
+import { Slider } from '@/Components/ui/slider';
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/Components/ui/select';
@@ -60,6 +62,7 @@ interface VolumeRow {
     id: string;
     volume_number: number;
     format: CollectionVolumeFormat;
+    read_at: string | null;
     active_loan: ActiveLoan | null;
 }
 
@@ -67,6 +70,8 @@ interface CollectionData {
     id: string;
     series_id: string;
     condition: CollectionCondition;
+    personal_rating: number | null;
+    personal_review: string | null;
 }
 
 interface SeriesData {
@@ -78,6 +83,8 @@ interface SeriesData {
     total_volumes: number | null;
     cover_url: string | null;
     genres: string[];
+    themes: string[];
+    demographics: string[];
     is_adult: boolean;
 }
 
@@ -85,6 +92,19 @@ interface Props extends PageProps {
     collection: CollectionData;
     series: SeriesData;
     volumes: VolumeRow[];
+    last_read_volume: number | null;
+}
+
+const RATING_LABELS: { min: number; label: string; className: string }[] = [
+    { min: 5, label: 'Direkomendasikan', className: 'text-green-600 dark:text-green-400' },
+    { min: 1, label: 'Cukup Bagus', className: 'text-lime-600 dark:text-lime-400' },
+    { min: 0, label: 'Netral', className: 'text-muted-foreground' },
+    { min: -4, label: 'Kurang', className: 'text-orange-600 dark:text-orange-400' },
+    { min: -10, label: 'Tidak Direkomendasikan', className: 'text-destructive' },
+];
+
+function ratingLabel(value: number) {
+    return RATING_LABELS.find((r) => value >= r.min) ?? RATING_LABELS[RATING_LABELS.length - 1];
 }
 
 const addVolumeSchema = z.object({
@@ -106,7 +126,7 @@ function FieldError({ message }: { message?: string }) {
     return <p className="text-xs text-destructive">{message}</p>;
 }
 
-export default function CollectionShow({ collection, series, volumes }: Props) {
+export default function CollectionShow({ collection, series, volumes, last_read_volume }: Props) {
     const [addVolumeOpen, setAddVolumeOpen]   = useState(false);
     const [loanTarget, setLoanTarget]         = useState<VolumeRow | null>(null);
     const [deleteVolume, setDeleteVolume]     = useState<VolumeRow | null>(null);
@@ -116,14 +136,20 @@ export default function CollectionShow({ collection, series, volumes }: Props) {
     const [deletingVol, setDeletingVol]       = useState(false);
     const [deleting, setDeleting]             = useState(false);
     const [returningId, setReturningId]       = useState<string | null>(null);
+    const [selectMode, setSelectMode]         = useState(false);
     const [selectedIds, setSelectedIds]       = useState<Set<string>>(new Set());
     const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
     const [bulkDeleting, setBulkDeleting]     = useState(false);
+    const [togglingReadId, setTogglingReadId] = useState<string | null>(null);
+    const [markingAllRead, setMarkingAllRead]  = useState(false);
     const [volumeView, setVolumeView]         = useState<'grid' | 'table'>(() => {
         if (typeof window === 'undefined') return 'grid';
         return (window.localStorage.getItem(VOLUME_VIEW_KEY) as 'grid' | 'table') || 'grid';
     });
     const [updatingCondition, setUpdatingCondition] = useState(false);
+    const [rating, setRating]                 = useState(collection.personal_rating ?? 0);
+    const [reviewText, setReviewText]         = useState(collection.personal_review ?? '');
+    const [savingReview, setSavingReview]     = useState(false);
 
     const today = new Date().toISOString().split('T')[0];
 
@@ -139,6 +165,40 @@ export default function CollectionShow({ collection, series, volumes }: Props) {
             preserveScroll: true,
             onFinish: () => setUpdatingCondition(false),
         });
+    }
+
+    function toggleSelectMode() {
+        setSelectMode((prev) => {
+            if (prev) setSelectedIds(new Set());
+            return !prev;
+        });
+    }
+
+    function toggleRead(volumeId: string) {
+        setTogglingReadId(volumeId);
+        router.patch(
+            route('collection.volumes.toggleRead', { collection: collection.id, collectionVolume: volumeId }),
+            {},
+            { preserveScroll: true, onFinish: () => setTogglingReadId(null) },
+        );
+    }
+
+    function handleMarkAllRead() {
+        setMarkingAllRead(true);
+        router.patch(
+            route('collection.volumes.readAll', collection.id),
+            {},
+            { preserveScroll: true, onFinish: () => setMarkingAllRead(false) },
+        );
+    }
+
+    function handleSaveReview() {
+        setSavingReview(true);
+        router.patch(
+            route('collection.review.update', collection.id),
+            { personal_rating: rating, personal_review: reviewText || null },
+            { preserveScroll: true, onFinish: () => setSavingReview(false) },
+        );
     }
 
     // Add volume form
@@ -280,10 +340,16 @@ export default function CollectionShow({ collection, series, volumes }: Props) {
                         <SeriesStatusBadge status={series.status} />
                         <SeriesTypeBadge type={series.type} />
                     </div>
-                    {series.genres.length > 0 && (
+                    {(series.genres.length > 0 || series.themes.length > 0 || series.demographics.length > 0) && (
                         <div className="flex flex-wrap gap-1.5">
+                            {series.demographics.map((d) => (
+                                <Badge key={d} variant="secondary">{d}</Badge>
+                            ))}
                             {series.genres.map((g) => (
                                 <Badge key={g} variant="outline">{g}</Badge>
+                            ))}
+                            {series.themes.map((t) => (
+                                <Badge key={t} variant="outline" className="text-muted-foreground">{t}</Badge>
                             ))}
                         </div>
                     )}
@@ -292,6 +358,12 @@ export default function CollectionShow({ collection, series, volumes }: Props) {
                         <p className="font-medium">
                             {ownedCount}{series.total_volumes ? `/${series.total_volumes}` : ''} volume dimiliki
                         </p>
+                        {last_read_volume !== null && (
+                            <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                                <Eye className="h-3 w-3" />
+                                Terakhir dibaca: Vol. {last_read_volume}
+                            </p>
+                        )}
                         {series.total_volumes && series.total_volumes > 0 && (
                             <div className="mt-1.5 h-2 w-48 overflow-hidden rounded-full bg-muted">
                                 <div
@@ -326,14 +398,48 @@ export default function CollectionShow({ collection, series, volumes }: Props) {
             {/* Volume list */}
             <div className="mt-8">
                 <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <h2 className="text-base font-semibold">Volume yang Dimiliki ({ownedCount})</h2>
+                    <div className="flex items-center gap-1.5">
+                        {!selectMode && volumes.some((v) => !v.read_at) && (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                disabled={markingAllRead}
+                                onClick={handleMarkAllRead}
+                                aria-label="Tandai semua volume sudah dibaca"
+                                title="Tandai semua volume sudah dibaca"
+                            >
+                                <Eye className="h-4 w-4" />
+                            </Button>
+                        )}
+                        <h2 className="text-base font-semibold">Volume yang Dimiliki ({ownedCount})</h2>
+                    </div>
                     <div className="flex flex-wrap items-center gap-2">
-                        {selectedIds.size > 0 && (
+                        {selectMode && selectedIds.size > 0 && (
                             <Button size="sm" variant="destructive" onClick={() => setBulkDeleteOpen(true)}>
                                 <Trash2 className="mr-1.5 h-3.5 w-3.5" />
                                 Hapus ({selectedIds.size})
                             </Button>
                         )}
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant={selectMode ? 'secondary' : 'outline'}
+                            onClick={toggleSelectMode}
+                        >
+                            {selectMode ? (
+                                <>
+                                    <X className="mr-1.5 h-3.5 w-3.5" />
+                                    Selesai
+                                </>
+                            ) : (
+                                <>
+                                    <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                                    Hapus
+                                </>
+                            )}
+                        </Button>
                         <div className="flex items-center gap-1 rounded-md border p-0.5">
                             <Button
                                 type="button"
@@ -383,18 +489,34 @@ export default function CollectionShow({ collection, series, volumes }: Props) {
                                 className={cn(
                                     'flex flex-col overflow-hidden rounded-lg border bg-card',
                                     selectedIds.has(v.id) && 'ring-2 ring-primary',
+                                    v.read_at && 'opacity-50 grayscale',
                                 )}
                             >
-                                {/* Cover placeholder + number — klik di mana saja untuk pilih */}
+                                {/* Cover placeholder + number */}
                                 <div
-                                    className="relative flex aspect-[2/3] cursor-pointer items-center justify-center bg-muted"
-                                    onClick={() => toggleVolumeSelect(v.id)}
+                                    className={cn(
+                                        'relative flex aspect-[2/3] items-center justify-center bg-muted',
+                                        selectMode && 'cursor-pointer',
+                                    )}
+                                    onClick={() => selectMode && toggleVolumeSelect(v.id)}
                                 >
-                                    <Checkbox
-                                        checked={selectedIds.has(v.id)}
-                                        className="pointer-events-none absolute left-1.5 top-1.5 bg-background"
-                                        aria-label={`Pilih volume ${v.volume_number}`}
-                                    />
+                                    {selectMode ? (
+                                        <Checkbox
+                                            checked={selectedIds.has(v.id)}
+                                            className="pointer-events-none absolute left-1.5 top-1.5 bg-background"
+                                            aria-label={`Pilih volume ${v.volume_number}`}
+                                        />
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            disabled={togglingReadId === v.id}
+                                            onClick={() => toggleRead(v.id)}
+                                            className="absolute left-1.5 top-1.5 rounded-md bg-background/80 p-1 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+                                            aria-label={v.read_at ? `Tandai volume ${v.volume_number} belum dibaca` : `Tandai volume ${v.volume_number} sudah dibaca`}
+                                        >
+                                            {v.read_at ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                                        </button>
+                                    )}
                                     <div className="text-center">
                                         <p className="text-2xl font-bold text-muted-foreground/40">{v.volume_number}</p>
                                         <p className="text-xs text-muted-foreground/40">Vol.</p>
@@ -456,9 +578,9 @@ export default function CollectionShow({ collection, series, volumes }: Props) {
                         ))}
                     </div>
                 ) : (
-                    <div className="max-h-[70vh] overflow-auto rounded-lg border">
+                    <div className="rounded-lg border">
                         <Table>
-                            <TableHeader className="sticky top-0 z-10 bg-card">
+                            <TableHeader>
                                 <TableRow>
                                     <TableHead className="w-10" />
                                     <TableHead className="w-20">Volume</TableHead>
@@ -471,15 +593,31 @@ export default function CollectionShow({ collection, series, volumes }: Props) {
                                 {volumes.map((v) => (
                                     <TableRow
                                         key={v.id}
-                                        className={cn('cursor-pointer', selectedIds.has(v.id) && 'bg-muted/50')}
-                                        onClick={() => toggleVolumeSelect(v.id)}
+                                        className={cn(
+                                            selectMode && 'cursor-pointer',
+                                            selectedIds.has(v.id) && 'bg-muted/50',
+                                            v.read_at && 'opacity-50 grayscale',
+                                        )}
+                                        onClick={() => selectMode && toggleVolumeSelect(v.id)}
                                     >
                                         <TableCell onClick={(e) => e.stopPropagation()}>
-                                            <Checkbox
-                                                checked={selectedIds.has(v.id)}
-                                                onCheckedChange={() => toggleVolumeSelect(v.id)}
-                                                aria-label={`Pilih volume ${v.volume_number}`}
-                                            />
+                                            {selectMode ? (
+                                                <Checkbox
+                                                    checked={selectedIds.has(v.id)}
+                                                    onCheckedChange={() => toggleVolumeSelect(v.id)}
+                                                    aria-label={`Pilih volume ${v.volume_number}`}
+                                                />
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    disabled={togglingReadId === v.id}
+                                                    onClick={() => toggleRead(v.id)}
+                                                    className="text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+                                                    aria-label={v.read_at ? `Tandai volume ${v.volume_number} belum dibaca` : `Tandai volume ${v.volume_number} sudah dibaca`}
+                                                >
+                                                    {v.read_at ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                                                </button>
+                                            )}
                                         </TableCell>
                                         <TableCell className="font-medium">Vol. {v.volume_number}</TableCell>
                                         <TableCell><VolumeFormatBadge format={v.format} /></TableCell>
@@ -536,6 +674,50 @@ export default function CollectionShow({ collection, series, volumes }: Props) {
                         </Table>
                     </div>
                 )}
+            </div>
+
+            {/* Review & Rating pribadi */}
+            <div className="mt-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">Review & Rating Pribadi</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-5">
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <Label>Rating</Label>
+                                <span className={cn('text-sm font-semibold', ratingLabel(rating).className)}>
+                                    {rating > 0 ? `+${rating}` : rating} · {ratingLabel(rating).label}
+                                </span>
+                            </div>
+                            <Slider
+                                min={-10}
+                                max={10}
+                                step={1}
+                                value={[rating]}
+                                onValueChange={(v) => setRating(Array.isArray(v) ? v[0] : v)}
+                            />
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                                <span>-10 Tidak Direkomendasikan</span>
+                                <span>10 Direkomendasikan</span>
+                            </div>
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="personal_review">Komentar</Label>
+                            <Textarea
+                                id="personal_review"
+                                rows={4}
+                                placeholder="Menurutmu gimana series ini?"
+                                value={reviewText}
+                                onChange={(e) => setReviewText(e.target.value)}
+                            />
+                        </div>
+                        <Button size="sm" disabled={savingReview} onClick={handleSaveReview}>
+                            <Check className="mr-1.5 h-3.5 w-3.5" />
+                            {savingReview ? 'Menyimpan...' : 'Simpan Review'}
+                        </Button>
+                    </CardContent>
+                </Card>
             </div>
 
             {/* Add Volume Dialog */}

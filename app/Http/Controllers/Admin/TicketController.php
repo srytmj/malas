@@ -19,7 +19,7 @@ class TicketController extends Controller
             ->with(['user:id,name', 'series:id,title_romaji'])
             ->when(request('status'), fn ($q, $s) => $q->where('status', $s))
             ->latest()
-            ->paginate(20)
+            ->paginate($this->perPage())
             ->withQueryString()
             ->through(fn ($t) => [
                 'id' => $t->id,

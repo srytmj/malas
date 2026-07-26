@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { Plus, MoreHorizontal, Pencil, RefreshCw, Trash2 } from 'lucide-react';
+import { Plus, MoreHorizontal, Pencil, RefreshCw, Trash2, Eye } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import { Pagination } from '@/Components/app/Pagination';
@@ -8,11 +8,15 @@ import { SeriesStatusBadge, SeriesTypeBadge } from '@/Components/app/StatusBadge
 import { Button, buttonVariants } from '@/Components/ui/button';
 import { Checkbox } from '@/Components/ui/checkbox';
 import { Input } from '@/Components/ui/input';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/Components/ui/hover-card';
+import {
+    ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger,
+} from '@/Components/ui/context-menu';
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/Components/ui/table';
 import {
-    DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+    DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/Components/ui/dropdown-menu';
 import {
     Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -151,17 +155,7 @@ export default function SeriesIndex({ series, filters }: Props) {
                     title="Series"
                     description={`${series.total} series terdaftar`}
                     actions={
-                        <div className="flex flex-wrap gap-2">
-                            {selectedIds.size > 0 && (
-                                <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    onClick={() => setBulkDeleteOpen(true)}
-                                >
-                                    <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                                    Hapus ({selectedIds.size})
-                                </Button>
-                            )}
+                        <div className="flex flex-wrap items-center gap-2">
                             <Link
                                 href={route('admin.series.create')}
                                 className={buttonVariants()}
@@ -169,6 +163,17 @@ export default function SeriesIndex({ series, filters }: Props) {
                                 <Plus className="h-4 w-4 mr-1.5" />
                                 Tambah Series
                             </Link>
+                            {selectedIds.size > 0 && (
+                                <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    className="ml-1 border-l pl-3"
+                                    onClick={() => setBulkDeleteOpen(true)}
+                                >
+                                    <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                                    Hapus ({selectedIds.size})
+                                </Button>
+                            )}
                         </div>
                     }
                 />
@@ -176,7 +181,7 @@ export default function SeriesIndex({ series, filters }: Props) {
         >
             <Head title="Series" />
             {/* Filters */}
-            <div className="sticky top-0 z-10 mb-4 flex flex-wrap items-center gap-2 bg-background pb-2">
+            <div className="mb-4 flex flex-wrap items-center gap-2">
                 <Input
                     placeholder="Cari judul..."
                     value={search}
@@ -228,9 +233,9 @@ export default function SeriesIndex({ series, filters }: Props) {
             </div>
 
             {/* Table */}
-            <div className="max-h-[70vh] overflow-auto rounded-lg border">
+            <div className="rounded-lg border">
                 <Table>
-                    <TableHeader className="sticky top-0 z-10 bg-card">
+                    <TableHeader>
                         <TableRow>
                             <TableHead className="w-10">
                                 <Checkbox
@@ -257,71 +262,118 @@ export default function SeriesIndex({ series, filters }: Props) {
                                 </TableCell>
                             </TableRow>
                         ) : series.data.map((s) => (
-                            <TableRow
-                                key={s.id}
-                                className={cn('cursor-pointer', selectedIds.has(s.id) && 'bg-muted/50')}
-                                onClick={() => router.visit(route('admin.series.show', s.id))}
-                            >
-                                <TableCell onClick={(e) => e.stopPropagation()}>
-                                    <Checkbox
-                                        checked={selectedIds.has(s.id)}
-                                        onCheckedChange={() => toggleRow(s.id)}
-                                        aria-label={`Pilih ${s.title_romaji}`}
-                                    />
-                                </TableCell>
-                                <TableCell>
-                                    {s.cover_url ? (
-                                        <img src={s.cover_url} alt={s.title_romaji} className="h-10 w-7 rounded object-cover" />
-                                    ) : (
-                                        <div className="h-10 w-7 rounded bg-muted" />
-                                    )}
-                                </TableCell>
-                                <TableCell>
-                                    <p className="font-medium">{s.title_romaji}</p>
-                                    {s.title_english && (
-                                        <p className="text-xs text-muted-foreground">{s.title_english}</p>
-                                    )}
-                                </TableCell>
-                                <TableCell><SeriesTypeBadge type={s.type} /></TableCell>
-                                <TableCell><SeriesStatusBadge status={s.status} /></TableCell>
-                                <TableCell className="text-right">
-                                    {s.volumes_count}{s.total_volumes ? `/${s.total_volumes}` : ''}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    {s.score !== null ? Number(s.score).toFixed(1) : '—'}
-                                </TableCell>
-                                <TableCell onClick={(e) => e.stopPropagation()}>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger
-                                            className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'h-8 w-8')}
-                                        >
-                                            <MoreHorizontal className="h-4 w-4" />
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem
-                                                onClick={() => router.visit(route('admin.series.edit', s.id))}
+                            <ContextMenu key={s.id}>
+                                <ContextMenuTrigger
+                                    onClick={() => router.visit(route('admin.series.show', s.id))}
+                                    render={<TableRow className={cn('cursor-pointer', selectedIds.has(s.id) && 'bg-muted/50')} />}
+                                >
+                                    <TableCell onClick={(e) => e.stopPropagation()}>
+                                        <Checkbox
+                                            checked={selectedIds.has(s.id)}
+                                            onCheckedChange={() => toggleRow(s.id)}
+                                            aria-label={`Pilih ${s.title_romaji}`}
+                                        />
+                                    </TableCell>
+                                    <TableCell>
+                                        {s.cover_url ? (
+                                            <img src={s.cover_url} alt={s.title_romaji} className="h-10 w-7 rounded object-cover" />
+                                        ) : (
+                                            <div className="h-10 w-7 rounded bg-muted" />
+                                        )}
+                                    </TableCell>
+                                    <TableCell onClick={(e) => e.stopPropagation()}>
+                                        <HoverCard>
+                                            <HoverCardTrigger
+                                                render={<Link href={route('admin.series.show', s.id)} className="font-medium hover:underline" />}
                                             >
-                                                <Pencil className="mr-2 h-4 w-4" />
-                                                Edit
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                variant="destructive"
-                                                onClick={() => setDeleteTarget(s)}
+                                                {s.title_romaji}
+                                            </HoverCardTrigger>
+                                            <HoverCardContent>
+                                                <div className="flex gap-3">
+                                                    <div className="h-24 w-16 shrink-0 overflow-hidden rounded bg-muted">
+                                                        {s.cover_url ? (
+                                                            <img src={s.cover_url} alt={s.title_romaji} className="h-full w-full object-cover" />
+                                                        ) : null}
+                                                    </div>
+                                                    <div className="min-w-0 space-y-1.5">
+                                                        <p className="font-medium leading-tight">{s.title_romaji}</p>
+                                                        <div className="flex flex-wrap gap-1">
+                                                            <SeriesTypeBadge type={s.type} />
+                                                            <SeriesStatusBadge status={s.status} />
+                                                        </div>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {s.volumes_count}{s.total_volumes ? `/${s.total_volumes}` : ''} volume
+                                                            {s.score !== null ? ` · Skor ${Number(s.score).toFixed(1)}` : ''}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </HoverCardContent>
+                                        </HoverCard>
+                                        {s.title_english && (
+                                            <p className="text-xs text-muted-foreground">{s.title_english}</p>
+                                        )}
+                                    </TableCell>
+                                    <TableCell><SeriesTypeBadge type={s.type} /></TableCell>
+                                    <TableCell><SeriesStatusBadge status={s.status} /></TableCell>
+                                    <TableCell className="text-right">
+                                        {s.volumes_count}{s.total_volumes ? `/${s.total_volumes}` : ''}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        {s.score !== null ? Number(s.score).toFixed(1) : '—'}
+                                    </TableCell>
+                                    <TableCell onClick={(e) => e.stopPropagation()}>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger
+                                                className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'h-8 w-8')}
                                             >
-                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                Hapus
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </TableCell>
-                            </TableRow>
+                                                <MoreHorizontal className="h-4 w-4" />
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem
+                                                    onClick={() => router.visit(route('admin.series.edit', s.id))}
+                                                >
+                                                    <Pencil className="mr-2 h-4 w-4" />
+                                                    Edit
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem
+                                                    variant="destructive"
+                                                    onClick={() => setDeleteTarget(s)}
+                                                >
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    Hapus
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                </ContextMenuTrigger>
+                                <ContextMenuContent>
+                                    <ContextMenuItem onClick={() => router.visit(route('admin.series.show', s.id))}>
+                                        <Eye className="mr-2 h-4 w-4" />
+                                        Lihat
+                                    </ContextMenuItem>
+                                    <ContextMenuItem onClick={() => router.visit(route('admin.series.edit', s.id))}>
+                                        <Pencil className="mr-2 h-4 w-4" />
+                                        Edit
+                                    </ContextMenuItem>
+                                    <ContextMenuSeparator />
+                                    <ContextMenuItem variant="destructive" onClick={() => setDeleteTarget(s)}>
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Hapus
+                                    </ContextMenuItem>
+                                </ContextMenuContent>
+                            </ContextMenu>
                         ))}
                     </TableBody>
                 </Table>
             </div>
 
             <div className="mt-4">
-                <Pagination data={series} />
+                <Pagination
+                    data={series}
+                    routeName="admin.series.index"
+                    filters={{ search, status: filters.status, type: filters.type }}
+                />
             </div>
 
             {/* Single delete confirmation */}

@@ -40,6 +40,8 @@ export type PageProps<
         success: string | null;
         error: string | null;
         info: string | null;
+        undo_url: string | null;
+        undo_payload: Record<string, string[] | string | number | null> | null;
     };
     announcements: SharedAnnouncement[];
 };

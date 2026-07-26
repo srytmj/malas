@@ -15,7 +15,8 @@ class LoanController extends Controller
 
         $loans = Loan::with(['collection.user', 'collection.series', 'collectionVolume'])
             ->latest('loaned_at')
-            ->paginate(20)
+            ->paginate($this->perPage())
+            ->withQueryString()
             ->through(fn ($l) => [
                 'id' => $l->id,
                 'user_name' => $l->collection->user->name,
