@@ -1,8 +1,8 @@
 # PHASES — MALAS v2 Implementation Plan
 
-**Versi:** 2.1
-**Tanggal:** 2026-06-26 (Phase 0–10), diperbarui 2026-07-23 (Phase 11)
-**Status:** ✅ Semua fase selesai (QA pass 2026-07-03) + Phase 11 post-launch enhancements
+**Versi:** 2.2
+**Tanggal:** 2026-06-26 (Phase 0–10), diperbarui 2026-07-26 (Phase 11–12)
+**Status:** ✅ Semua fase selesai (QA pass 2026-07-03) + Phase 11–12 post-launch enhancements
 
 > Setelah setiap fase selesai: buka QA chat baru dengan instruksi dari `QA.md`.
 > Jangan mulai fase berikutnya sebelum QA pass.
@@ -330,6 +330,44 @@ Dikerjakan bertahap setelah 2026-07-03, tidak dalam urutan fase formal:
 
 ---
 
+## Phase 12 — Library UI, Dashboard, Baca Tracking & Review ✅
+
+**Goal:** Integrasi komponen shadcn/Base UI yang belum terpakai, dashboard yang lebih informatif, dan fitur baca-tracking + review pribadi di koleksi.
+
+Dikerjakan iteratif setelah Phase 11, dalam dua batch:
+
+**Batch 1 — Library UI & Dashboard**
+1. `Empty` component (`ui/empty.tsx`) menggantikan `EmptyState` di Koleksiku & Pinjaman.
+2. Selector jumlah data per halaman (5/10/25/50/100) di semua datatable server-paginated — `Controller::perPage()` whitelist param, `Pagination.tsx` di-extend.
+3. Avatar kolektor (tanpa nama, privasi) + jumlah total di halaman detail Katalog.
+4. Hover Card preview cover/tipe/status/skor di Admin Series & Koleksiku.
+5. Context menu (klik kanan) Lihat/Edit/Hapus di Admin Series & Koleksiku.
+6. Command Palette admin (⌘K) — nav cepat + search Series/Users/Tiket via `Admin/CommandSearchController`.
+7. Dashboard charts (Recharts) — Admin (Series per Status, Koleksi per Tipe, Status Pinjaman), User (Koleksi per Status).
+8. Rekomendasi genre + Surprise Me di dashboard user — dihitung di PHP (bukan raw JSON query) untuk portabilitas SQLite/MySQL.
+
+**Batch 2 — Baca Tracking, Review, Search, Undo**
+9. Kolom `collection_volumes.read_at` — toggle baca per volume (icon mata, greyed out saat sudah dibaca), tombol tandai-semua di header daftar volume, indikator "Terakhir dibaca: Vol. N".
+10. Mode hapus volume — tombol "Hapus" men-toggle seleksi, icon mata berubah jadi checkbox di slot yang sama.
+11. Kolom `collections.personal_rating` (-10..10) + `personal_review` — card review & rating pribadi (slider gaya MyAnimeList) di halaman detail koleksi; genre/theme/demographic series ditampilkan lengkap.
+12. Carousel rekomendasi dashboard (`embla-carousel-react` + `ui/carousel.tsx`) — cover, judul, author, genre, sinopsis singkat per slide; chart "Progres Volume" yang bias (banyak series belum ada `total_volumes`) dihapus.
+13. Grid Koleksiku diganti poster card auto-fill (`repeat(auto-fill,minmax(160px,1fr))`) — cover lebih lebar, kolom menyesuaikan otomatis.
+14. Global Search user (⌘K + search bar header) — `GlobalSearch.tsx` + `User/SearchController`, cari Katalog/Koleksiku/navigasi sekaligus.
+15. Undo pada toast — `useFlash.ts` + flash `undo_url`/`undo_payload`, dipasang di toggle-baca dan tandai-semua-baca (endpoint `unmarkVolumesRead` khusus supaya undo tidak salah revert volume yang sudah dibaca sebelumnya).
+16. Fix: rekomendasi genre kosong total kalau sisa katalog tidak punya data genre — fallback ke random pick.
+17. Fix: baris tabel Koleksiku & Admin Series cuma bisa diklik lewat judul — `onClick` dipindah ke prop langsung `ContextMenuTrigger`, bukan nested di `render` prop.
+
+**Ditunda ke backlog:** komponen `Attachment` untuk upload galeri media admin (spec hilang saat context compaction); profil publik + sistem follow + activity feed (gaya Steam) — fitur besar, sengaja dijadwalkan untuk sesi terpisah.
+
+### Done Criteria
+- [x] `npx tsc --noEmit` → 0 errors
+- [x] `php artisan test` → pass
+- [x] Semua endpoint baru punya `$this->authorize()` yang sesuai
+- [x] Toggle baca, mode hapus, dan review tersimpan benar di database (diverifikasi lewat tinker)
+- [x] Rekomendasi dashboard tidak pernah kosong total selama ada series yang belum dikoleksi
+
+---
+
 ## Summary Tabel
 
 | Phase | Nama | Status |
@@ -346,5 +384,6 @@ Dikerjakan bertahap setelah 2026-07-03, tidak dalam urutan fase formal:
 | 9 | User & Menu Management | ✅ |
 | 10 | Polish & Hardening | ✅ |
 | 11 | Post-Launch Enhancements | ✅ |
+| 12 | Library UI, Dashboard, Baca Tracking & Review | ✅ |
 
-**QA pass: 2026-07-03** — Phase 11 dikerjakan iteratif sesudahnya, lihat [`CHANGELOG.md`](../CHANGELOG.md) untuk detail per-perubahan.
+**QA pass: 2026-07-03** — Phase 11–12 dikerjakan iteratif sesudahnya, lihat [`CHANGELOG.md`](../CHANGELOG.md) untuk detail per-perubahan.

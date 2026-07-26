@@ -4,6 +4,64 @@ Semua perubahan penting pada MALAS dicatat di file ini. Format mengikuti prinsip
 
 ---
 
+## 2026-07-26 — Koleksi Pribadi: Baca Tracking, Review & Rating, Undo
+
+Iterasi lanjutan dari batch UI library — fokus ke fitur baca-tracking per volume, review pribadi, dan perbaikan UX di Koleksiku.
+
+### Added — Baca Tracking
+- Kolom `collection_volumes.read_at` — tandai volume individual sudah/belum dibaca lewat icon mata di tiap volume card/baris; volume yang sudah dibaca ditampilkan greyed out.
+- Tombol icon mata di header daftar volume (sebelah kiri judul "Volume yang Dimiliki") untuk menandai **semua** volume sudah dibaca sekaligus (`CollectionController::markAllVolumesRead()`).
+- Indikator "Terakhir dibaca: Vol. N" di halaman detail koleksi, dihitung otomatis dari volume bernomor tertinggi yang sudah ditandai dibaca.
+- Datatable Koleksiku (`/my-collection`) menampilkan progres baca per series: `N/M dibaca`, dihitung dari `read_volumes_count` (query `withCount` dengan kondisi `whereNotNull('read_at')`).
+
+### Added — Mode Hapus Volume
+- Tombol "Hapus" di toolbar volume men-toggle "mode seleksi" — saat aktif, icon mata di tiap volume berubah jadi checkbox (menggantikan posisi yang sama) untuk bulk-select, lalu hapus lewat endpoint bulk delete yang sudah ada.
+
+### Added — Review & Rating Pribadi
+- Kolom baru `collections.personal_rating` (smallint, -10 s/d 10) dan `collections.personal_review` (text, nullable).
+- Card "Review & Rating Pribadi" di halaman detail koleksi — slider -10 (Tidak Direkomendasikan) sampai +10 (Direkomendasikan) gaya MyAnimeList, plus textarea komentar. Endpoint `PATCH /my-collection/{collection}/review`.
+- Genre, theme, dan demographic series ditampilkan lengkap di halaman detail koleksi (sebelumnya cuma genre).
+
+### Added — Undo pada Toast
+- `useFlash` sekarang bisa menampilkan tombol "Undo" di toast sukses (sonner `action`), didorong dari flash session `undo_url` + `undo_payload` (di-share lewat `HandleInertiaRequests`).
+- Toggle baca per-volume: undo memanggil endpoint toggle yang sama (reversible secara alami).
+- Tandai semua dibaca: endpoint baru `unmarkVolumesRead` — undo hanya me-revert volume yang *baru saja* diubah oleh aksi tandai-semua, bukan semua volume (supaya tidak salah revert volume yang memang sudah dibaca sebelumnya).
+
+### Added — Global Search (User Side)
+- Search bar di tengah header `UserLayout` (desktop) + icon search di topbar mobile, plus shortcut ⌘K/Ctrl+K dari mana saja.
+- `GlobalSearch.tsx` (berbasis `cmdk`, komponen sama dengan Command Palette admin) — hasil pencarian gabungan navigasi statis (fuzzy-match otomatis, misal ketik "pinjaman" langsung muncul menu Pinjaman) + judul manga dari Katalog + judul dari Koleksiku sendiri.
+- Endpoint baru `GET /search` (`User\SearchController`).
+
+### Changed — Koleksiku
+- Grid view Koleksiku diganti dari kartu horizontal (thumbnail kecil 80px) jadi poster card vertikal (cover full-width, aspect 2:3) dengan `grid-template-columns: repeat(auto-fill, minmax(160px,1fr))` — jumlah kolom & lebar cover otomatis menyesuaikan lebar layar, bukan breakpoint tetap.
+- Rekomendasi di dashboard user diganti dari grid jadi **Carousel** (`embla-carousel-react` + `ui/carousel.tsx`) — tiap slide nampilkan cover, judul, author, genre/tags, dan sinopsis singkat (dipotong 160 karakter).
+- Chart "Progres Volume" di dashboard user dihapus — bias karena banyak series belum punya `total_volumes` terisi (ongoing/ambigu).
+
+### Fixed
+- Rekomendasi genre di dashboard user kadang kosong total meski user punya banyak koleksi — root cause: sisa katalog yang belum dikoleksi user tidak semuanya punya data genre, jadi skor overlap selalu 0. Fix: fallback ke pilihan random dari series belum dikoleksi kalau scoring genre tidak menghasilkan apa-apa (dipakai juga di endpoint Surprise Me).
+- Baris tabel Koleksiku & Admin Series kadang cuma bisa diklik lewat judulnya — `onClick` navigasi dipindah dari nested di dalam `render` prop `ContextMenuTrigger` ke prop langsung di `ContextMenuTrigger` (jalur merge props yang lebih pasti di Base UI, bukan merge dua lapis).
+
+---
+
+## 2026-07-25 (lanjutan) — Library UI Baru: Empty, Hover Card, Context Menu, Command Palette, Chart
+
+Batch integrasi beberapa komponen shadcn/Base UI yang sebelumnya sudah terpasang tapi belum dipakai, plus fitur baru di dashboard.
+
+### Added
+- **`Empty` component** (`ui/empty.tsx`) — dipakai di state kosong Koleksiku dan Pinjaman, menggantikan `EmptyState` lama di kedua halaman itu.
+- **Selector jumlah data per halaman** (5/10/25/50/100) di semua datatable server-paginated (Admin Series/Users/Collections/Tickets/Loans/Announcements, User Tickets/Loans) — param `per_page` di-whitelist lewat helper `Controller::perPage()`, `Pagination.tsx` di-extend dengan selector opsional yang baca `data.per_page` dari paginator langsung.
+- **Avatar kolektor** di halaman detail Katalog — nampilin stack avatar (tanpa nama, privasi) + jumlah total user yang mengoleksi series tersebut.
+- **Hover Card preview** — hover judul series di Admin Series & Koleksiku (table view) nampilin cover, tipe, status, skor tanpa perlu klik.
+- **Context menu (klik kanan)** — shortcut Lihat/Edit/Hapus di baris Admin Series & Koleksiku, melengkapi dropdown menu yang sudah ada.
+- **Command Palette admin** (⌘K/Ctrl+K, `CommandPalette.tsx`) — navigasi cepat ke semua halaman admin + search langsung ke Series/Users/Tiket lewat endpoint `GET /admin/command-search`. Trigger button juga ada permanen di sidebar admin.
+- **Dashboard charts** (`recharts` + `ui/chart.tsx`) — Admin: Series per Status, Koleksi per Tipe, Status Pinjaman (donut). User: Koleksi per Status.
+- **Rekomendasi genre + Surprise Me** — dashboard user nampilin rekomendasi series berdasarkan overlap genre dengan koleksi user (dihitung di PHP, bukan raw JSON query DB, supaya portable SQLite/MySQL); tombol "Surprise Me" pilih satu series random (genre-weighted) dengan dialog reveal.
+
+### Skipped
+- Komponen `Attachment` untuk upload gambar galeri media admin — spec yang di-paste user hilang saat context compaction sesi sebelumnya, ditunda sampai di-paste ulang.
+
+---
+
 ## 2026-07-25 — UX Overhaul: Katalog, Koleksiku, Admin Tools, Konten 18+
 
 Batch besar perbaikan & fitur di sisi user dan admin, plus infrastruktur queue worker untuk deployment.

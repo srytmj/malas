@@ -1,4 +1,6 @@
-# Design System — MALAS Admin Panel
+> ⚠️ **Legacy — tidak dipakai lagi.** Dokumen ini mendeskripsikan desain untuk stack lama (Blade + Alpine.js + TomSelect + Jikan API) dari sebelum rebuild ke React 19 + Inertia.js v2 + shadcn/ui (Base UI) yang jadi stack aktual sekarang (lihat [`docs/prd.md`](../docs/prd.md) §1). Desain sistem yang berlaku saat ini adalah token & komponen shadcn/ui default (Tailwind CSS v4) — bukan token custom TailAdmin/Kenmei di bawah ini. Dibiarkan sebagai referensi historis, jangan dipakai sebagai acuan implementasi baru.
+
+# Design System — MALAS Admin Panel (Legacy, Pra-Rebuild)
 
 > Referensi visual: **TailAdmin Free** (layout + komponen admin) + **Kenmei** (UX pattern + data density).  
 > Stack: Blade + Alpine.js + Tailwind CSS (kustom token TailAdmin).  

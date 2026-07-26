@@ -7,9 +7,15 @@ Aplikasi pengelolaan koleksi pribadi manga/manhwa/manhua/light novel. Dibuat unt
 ## Fitur Utama
 
 - **Katalog & koleksi pribadi** — browse katalog series, tambah ke koleksi, input volume yang dimiliki (mendukung syntax range: `1,2,5-9,11,12`)
+- **Tracking baca per volume** — tandai volume sudah/belum dibaca, lihat progres baca di datatable koleksi, tandai semua sekaligus
+- **Review & rating pribadi** — rating -10 s/d +10 (gaya MyAnimeList) + komentar per series di koleksi
+- **Rekomendasi & Surprise Me** — rekomendasi series di dashboard berdasarkan overlap genre dengan koleksi, plus tombol pilih random
+- **Global search** — cari judul manga di katalog/koleksi atau navigasi cepat lewat ⌘K, dari search bar di header maupun Command Palette admin
+- **Dashboard dengan chart** — statistik series/koleksi/pinjaman divisualisasikan (Recharts), bukan cuma angka
 - **Import metadata dari AniList** — search & import judul, sinopsis, genre, author, theme, demographic, skor langsung dari [AniList GraphQL](https://anilist.co)
 - **Peminjaman volume** — catat siapa yang meminjam, tanggal jatuh tempo, status terlambat otomatis
 - **Sistem tiket** — user bisa request judul baru masuk katalog, admin merespon lewat tiket
+- **Undo pada aksi reversible** — toast notifikasi punya tombol "Undo" untuk aksi seperti tandai baca
 - **Login SSO** — autentikasi PKCE OAuth2 via whitearchive.id, tidak ada akun lokal terpisah
 - **Storage fleksibel** — konfigurasi Local disk atau S3-compatible (Cloudflare R2, dll) langsung dari UI admin, tanpa edit `.env`
 - **Backup & restore database** — download/import dump SQL dari UI admin (super_admin only)

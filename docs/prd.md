@@ -1,7 +1,7 @@
 # PRD — MALAS (Manga Library Admin System)
 
-**Versi:** 2.0 — Rebuild  
-**Tanggal:** 2026-06-26  
+**Versi:** 2.2
+**Tanggal:** 2026-06-26, diperbarui 2026-07-26
 **Status:** Active
 
 ---
@@ -47,10 +47,10 @@ MALAS v2 adalah rebuild total dengan stack baru (React + Inertia) untuk UI yang 
 ## 4. Fitur
 
 ### F-01 — Autentikasi
-- Login email + password
-- Lupa password via email
-- Email verification (toggle di settings)
-- Session management
+- Login via SSO whitearchive.id (PKCE-based OAuth2) — tidak ada form register/login lokal
+- Semua akun (termasuk admin) dikelola di sisi SSO; MALAS hanya menyimpan `sso_id`, `name`, `username`, `email`, `avatar` dari klaim SSO
+- Profil ditampilkan read-only di `/settings` (edit profil dilakukan di sisi SSO)
+- Session management via Laravel session standar setelah callback SSO sukses
 
 ### F-02 — Menu Management *(Admin)*
 
@@ -80,17 +80,20 @@ Admin mengontrol menu apa yang tampil dan statusnya:
 | `title_english`, `title_japanese` | nullable |
 | `status` | `publishing` / `finished` / `on_hiatus` / `discontinued` / `not_yet_published` |
 | `type` | `manga` / `manhwa` / `manhua` / `novel` / `one_shot` / `doujinshi` |
-| `cover_path` | upload ke R2 atau URL dari Jikan |
+| `cover_path` | upload manual atau URL dari AniList — diakses lewat `StorageSettingsService` (Local/S3-compatible, dikonfigurasi via UI admin) |
 | `synopsis` | text, nullable |
 | `score` | decimal 0–10, nullable |
 | `total_volumes` | int, nullable |
-| `mal_id` | unique, nullable |
+| `anilist_id` | unique, nullable |
+| `genres`, `authors`, `themes`, `demographics` | json, nullable — dari AniList |
+| `is_adult` | boolean — dipakai untuk blur konten 18+ (opt-in per instalasi, tab Konten di Pengaturan) |
 | `published_from` / `published_to` | date range, nullable |
 
 User akses:
-- Browse list + filter (status, tipe, search judul)
-- Lihat detail + daftar volume
+- Browse list + filter (status, tipe, search judul, sudah/belum di koleksi)
+- Lihat detail: sinopsis, genre/theme/demographic lengkap, daftar volume, galeri media tambahan, avatar (tanpa nama) + jumlah user lain yang mengoleksi series ini
 - Tombol "Tambah ke Koleksi" dari halaman detail
+- Cari cepat lewat Global Search (⌘K) dari halaman manapun
 
 ### F-04 — Katalog Volume *(Admin CRUD / User read-only)*
 
@@ -113,16 +116,22 @@ Satu user punya satu koleksi per series.
 | `series_id` | FK |
 | `acquired_at` | date, nullable |
 | `notes` | text, nullable |
+| `personal_rating` | smallint, nullable, -10 s/d 10 (gaya MyAnimeList — negatif = tidak direkomendasikan) |
+| `personal_review` | text, nullable — komentar pribadi user tentang series ini |
 
 Di dalam koleksi, user mencatat volume yang dimiliki via `collection_volumes`. User input nomor volume sebagai CSV (misal: `1,2,3,5`) dan memilih format per batch. Volume tidak terikat ke tabel `volumes` admin — user yang tentukan sendiri nomor apa yang mereka punya.
 
 **Format volume:** `physical` / `ebook` / `online` / `webtoon`
 
+**Tracking baca:** tiap `collection_volume` punya `read_at` (nullable) — user toggle baca/belum lewat icon mata per volume (volume yang sudah dibaca ditampilkan greyed out), atau tandai semua sekaligus lewat satu tombol. Datatable koleksi menampilkan progres baca (`N/M dibaca`) dan "Terakhir dibaca: Vol. N" dihitung otomatis dari volume bernomor tertinggi yang sudah dibaca.
+
+**Mode hapus volume:** toolbar volume punya toggle "Hapus" yang mengubah icon mata di tiap volume jadi checkbox (posisi sama) untuk seleksi bulk-delete, supaya tidak konflik dengan aksi tandai-baca.
+
 **Cara tambah series:** dari halaman `/my-collection` via dialog search + multi-select. Bisa tambah lebih dari satu series sekaligus.
 
 Akses:
 - User: hanya bisa lihat & edit koleksi sendiri
-- Admin: bisa lihat semua koleksi semua user beserta detail kepemilikan per volume
+- Admin: bisa lihat semua koleksi semua user (dikelompokkan per user), beserta detail kepemilikan per volume
 
 ### F-06 — Loans (Peminjaman)
 
@@ -138,13 +147,14 @@ User mencatat volume yang dipinjamkan dari koleksinya:
 | `returned_at` | date, nullable — jika diisi → status = dikembalikan |
 | `notes` | text, nullable |
 
-### F-07 — Jikan API Integration *(Admin)*
+### F-07 — AniList API Integration *(Admin)*
 
-- Cari manga di MyAnimeList via Jikan v4 API
-- Preview data sebelum import
-- Import otomatis isi semua field series
-- Jika MAL ID sudah ada → update, bukan duplicate
-- Rate limit: max 3 req/detik, retry dengan exponential backoff
+- Cari manga/manhwa/manhua/novel di AniList via GraphQL API
+- Preview data sebelum import (card overlay, bukan popover/modal terpisah)
+- Import otomatis isi semua field series termasuk genre/author/theme/demographic
+- Jika AniList ID sudah ada → tampil info + tombol lihat, bukan duplicate
+- Sync ulang metadata ke series yang sudah ada (Popover "Sync AniList" di Edit Series)
+- Filter sembunyikan konten 18+ saat mencari, badge 18+ di hasil
 
 ### F-08 — Announcements
 
@@ -154,13 +164,44 @@ User mencatat volume yang dipinjamkan dari koleksinya:
 
 ### F-09 — User Management *(Admin)*
 
-- List, view profil, ban/unban, ganti role, reset password
+- List, view profil, ban/unban, ganti role
 - Admin tidak bisa upgrade user ke/dari `super_admin`
+- Reset password tidak berlaku — password dikelola di sisi SSO, bukan di MALAS
 
 ### F-10 — Dashboard
 
-**Admin:** stats sistem, grafik series by status, tabel series terbaru, announcements  
-**User:** stats koleksi sendiri, grafik kondisi koleksi, koleksi terbaru diupdate, announcements
+**Admin:** stat cards + chart (Recharts): Series per Status, Koleksi per Tipe, Status Pinjaman
+**User:** stat cards, chart Koleksi per Status, Carousel rekomendasi (F-11), widget tiket terakhir
+
+### F-11 — Rekomendasi & Surprise Me *(User)*
+
+- Dashboard user nampilkan rekomendasi series berdasarkan overlap genre dengan koleksi user, dihitung di PHP (bukan raw JSON query DB) supaya portabel antara SQLite (dev) dan MySQL (prod)
+- Fallback ke pilihan random dari series yang belum dikoleksi kalau scoring genre tidak menghasilkan kandidat (user baru, atau sisa katalog belum punya data genre)
+- Tiap rekomendasi tampil dalam Carousel: cover, judul, author, genre/tags, sinopsis singkat
+- Tombol "Surprise Me" — pilih satu series random (genre-weighted, fallback random murni) dengan dialog reveal
+
+### F-12 — Global Search & Command Palette
+
+- **User side:** search bar di header (desktop) / icon search (mobile), atau ⌘K/Ctrl+K dari halaman manapun — cari judul di Katalog + Koleksiku sendiri, atau navigasi cepat ke halaman lain (fuzzy-match, misal ketik "pinjaman" langsung muncul menu terkait)
+- **Admin side:** Command Palette (⌘K/Ctrl+K) — navigasi cepat ke semua halaman admin + search Series/Users/Tiket
+
+### F-13 — Storage & Database Backup *(Admin, super_admin only)*
+
+- Konfigurasi driver storage (`local` / `s3`-compatible seperti Cloudflare R2) langsung dari UI admin (`/admin/settings`, tab Storage), bukan `.env`
+- Semua operasi file (cover series/volume, media tambahan) lewat `StorageSettingsService`
+- Migrasi file otomatis (Local ↔ S3) saat driver diganti, berjalan di background lewat queue job
+- Download/import dump SQL database dari UI (tab Database), exclude tabel sensitif
+
+### F-14 — Sistem Tiket
+
+- User buat tiket request (misal minta judul baru masuk katalog) dari halaman Tiket atau pre-filled dari Katalog
+- Admin merespon dari halaman detail tiket admin
+- Status: `open`, `in_progress`, `resolved`, `closed`
+
+### F-15 — Undo pada Aksi Reversible
+
+- Toast notifikasi (sonner) bisa menampilkan tombol "Undo" untuk aksi yang reversible, didorong dari flash session (`undo_url` + `undo_payload`)
+- Contoh: tandai baca per-volume, tandai-semua-baca (undo hanya revert volume yang baru diubah aksi tersebut, bukan semua)
 
 ---
 
@@ -177,13 +218,17 @@ User mencatat volume yang dipinjamkan dari koleksinya:
 | Volume: lihat | ✓ | ✓ | ✓ |
 | Volume: CRUD | ✓ | ✓ | — |
 | Koleksi: semua user | ✓ | ✓ | — |
-| Koleksi: milik sendiri | ✓ | ✓ | ✓ |
+| Koleksi: milik sendiri (termasuk tracking baca, review & rating) | ✓ | ✓ | ✓ |
 | Loans: semua | ✓ | ✓ | — |
 | Loans: milik sendiri | ✓ | ✓ | ✓ |
-| Jikan Scraper | ✓ | ✓ | — |
+| AniList Import | ✓ | ✓ | — |
 | Announcements: CRUD | ✓ | ✓ | — |
 | Announcements: lihat | ✓ | ✓ | ✓ |
-| Settings | ✓ | ✓ | — |
+| Tiket: respond | ✓ | ✓ | — |
+| Tiket: buat & lihat milik sendiri | ✓ | ✓ | ✓ |
+| Log Aktivitas | ✓ | ✓ | — |
+| Storage & Database Backup | ✓ | — | — |
+| Global Search / Command Palette | ✓ | ✓ | ✓ |
 
 ---
 
@@ -192,5 +237,5 @@ User mencatat volume yang dipinjamkan dari koleksinya:
 - Aplikasi mobile native
 - Marketplace / jual beli
 - Integrasi payment
-- Rating / review oleh user
-- Scraping selain MyAnimeList
+- Scraping selain AniList
+- Profil publik + sistem follow + activity feed (gaya Steam) — sengaja ditunda, lihat backlog di [`PHASES.md`](PHASES.md)

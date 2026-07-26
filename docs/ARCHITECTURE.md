@@ -1,7 +1,7 @@
 # ARCHITECTURE — MALAS
 
-**Versi:** 3.0
-**Diperbarui:** 2026-07-23
+**Versi:** 3.1
+**Diperbarui:** 2026-07-26
 
 > Dokumen ini menggambarkan arsitektur **aktual** aplikasi saat ini. Untuk histori perubahan, lihat [`CHANGELOG.md`](../CHANGELOG.md). Untuk log fase pengembangan, lihat [`PHASES.md`](PHASES.md).
 
@@ -25,6 +25,9 @@
 | Storage | Local disk atau S3-compatible (Cloudflare R2, dll) | — | Dikonfigurasi via UI admin (`storage_settings` table), bukan `.env` |
 | External API | AniList GraphQL | — | Import metadata manga/manhwa/manhua/novel; menggantikan Jikan/MAL |
 | HTTP Client | Axios (via Inertia) | — | Sudah bundled |
+| Charts | Recharts + `ui/chart.tsx` | latest | Dashboard admin & user |
+| Carousel | embla-carousel-react + `ui/carousel.tsx` | latest | Rekomendasi dashboard user |
+| Command menu | cmdk + `ui/command.tsx` | latest | Command Palette admin & Global Search user |
 
 ---
 
@@ -96,6 +99,8 @@
 | condition | enum | `mint`, `good`, `fair`, `poor` |
 | acquired_at | date | nullable |
 | notes | text | nullable |
+| personal_rating | smallint | nullable, -10 s/d 10 (gaya MyAnimeList: negatif = tidak direkomendasikan) |
+| personal_review | text | nullable — komentar pribadi user tentang series ini |
 | created_at / updated_at | timestamp | |
 | **UNIQUE** | (user_id, series_id) | satu koleksi per series per user |
 
@@ -106,6 +111,7 @@
 | collection_id | uuid FK | cascade delete |
 | volume_number | int | nomor volume yang dimiliki user |
 | format | enum | `physical`, `ebook`, `online`, `webtoon` |
+| read_at | timestamp | nullable — diisi saat volume ditandai sudah dibaca, null = belum dibaca |
 | created_at / updated_at | timestamp | |
 | **UNIQUE** | (collection_id, volume_number) | |
 
@@ -210,13 +216,19 @@ app/
 │   │   │   ├── ImageSearchController.php
 │   │   │   ├── TicketController.php        (admin view & respond)
 │   │   │   ├── StorageSettingController.php
-│   │   │   └── DatabaseBackupController.php (download/import backup, super_admin)
+│   │   │   ├── DatabaseBackupController.php (download/import backup, super_admin)
+│   │   │   ├── ActivityLogController.php   (viewer log aktivitas admin)
+│   │   │   ├── SiteSettingController.php   (blur konten 18+)
+│   │   │   ├── SeriesMediaController.php   (galeri media tambahan per series)
+│   │   │   └── CommandSearchController.php (search Series/Users/Tickets untuk Command Palette)
 │   │   ├── User/
-│   │   │   ├── DashboardController.php
+│   │   │   ├── DashboardController.php     (termasuk rekomendasi genre + Surprise Me)
 │   │   │   ├── SeriesController.php        (katalog, read-only + search endpoint)
-│   │   │   ├── CollectionController.php    (termasuk destroyVolumes bulk + range parsing)
+│   │   │   ├── CollectionController.php    (destroyVolumes bulk, range parsing, toggle/mark-all
+│   │   │   │                                read, update review/rating)
 │   │   │   ├── TicketController.php        (user buat & lihat tiket)
-│   │   │   └── LoanController.php
+│   │   │   ├── LoanController.php
+│   │   │   └── SearchController.php        (search Series + Collection untuk Global Search)
 │   │   └── Auth/
 │   │       └── SsoController.php           (PKCE OAuth2 redirect/callback/logout)
 │   ├── Middleware/
@@ -229,13 +241,15 @@ app/
 │   ├── User.php
 │   ├── Series.php          (genres/authors/themes/demographics json)
 │   ├── Volume.php
-│   ├── Collection.php
-│   ├── CollectionVolume.php
+│   ├── Collection.php      (condition, personal_rating -10..10, personal_review)
+│   ├── CollectionVolume.php (read_at datetime cast)
 │   ├── Loan.php
 │   ├── Menu.php
 │   ├── Announcement.php
 │   ├── Ticket.php
-│   └── StorageSetting.php  (encrypted secret_access_key cast)
+│   ├── StorageSetting.php  (encrypted secret_access_key cast)
+│   ├── ActivityLog.php     (audit log aksi sensitif admin)
+│   └── SiteSetting.php     (blur_adult_content, single-row)
 ├── Policies/
 │   ├── SeriesPolicy.php
 │   ├── VolumePolicy.php
@@ -253,20 +267,23 @@ app/
 resources/js/
 ├── Pages/
 │   ├── Admin/
-│   │   ├── Dashboard.tsx
+│   │   ├── Dashboard.tsx   (stat cards + chart Series per Status, Koleksi per Tipe, Status Pinjaman)
 │   │   ├── Menus/          Index.tsx, Edit.tsx
-│   │   ├── Series/         Index.tsx (bulk delete), Create.tsx, Edit.tsx, Show.tsx, EditVolume.tsx
-│   │   ├── Collections/    Index.tsx
+│   │   ├── Series/         Index.tsx (bulk delete, hover card, context menu), Create.tsx, Edit.tsx,
+│   │   │                   Show.tsx, EditVolume.tsx
+│   │   ├── Collections/    Index.tsx, Show.tsx
 │   │   ├── Loans/          Index.tsx
 │   │   ├── Users/          Index.tsx, Show.tsx
 │   │   ├── Announcements/  Index.tsx, Create.tsx, Edit.tsx
 │   │   ├── AniList/        Index.tsx (search & import — card overlay), Status.tsx
 │   │   ├── Tickets/        Index.tsx, Show.tsx
-│   │   └── Settings/       Storage.tsx, Database.tsx
+│   │   ├── ActivityLog/    Index.tsx
+│   │   └── Settings/       Index.tsx (tab Storage/Database/Konten)
 │   ├── User/
-│   │   ├── Dashboard.tsx
-│   │   ├── Catalog/        Index.tsx, Show.tsx
-│   │   ├── Collection/     Index.tsx, Show.tsx (bulk delete volumes)
+│   │   ├── Dashboard.tsx   (stat cards, chart Koleksi per Status, Carousel rekomendasi + Surprise Me)
+│   │   ├── Catalog/        Index.tsx, Show.tsx (avatar kolektor)
+│   │   ├── Collection/     Index.tsx (grid poster auto-fill, datatable progres baca),
+│   │   │                   Show.tsx (toggle baca, mode hapus, review & rating)
 │   │   ├── Tickets/        Index.tsx, Create.tsx, Show.tsx
 │   │   └── Loans/          Index.tsx
 │   ├── Auth/               Banned.tsx
@@ -275,20 +292,26 @@ resources/js/
 │   ├── Maintenance.tsx
 │   └── Landing.tsx
 ├── Layouts/
-│   ├── AdminLayout.tsx     (sidebar + topbar admin, ScrollArea wrapping)
-│   └── UserLayout.tsx      (sidebar + topbar user)
+│   ├── AdminLayout.tsx     (sidebar + topbar admin, ScrollArea wrapping, mount CommandPalette)
+│   └── UserLayout.tsx      (sidebar + topbar search bar user, mount GlobalSearch)
 ├── Components/
-│   ├── ui/                 (shadcn/ui — JANGAN MODIFIKASI)
+│   ├── ui/                 (shadcn/ui — JANGAN MODIFIKASI. Termasuk empty.tsx, hover-card.tsx,
+│   │                        context-menu.tsx, command.tsx, chart.tsx, carousel.tsx)
 │   └── app/
 │       ├── VolumeGrid.tsx          (pure display, no toggle)
 │       ├── AnnouncementBanner.tsx
 │       ├── StatusBadge.tsx         (SeriesStatusBadge, SeriesTypeBadge, VolumeTypeBadge,
 │       │                            TicketStatusBadge, TicketTypeBadge, VolumeFormatBadge)
 │       ├── PageHeader.tsx          (responsive — stack kolom di mobile)
-│       ├── EmptyState.tsx
-│       └── Pagination.tsx          (responsive — flex-wrap di mobile)
+│       ├── EmptyState.tsx          (dipakai di halaman yang belum migrasi ke ui/empty.tsx)
+│       ├── Pagination.tsx          (responsive; opsional per-page selector via prop routeName+filters)
+│       ├── SeriesCard.tsx          (poster card katalog — cover, judul, badge)
+│       ├── SeriesMediaGallery.tsx  (galeri media tambahan per series, admin)
+│       ├── CommandPalette.tsx      (⌘K admin — nav cepat + search Series/Users/Tiket)
+│       └── GlobalSearch.tsx        (⌘K user — nav cepat + search Katalog/Koleksiku)
 ├── hooks/
-│   └── useFlash.ts         (sonner toast dari flash session)
+│   └── useFlash.ts         (sonner toast dari flash session, dukung aksi "Undo" via
+│                             flash.undo_url/undo_payload)
 └── lib/
     ├── utils.ts
     └── types.ts            (shared TypeScript interfaces, termasuk TicketType/TicketStatus)

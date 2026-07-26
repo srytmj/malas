@@ -1,7 +1,7 @@
 # FLOWS — MALAS v2
 
-**Versi:** 2.0  
-**Tanggal:** 2026-06-26
+**Versi:** 2.1
+**Tanggal:** 2026-06-26, diperbarui 2026-07-26
 
 ---
 
@@ -9,42 +9,54 @@
 
 ### Admin Sidebar
 ```
-Dashboard             /admin/dashboard
+Dashboard             /admin/dashboard      (stat cards + chart)
 ├── Katalog
-│   ├── Series        /admin/series
+│   ├── Series        /admin/series         (bulk delete, hover card, context menu, ⌘K)
 │   └── Volume        (nested di halaman detail series, bukan route sendiri)
-├── Koleksi           /admin/collections
+├── Koleksi           /admin/collections    (per user, drill-down)
 ├── Peminjaman        /admin/loans
 ├── Pengguna          /admin/users
+├── Tiket             /admin/tickets
+├── Log Aktivitas     /admin/activity-logs
 ├── Sistem
 │   ├── Menu          /admin/menus
 │   └── Pengumuman    /admin/announcements
-└── Jikan Search      /admin/jikan
+├── AniList Search    /admin/anilist
+└── Pengaturan        /admin/settings       (tab Storage/Database/Konten, super_admin only)
 ```
 
-Catatan: tidak ada `/admin/roles` dan `/admin/settings`. Role management bagian dari halaman detail user (`/admin/users/{id}`).
+Catatan: tidak ada `/admin/roles` terpisah. Role management bagian dari halaman detail user (`/admin/users/{id}`). Command Palette (⌘K/Ctrl+K) tersedia di semua halaman admin lewat tombol di sidebar.
 
 ### User Sidebar
 ```
-Dashboard             /dashboard
-Katalog               /catalog              (browse series, read-only)
-Koleksiku             /my-collection        (koleksi milik sendiri)
+Dashboard             /dashboard            (stat cards, chart, Carousel rekomendasi)
+Katalog               /catalog              (browse series, read-only, avatar kolektor)
+Koleksiku             /my-collection        (koleksi milik sendiri, grid poster/table)
 Pinjaman Saya         /my-loans
+Tiket                 /tickets
 ```
+
+Global Search (⌘K/Ctrl+K, atau search bar di header desktop / icon di mobile) tersedia di semua halaman user — cari judul di Katalog/Koleksiku atau navigasi cepat.
 
 ---
 
 ## 2. Auth Flows
 
-### Login
+### Login (SSO whitearchive.id)
 ```
-GET /login
-  └─ Isi email + password → POST /login
-        ├─ Gagal → kembali ke form, tampil error inline
-        └─ Sukses → redirect berdasarkan role:
-              ├─ admin / super_admin → /admin/dashboard
-              └─ user → /dashboard
+GET /auth/redirect
+  └─ Redirect ke whitearchive.id dengan PKCE code_challenge
+        └─ User login di whitearchive.id (di luar MALAS)
+              └─ Redirect balik ke GET /auth/callback
+                    ├─ Tukar code → token, ambil klaim user (sso_id, name, username, email, avatar)
+                    ├─ User baru → dibuat otomatis (role default `user`)
+                    ├─ User lama → data di-update dari klaim SSO terbaru
+                    └─ Session dibuat → redirect berdasarkan role:
+                          ├─ admin / super_admin → /admin/dashboard
+                          └─ user → /dashboard
 ```
+
+Tidak ada form register/login lokal — semua akun (termasuk admin) dikelola lewat SSO.
 
 ### Akses Route Terproteksi
 ```
@@ -76,17 +88,19 @@ Request masuk
               └─ Sukses → redirect /admin/series/{id} + toast "Series berhasil disimpan"
 ```
 
-### F-A2: Import Series dari Jikan
+### F-A2: Import Series dari AniList
 ```
-/admin/jikan → ketik judul di search
-  └─ Debounce 500ms → GET /admin/jikan/search?q=...
-        ├─ Jikan timeout/error → tampil pesan error, tombol retry
-        └─ Hasil muncul sebagai grid card (cover, judul, tahun, status)
-              └─ Klik card → modal preview (data lengkap)
-                    └─ Klik "Import"
-                          ├─ MAL ID sudah ada → toast warning "Sudah ada di katalog"
-                          └─ Belum ada → import + redirect ke halaman edit series
+/admin/anilist → ketik judul di search
+  └─ Debounce → GET /admin/anilist/search?q=...
+        ├─ AniList timeout/error → tampil pesan error
+        └─ Hasil muncul sebagai card overlay (cover, judul, tahun, status, badge 18+ jika applicable)
+              └─ Klik "Import"
+                    ├─ AniList ID sudah ada → toast info "Sudah ada di katalog" + tombol lihat
+                    └─ Belum ada → import (genres/authors/themes/demographics ikut tersimpan)
+                          tetap di halaman search, tidak pindah halaman
 ```
+
+Sync ulang metadata AniList ke series yang sudah ada tersedia dari Popover "Sync AniList" di halaman Edit Series.
 
 ### F-A3: Kelola Volume
 ```
@@ -191,6 +205,49 @@ Dashboard → announcement banner muncul
         └─ Banner hilang, tidak muncul lagi untuk user ini
 ```
 
+### F-U7: Tandai Volume Sudah Dibaca
+```
+/my-collection/{id} → klik icon mata di volume card/baris
+  └─ PATCH CollectionController@toggleVolumeRead
+        └─ read_at diisi (atau di-null-kan jika toggle lagi) → volume greyed out
+              └─ Toast sukses dengan tombol "Undo" (panggil endpoint yang sama untuk revert)
+              └─ Indikator "Terakhir dibaca: Vol. N" di header ikut update
+
+Tandai semua sekaligus:
+  └─ Klik icon mata di sebelah kiri judul "Volume yang Dimiliki"
+        └─ PATCH CollectionController@markAllVolumesRead
+              └─ Semua volume yang belum dibaca → read_at = now()
+                    └─ Toast + tombol "Undo" → PATCH unmarkVolumesRead
+                          (hanya revert volume yang baru diubah aksi ini)
+```
+
+### F-U8: Mode Hapus Volume
+```
+/my-collection/{id} → klik tombol "Hapus" di toolbar volume
+  └─ Masuk mode seleksi — icon mata di tiap volume berubah jadi checkbox
+        └─ Pilih volume → tombol "Hapus (N)" muncul
+              └─ Konfirmasi → CollectionController@destroyVolumes (bulk)
+        └─ Klik "Selesai" → keluar mode seleksi, checkbox kembali jadi icon mata
+```
+
+### F-U9: Review & Rating Pribadi
+```
+/my-collection/{id} → card "Review & Rating Pribadi"
+  └─ Geser slider (-10 s/d +10) + isi komentar
+        └─ Klik "Simpan Review" → PATCH CollectionController@updateReview
+              └─ Toast sukses, nilai tersimpan (personal_rating, personal_review)
+```
+
+### F-U10: Global Search
+```
+Klik search bar di header (atau ⌘K / Ctrl+K dari halaman manapun)
+  └─ Dialog Command terbuka → ketik query
+        ├─ < 2 karakter → hanya tampil navigasi statis (fuzzy-match dari cmdk)
+        └─ ≥ 2 karakter → debounce 300ms → GET /search?q=...
+              └─ Hasil dikelompokkan: Navigasi, Koleksiku, Katalog
+                    └─ Klik salah satu → router.visit ke halaman terkait, dialog tertutup
+```
+
 ---
 
 ## 5. Maintenance Mode Flow
@@ -221,5 +278,5 @@ Admin yang akses /catalog:
 | 404 Not Found | Halaman error: "Halaman tidak ditemukan" |
 | Maintenance | Halaman maintenance dengan pesan custom |
 | User di-ban | Halaman: "Akunmu dinonaktifkan. Hubungi admin." |
-| Jikan API error | Toast error + retry button (tidak crash halaman) |
+| AniList API error | Toast/pesan error (tidak crash halaman) |
 | Upload gagal | Error inline di field upload |
