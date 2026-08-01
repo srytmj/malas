@@ -177,6 +177,8 @@ php artisan db:seed --class=MenuSeeder --force
 php artisan storage:link
 ```
 
+> Setelah deploy pertama kali, konfigurasi **Storage** (`/admin/settings` tab Storage) dan **AI** (tab AI — default provider `puter`, tidak butuh API key, cukup didiamkan kalau tidak mau pakai Gemini/OpenAI/Claude) dilakukan lewat UI admin, bukan `.env`. Tidak ada env var tambahan yang wajib diisi untuk fitur i18n, wishlist, profil publik, atau RanobeDB — semuanya jalan begitu migrasi selesai.
+
 ### 7. Cache untuk production
 
 ```bash

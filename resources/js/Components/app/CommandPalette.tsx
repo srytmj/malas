@@ -1,39 +1,41 @@
 import { useEffect, useState } from 'react';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import {
-    Activity, BookOpen, Database, HandCoins, HardDrive, LayoutDashboard, Library,
-    Megaphone, Menu as MenuIcon, Search, Sparkles, Ticket, Users,
+    Activity, BookOpen, HandCoins, HardDrive, LayoutDashboard, Layers, Library,
+    Megaphone, Menu as MenuIcon, Search, Settings, Sparkles, Ticket, Users,
     type LucideIcon,
 } from 'lucide-react';
 import {
     Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from '@/Components/ui/command';
+import { flattenMenuItems, menuTranslationKey } from '@/lib/menu';
 
-interface NavItem {
-    label: string;
-    routeName: string;
-    icon: LucideIcon;
-}
-
-const NAV_ITEMS: NavItem[] = [
-    { label: 'Dashboard', routeName: 'admin.dashboard', icon: LayoutDashboard },
-    { label: 'Series', routeName: 'admin.series.index', icon: BookOpen },
-    { label: 'Pengguna', routeName: 'admin.users.index', icon: Users },
-    { label: 'Semua Koleksi', routeName: 'admin.collections.index', icon: Library },
-    { label: 'Semua Pinjaman', routeName: 'admin.loans.index', icon: HandCoins },
-    { label: 'Tiket', routeName: 'admin.tickets.index', icon: Ticket },
-    { label: 'Pengumuman', routeName: 'admin.announcements.index', icon: Megaphone },
-    { label: 'Menu', routeName: 'admin.menus.index', icon: MenuIcon },
-    { label: 'Log Aktivitas', routeName: 'admin.activity-logs.index', icon: Activity },
-    { label: 'Import AniList', routeName: 'admin.anilist.index', icon: Sparkles },
-    { label: 'Pengaturan', routeName: 'admin.settings.index', icon: HardDrive },
-];
+const ICON_MAP: Record<string, LucideIcon> = {
+    'layout-dashboard': LayoutDashboard,
+    'book-open':        BookOpen,
+    'library':          Library,
+    'hand-coins':       HandCoins,
+    'users':            Users,
+    'menu':             MenuIcon,
+    'megaphone':        Megaphone,
+    'search':           Search,
+    'settings':         Settings,
+    'activity':         Activity,
+    'ticket':           Ticket,
+    'hard-drive':       HardDrive,
+    'layers':           Layers,
+    'sparkles':         Sparkles,
+};
 
 interface SeriesResult { id: string; title: string }
 interface UserResult { id: string; name: string; email: string }
 interface TicketResult { id: string; subject: string }
 
 export function CommandPalette() {
+    const { menus } = usePage().props;
+    const { t } = useTranslation();
+    const navItems = flattenMenuItems(menus);
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
     const [series, setSeries] = useState<SeriesResult[]>([]);
@@ -92,22 +94,27 @@ export function CommandPalette() {
     }
 
     return (
-        <CommandDialog open={open} onOpenChange={setOpen} title="Command Palette" description="Navigasi cepat ke halaman admin">
+        <CommandDialog open={open} onOpenChange={setOpen} title={t('palette.adminTitle')} description={t('palette.adminDescription')}>
             <Command>
-                <CommandInput placeholder="Cari halaman, series, pengguna, atau tiket..." value={query} onValueChange={setQuery} />
+                <CommandInput placeholder={t('palette.adminPlaceholder')} value={query} onValueChange={setQuery} />
                 <CommandList>
-                    <CommandEmpty>Tidak ada hasil.</CommandEmpty>
-                    <CommandGroup heading="Navigasi">
-                        {NAV_ITEMS.map((item) => (
-                            <CommandItem key={item.routeName} value={item.label} onSelect={() => go(item.routeName)}>
-                                <item.icon />
-                                {item.label}
-                            </CommandItem>
-                        ))}
+                    <CommandEmpty>{t('palette.noResults')}</CommandEmpty>
+                    <CommandGroup heading={t('palette.navigation')}>
+                        {navItems.map((item) => {
+                            const Icon = item.icon ? (ICON_MAP[item.icon] ?? null) : null;
+                            const labelKey = menuTranslationKey(item.key);
+                            const label = labelKey ? t(labelKey) : item.label;
+                            return (
+                                <CommandItem key={item.key} value={label} onSelect={() => go(item.route_name!)}>
+                                    {Icon && <Icon />}
+                                    {label}
+                                </CommandItem>
+                            );
+                        })}
                     </CommandGroup>
 
                     {series.length > 0 && (
-                        <CommandGroup heading="Series">
+                        <CommandGroup heading={t('palette.series')}>
                             {series.map((s) => (
                                 <CommandItem key={s.id} value={`series-${s.id}`} onSelect={() => go('admin.series.show', s.id)}>
                                     <BookOpen />
@@ -118,7 +125,7 @@ export function CommandPalette() {
                     )}
 
                     {users.length > 0 && (
-                        <CommandGroup heading="Pengguna">
+                        <CommandGroup heading={t('palette.users')}>
                             {users.map((u) => (
                                 <CommandItem key={u.id} value={`user-${u.id}`} onSelect={() => go('admin.users.show', u.id)}>
                                     <Users />
@@ -130,11 +137,11 @@ export function CommandPalette() {
                     )}
 
                     {tickets.length > 0 && (
-                        <CommandGroup heading="Tiket">
-                            {tickets.map((t) => (
-                                <CommandItem key={t.id} value={`ticket-${t.id}`} onSelect={() => go('admin.tickets.show', t.id)}>
+                        <CommandGroup heading={t('palette.tickets')}>
+                            {tickets.map((ticket) => (
+                                <CommandItem key={ticket.id} value={`ticket-${ticket.id}`} onSelect={() => go('admin.tickets.show', ticket.id)}>
                                     <Search />
-                                    {t.subject}
+                                    {ticket.subject}
                                 </CommandItem>
                             ))}
                         </CommandGroup>

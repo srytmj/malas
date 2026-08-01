@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\StoreAnnouncementRequest;
 use App\Http\Requests\Admin\UpdateAnnouncementRequest;
 use App\Models\Announcement;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -82,9 +83,28 @@ class AnnouncementController extends Controller
     {
         $this->authorize('delete', $announcement);
 
+        $payload = $announcement->only(['title', 'body', 'type', 'is_active', 'starts_at', 'expires_at']);
         $announcement->delete();
 
-        return redirect()->route('admin.announcements.index')
-            ->with('success', 'Pengumuman berhasil dihapus.');
+        return redirect()->route('admin.announcements.index')->with([
+            'success' => 'Pengumuman berhasil dihapus.',
+            'undo_url' => route('admin.announcements.restore'),
+            'undo_payload' => $payload,
+        ]);
+    }
+
+    public function restore(Request $request): RedirectResponse
+    {
+        $this->authorize('create', Announcement::class);
+
+        $request->validate([
+            'title' => ['required', 'string'],
+            'body' => ['required', 'string'],
+            'type' => ['required', 'string'],
+        ]);
+
+        Announcement::create($request->only(['title', 'body', 'type', 'is_active', 'starts_at', 'expires_at']));
+
+        return redirect()->back()->with('success', 'Pengumuman berhasil dipulihkan.');
     }
 }

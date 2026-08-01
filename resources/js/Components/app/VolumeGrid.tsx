@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { BookOpen } from 'lucide-react';
 import { VolumeTypeBadge } from '@/Components/app/StatusBadge';
 import { type VolumeType } from '@/lib/types';
@@ -16,13 +17,14 @@ interface VolumeGridProps {
 }
 
 function VolumeCard({ volume }: { volume: VolumeItem }) {
+    const { t } = useTranslation();
     return (
         <div className="flex flex-col overflow-hidden rounded-lg border bg-card">
             <div className="aspect-[2/3] overflow-hidden bg-muted">
                 {volume.cover_url ? (
                     <img
                         src={volume.cover_url}
-                        alt={`Vol ${volume.volume_number}`}
+                        alt={t('components.volumeGrid.volumePrefix', { number: volume.volume_number })}
                         className="h-full w-full object-cover"
                     />
                 ) : (
@@ -33,7 +35,7 @@ function VolumeCard({ volume }: { volume: VolumeItem }) {
             </div>
 
             <div className="p-2">
-                <p className="text-xs font-medium">Vol. {volume.volume_number}</p>
+                <p className="text-xs font-medium">{t('components.volumeGrid.volumePrefix', { number: volume.volume_number })}</p>
                 <VolumeTypeBadge type={volume.type} />
             </div>
         </div>
@@ -41,9 +43,10 @@ function VolumeCard({ volume }: { volume: VolumeItem }) {
 }
 
 export function VolumeGrid({ volumes }: VolumeGridProps) {
+    const { t } = useTranslation();
     if (volumes.length === 0) {
         return (
-            <p className="py-8 text-center text-sm text-muted-foreground">Belum ada volume.</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">{t('components.volumeGrid.empty')}</p>
         );
     }
 

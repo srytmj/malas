@@ -1,0 +1,229 @@
+{
+    "nav": {
+        "search": "検索",
+        "quickSearch": "クイック検索...",
+        "quickSearchHint": "クイック検索 (⌘K)",
+        "navigation": "ナビゲーション",
+        "lightMode": "ライトモード",
+        "darkMode": "ダークモード",
+        "logout": "ログアウト",
+        "member": "メンバー",
+        "expandSidebar": "サイドバーを開く",
+        "collapseSidebar": "サイドバーを閉じる",
+        "openMenu": "メニューを開く",
+        "searchPlaceholder": "マンガ、コレクション、ページを検索...",
+        "login": "ログイン"
+    },
+    "profile": {
+        "loginToFollow": "フォローするにはログイン"
+    },
+    "menu": {
+        "dashboard": "ダッシュボード",
+        "series": "シリーズ",
+        "collections": "コレクション",
+        "loans": "貸出",
+        "users": "ユーザー",
+        "importData": "データインポート",
+        "searchAllSources": "全ソース検索",
+        "searchManga": "マンガ検索",
+        "anilistStatus": "AniList ステータス",
+        "searchLightNovel": "ライトノベル検索",
+        "others": "その他",
+        "menuManagement": "メニュー",
+        "userSidebar": "ユーザーサイドバー",
+        "announcements": "お知らせ",
+        "tickets": "チケット",
+        "settings": "設定",
+        "activityLog": "アクティビティログ",
+        "funfactQuota": "ファンファクト割当",
+        "catalog": "カタログ",
+        "myCollection": "マイコレクション",
+        "wishlist": "ウィッシュリスト",
+        "myLoans": "貸出中",
+        "findUsers": "ユーザー検索",
+        "profile": "プロフィール"
+    },
+    "common": {
+        "save": "保存",
+        "saving": "保存中...",
+        "cancel": "キャンセル",
+        "delete": "削除",
+        "edit": "編集",
+        "back": "戻る",
+        "loading": "読み込み中...",
+        "search": "検索",
+        "filter": "フィルター",
+        "chooseFile": "ファイルを選択",
+        "searching": "検索中...",
+        "noResults": "結果がありません。",
+        "generalError": "サーバーへの接続に失敗しました。",
+        "deleting": "削除中...",
+        "creating": "作成中...",
+        "generate": "生成",
+        "add": "追加",
+        "yes": "はい",
+        "no": "いいえ",
+        "close": "閉じる",
+        "confirm": "確認",
+        "actions": "操作",
+        "status": "ステータス",
+        "type": "タイプ",
+        "required": "必須項目です",
+        "optional": "任意",
+        "allTypes": "すべてのタイプ",
+        "manga": "マンガ",
+        "lightNovel": "ライトノベル",
+        "oneShot": "読み切り",
+        "doujinshi": "同人誌",
+        "manhwa": "マンファ",
+        "manhua": "マンホア"
+    },
+    "palette": {
+        "adminTitle": "コマンドパレット",
+        "adminDescription": "管理ページへのクイックナビゲーション",
+        "adminPlaceholder": "ページ、シリーズ、ユーザー、チケットを検索...",
+        "userTitle": "検索",
+        "userDescription": "カタログやコレクション内のマンガを検索、または他のページへ移動",
+        "userPlaceholder": "マンガのタイトル、コレクション、ページを検索...",
+        "noResults": "結果が見つかりません。",
+        "navigation": "ナビゲーション",
+        "series": "シリーズ",
+        "users": "ユーザー",
+        "tickets": "チケット",
+        "myCollection": "マイコレクション",
+        "catalog": "カタログ"
+    },
+    "settings": {
+        "title": "設定",
+        "description": "whitearchive.id で管理されるあなたのアカウント情報。",
+        "profile": "プロフィール",
+        "profileDescription": "名前、ユーザー名、メールアドレスはログインのたびに whitearchive.id アカウントと同期されます。",
+        "email": "メールアドレス",
+        "role": "ロール",
+        "manageAccount": "whitearchive.id でアカウントを管理",
+        "publicProfile": "公開プロフィール",
+        "publicProfileDescription": "有効にすると、他のユーザーがあなたのコレクションとジャンルの好みを見たり、フォローしたりできます。18+コンテンツは通常通りぼかされます。",
+        "showProfilePublicly": "プロフィールを公開する",
+        "showProfilePublicHint": "デフォルトは非公開 — 有効にするまであなただけが見られます。",
+        "viewMyProfile": "自分のプロフィールを見る",
+        "roles": {
+            "super_admin": "スーパー管理者",
+            "admin": "管理者",
+            "user": "ユーザー"
+        }
+    },
+    "pagination": {
+        "showing": "{{total}}件中 {{from}}–{{to}}件を表示",
+        "total": "合計 {{total}}件",
+        "perPage": "件/ページ"
+    },
+    "badge": {
+        "status": {
+            "publishing": "連載中",
+            "finished": "完結",
+            "on_hiatus": "休載中",
+            "discontinued": "打ち切り",
+            "not_yet_published": "未刊行"
+        },
+        "type": {
+            "manga": "マンガ",
+            "manhwa": "マンファ",
+            "manhua": "マンホア",
+            "novel": "ノベル",
+            "one_shot": "読み切り",
+            "doujinshi": "同人誌"
+        },
+        "volumeType": {
+            "regular": "通常版",
+            "digital": "デジタル",
+            "bind_up": "合本"
+        },
+        "format": {
+            "physical": "紙",
+            "ebook": "電子書籍",
+            "online": "オンライン",
+            "webtoon": "ウェブトゥーン"
+        },
+        "ticketStatus": {
+            "open": "未対応",
+            "in_progress": "対応中",
+            "resolved": "解決済み",
+            "closed": "クローズ"
+        },
+        "ticketType": {
+            "catalog_request": "カタログリクエスト",
+            "title_revision": "タイトル修正",
+            "other": "その他"
+        }
+    },
+    "components": {
+        "seriesMediaGallery": {
+            "title": "メディアギャラリー（{{count}}）",
+            "uploading": "アップロード中...",
+            "addImage": "画像を追加",
+            "empty": "追加メディアはまだありません。アートワーク、バナー、スクリーンショットをアップロードして、このシリーズのカタログページを充実させましょう。"
+        },
+        "sortableMenuList": {
+            "dragToReorder": "ドラッグして並び替え",
+            "shared": "共有",
+            "visible": "表示",
+            "maintenance": "メンテナンス"
+        },
+        "adultBlurOverlay": {
+            "clickToView": "18+ · クリックして表示"
+        },
+        "announcementBanner": {
+            "close": "お知らせを閉じる"
+        },
+        "seriesCard": {
+            "inCollection": "コレクション内"
+        },
+        "volumeGrid": {
+            "volumePrefix": "第{{number}}巻",
+            "empty": "まだ巻がありません。"
+        }
+    },
+    "errorPage": {
+        "400": { "title": "不正なリクエスト", "description": "リクエストが不完全または無効です。" },
+        "403": { "title": "アクセス拒否", "description": "このページにアクセスする権限がありません。" },
+        "404": { "title": "ページが見つかりません", "description": "お探しのページは存在しないか、移動された可能性があります。" },
+        "500": { "title": "エラーが発生しました", "description": "サーバーで問題が発生しました。後でもう一度お試しください。" },
+        "502": { "title": "SSOが応答しません", "description": "whitearchive.idサーバーに接続できません。しばらくしてから再度お試しください。" },
+        "503": { "title": "サーバーが利用できません", "description": "サービスはメンテナンス中です。しばらくしてから再度お試しください。" },
+        "back": "戻る",
+        "home": "ホーム"
+    },
+    "bannedPage": {
+        "title": "アカウントがBANされました",
+        "description": "あなたのアカウントはBANされ、このアプリケーションにアクセスできません。",
+        "reasonLabel": "BANの理由：",
+        "logout": "ログアウト",
+        "contactAdmin": "これが誤りだと思われる場合は、管理者にお問い合わせください。"
+    },
+    "maintenancePage": {
+        "title": "メンテナンス",
+        "heading": "メンテナンス中です",
+        "description": "このページは一時的にご利用いただけません。",
+        "backHome": "ホームに戻る"
+    },
+    "landing": {
+        "pageTitle": "ようこそ",
+        "heading": "マンガ・ライトノベルコレクション管理",
+        "subheading": "カタログ、個人コレクション、マンガ・ライトノベルの貸出をひとつの場所で管理できます。",
+        "loginButton": "whitearchive.idでログイン",
+        "features": {
+            "catalog": { "title": "カタログ", "description": "AniListのメタデータ付きでマンガ、マンファ、マンホア、ノベルを閲覧・検索できます。" },
+            "collection": { "title": "個人コレクション", "description": "所有している巻にマークを付けて、自分のコレクションを管理できます。" },
+            "loans": { "title": "貸出", "description": "他の人に貸した巻と返却期限を記録できます。" },
+            "announcements": { "title": "お知らせ", "description": "コレクションやサービスに関する最新情報を管理者から直接受け取れます。" }
+        }
+    },
+    "locale": {
+        "id": "Bahasa Indonesia",
+        "en": "English",
+        "ja": "日本語",
+        "label": "言語",
+        "cardTitle": "言語",
+        "cardDescription": "アプリの表示言語を選択してください。変更はすぐに反映されます。"
+    }
+}

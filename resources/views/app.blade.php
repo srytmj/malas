@@ -15,6 +15,9 @@
         @viteReactRefresh
         @vite(['resources/js/app.tsx', "resources/js/Pages/{$page['component']}.tsx"])
         @inertiaHead
+
+        {{-- Puter.js — AI provider gratis tanpa API key, dipanggil dari browser (lihat lib/puter.ts) --}}
+        <script src="https://js.puter.com/v2/"></script>
     </head>
     <body class="font-sans antialiased">
         @inertia

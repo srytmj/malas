@@ -266,6 +266,105 @@ Setiap menu baru harus ditambahkan ke `MenuSeeder.php` dengan `updateOrCreate`.
 - Toast/notification untuk success action (pakai `sonner` dari shadcn)
 - Skeleton loading untuk data yang di-fetch (jangan blank page)
 - **Mobile-first**: semua halaman user harus responsive — test dengan lebar 375px
+- **Setiap aksi yang bisa dibalik (delete, toggle status, dll) WAJIB punya opsi Undo** di toast-nya —
+  kirim `undo_url` (+ `undo_payload` kalau perlu data tambahan) lewat flash session, `useFlash.ts`
+  otomatis nampilin tombol "Undo" yang manggil `router.patch(undo_url, undo_payload)`. Lihat contoh
+  di `SeriesController::destroy()`/`restore()` (admin, soft-delete) atau `CollectionController::destroy()`/
+  `undoDestroy()` (hard-delete, di-recreate dari payload). **Pengecualian**: aksi yang langsung menghapus
+  file dari storage (mis. `SeriesMediaController::destroy()`) tidak wajib punya undo karena filenya sudah
+  hilang permanen — kalau ini kejadian, dokumentasikan alasannya di komentar kode.
+- **Setiap halaman yang menampilkan daftar/grid series atau koleksi (lebih dari satu item) WAJIB
+  punya filter tipe** — pakai `ToggleGroup`/`ToggleGroupItem` (Segmented Control, bukan `Select`
+  dropdown), urutan tombolnya selalu: **Semua Tipe, Manga, Light Novel, One Shot, Doujinshi, Manhwa,
+  Manhua**. Base UI `Toggle` tidak menerima value `""` dengan bersih (fallback ke id auto-generate) —
+  pakai sentinel `'all'`, bukan string kosong. Lihat contoh di `Admin/Series/Index.tsx`,
+  `User/Catalog/Index.tsx`, `User/Collection/Index.tsx`, `User/Wishlist/Index.tsx`,
+  `User/Profile/Show.tsx`, `Admin/Collections/Show.tsx`. **Pengecualian**: halaman yang isinya
+  cuma satu tipe secara inheren (mis. `Admin/RanobeDb/Index.tsx` — RanobeDB cuma punya light novel)
+  atau halaman detail satu series/volume (bukan daftar) tidak perlu filter ini.
+- **Multi-bahasa WAJIB, tanpa terkecuali** — app ini mendukung id/en/ja (lihat bagian
+  "Sistem Multi-Bahasa" di bawah). Setiap fitur atau kode baru yang menampilkan teks ke user
+  **wajib** langsung disiapkan terjemahannya, tidak boleh hardcode string dan ditunda "nanti aja".
+  Ini berlaku untuk SEMUA string user-facing: label, tombol, placeholder, toast, pesan error,
+  empty state, judul halaman — tidak ada pengecualian. Pastikan tidak ada string yang
+  terlewat sebelum menganggap sebuah fitur selesai.
+
+---
+
+## Sistem Multi-Bahasa
+
+Didukung: **id** (default), **en**, **ja**. Preferensi bahasa disimpan per-user di kolom
+`users.locale`, diubah lewat halaman Settings (`Select` di kartu "Bahasa"/"Language"/"言語").
+
+**Frontend** (`react-i18next`):
+- File terjemahan: `resources/js/lang/{id,en,ja}/{namespace}.json` — dipecah per namespace
+  (`common.json` untuk Layouts/SidebarNav/CommandPalette/GlobalSearch/menu label, `dashboard.json`
+  untuk halaman Dashboard, dst). Tambah namespace baru untuk halaman baru, jangan numpuk semua di
+  `common.json`.
+- Registrasi resource JSON baru di `resources/js/lib/i18n.ts` (import statis + tambah ke object
+  `resources` dan array `ns`).
+- Pakai `const { t } = useTranslation('namespace')` lalu `t('key')` — bukan string literal.
+  Interpolasi pakai `{{variable}}` di JSON, lalu `t('key', { variable: value })`.
+- Locale ikut ke browser otomatis lewat shared Inertia prop `locale` (di-set `i18n.changeLanguage()`
+  di `useEffect` pada `AdminLayout`/`UserLayout` — halaman lain otomatis ikut karena semua
+  dibungkus salah satu Layout ini).
+- **Label menu sidebar** (dari tabel `menus`, hasil seed) **jangan** dirender langsung dari
+  `item.label` (itu cuma bahasa Indonesia mentah di DB) — map dulu lewat `menuTranslationKey(item.key)`
+  di `resources/js/lib/menu.ts` ke translation key `menu.*`, fallback ke `item.label` kalau key-nya
+  nggak dikenal (mis. admin rename manual). Setiap menu baru yang di-seed WAJIB ditambahkan ke
+  `MENU_KEY_TRANSLATIONS` + key `menu.*` di ketiga `common.json`.
+
+**Backend**:
+- Middleware `App\Http\Middleware\SetLocale` set `App::setLocale()` dari `user->locale` tiap
+  request (default `id` untuk guest/user tanpa preferensi).
+- Pesan validasi Laravel sudah terjemah otomatis lewat `lang/{id,en,ja}/validation.php` — nggak
+  perlu custom message manual di FormRequest kecuali butuh teks di luar rule bawaan Laravel.
+- Flash message controller (`->with('success', '...')` dll) **belum** ada sistem terjemahan
+  terpusat — ini backlog, saat ini masih hardcode Bahasa Indonesia. Kalau menambah flash message
+  baru di area yang sudah pernah disentuh untuk i18n, tanyakan dulu ke user apakah mau sekalian
+  dibikin multi-bahasa atau menyusul.
+
+**Sudah diterjemahkan penuh** (semua namespace: `common.json`, `dashboard.json`, `user.json`,
+`catalog.json`, `collection.json`, `admin.json` — lihat `resources/js/lang/{id,en,ja}/`):
+
+- Layouts & komponen shared: `AdminLayout.tsx`, `UserLayout.tsx`, `SidebarNav.tsx`,
+  `CommandPalette.tsx`, `GlobalSearch.tsx`, `StatusBadge.tsx`, `Pagination.tsx`, `LanguageSwitcher.tsx`.
+- Semua halaman `User/**`: `Dashboard.tsx`, `Catalog/Index.tsx`, `Catalog/Show.tsx`,
+  `Collection/Index.tsx`, `Collection/Show.tsx` (file terbesar di app, ~1200 baris — full),
+  `Wishlist/Index.tsx`, `Tickets/Index.tsx`, `Tickets/Create.tsx`, `Tickets/Show.tsx`,
+  `Loans/Index.tsx`, `Directory/Index.tsx`, `Profile/Show.tsx`.
+- `Settings/Index.tsx` — full (kartu Bahasa, Profil, Profil Publik).
+- Semua halaman `Admin/**`: `Dashboard.tsx`, `ActivityLog/Index.tsx`, `Series/Edit.tsx`,
+  `Series/Show.tsx`, `Series/Create.tsx`, `Series/Index.tsx`, `Series/EditVolume.tsx`,
+  `Settings/Index.tsx`, `Users/Index.tsx`, `Users/Show.tsx`, `Announcements/Create.tsx`,
+  `Announcements/Edit.tsx`, `Announcements/Index.tsx`, `Tickets/Index.tsx`, `Tickets/Show.tsx`,
+  `Loans/Index.tsx`, `Menus/Edit.tsx`, `Menus/Index.tsx`, `Menus/UserSidebar.tsx`,
+  `GenreFunfacts/Index.tsx`, `AniList/Index.tsx`, `AniList/Status.tsx`, `Collections/Index.tsx`,
+  `Collections/Show.tsx`, `RanobeDb/Index.tsx`, `Search/Index.tsx`.
+- Halaman root `Pages/`: `Landing.tsx`, `Error.tsx`, `Auth/Banned.tsx`, `Maintenance.tsx`.
+- `Components/app/**` (di luar `ui/`): `SeriesMediaGallery.tsx`, `SortableMenuList.tsx`,
+  `AdultBlurOverlay.tsx`, `AnnouncementBanner.tsx`, `SeriesCard.tsx`, `VolumeGrid.tsx`.
+
+**Belum lengkap (backlog, jangan anggap selesai — update daftar ini tiap kali menerjemahkan
+sebuah file, dan JANGAN hapus baris kalau baru diterjemahkan sebagian)**:
+
+- `User/Dashboard.tsx` — 1 label chart tersisa (`statusChartConfig.total.label`), prioritas
+  rendah karena kata "Series" sama di ID/EN.
+- `Pages/Dashboard.tsx` (root, di luar `User/` dan `Admin/`) — dicek, tidak direferensikan oleh
+  controller manapun (`grep Inertia::render('Dashboard'` nihil hasil), jadi ini file mati.
+  Sengaja **tidak** diterjemahkan — pertimbangkan untuk dihapus di kesempatan lain, bukan
+  diterjemahkan.
+
+Flash message dari controller (`->with('success', '...')` dll) masih hardcode Indonesia di semua
+controller — belum ada sistem terjemahan terpusat untuk ini (lihat catatan di bagian Backend di atas).
+
+**Pola yang sudah mapan, ikuti kalau nerusin backlog di atas**:
+- String tipe/status/format series yang berulang di banyak file → pakai key `common.json`
+  (`badge.status.*`, `badge.type.*`, `badge.format.*`, dst), jangan bikin key baru per halaman.
+- Filter tipe segmented control yang berulang (lihat aturan wajib di atas) → pakai hook
+  `useTypeFilterOptions()` dari `resources/js/lib/typeFilters.ts`, jangan duplikasi array literal.
+- Cross-namespace lookup pakai syntax `t('namespace:key')`, mis. `t('common:badge.status.finished')`
+  dari komponen yang default namespace-nya bukan `common`.
 
 ---
 
@@ -298,8 +397,19 @@ Jangan duplikasi atau rebuild ulang fitur-fitur ini:
 | Log aktivitas admin | `Admin/ActivityLog/Index.tsx` + `ActivityLogController` |
 | Galeri media tambahan per series | `SeriesMediaGallery.tsx` + `Admin/SeriesMediaController` |
 | SSO login via whitearchive.id | `SsoController` (PKCE OAuth2) |
+| Import metadata light novel dari RanobeDB | `Admin/RanobeDb/Index.tsx` + `RanobeDbController` + `RanobeDbService`, lihat [`docs/RANOBEDB_INTEGRATION.md`](docs/RANOBEDB_INTEGRATION.md) |
+| Sync metadata RanobeDB ke series yang ada | Edit Series page (Popover "Sync RanobeDB") |
+| Selera Genre — word cloud + funfact AI (Puter.js default, atau Gemini/OpenAI/Claude) | `User/Dashboard.tsx` (`GenreFunfactCard`) + `DashboardController::regenerateFunfact()` + `AiFunfactService`/`lib/puter.ts`, config provider di `Admin/Settings/Index.tsx` (tab AI) |
+| Kuota generate-ulang Selera Genre (admin) | `Admin/GenreFunfacts/Index.tsx` + `GenreFunfactController` |
+| Wishlist (series belum dikoleksi) | `User/Wishlist/Index.tsx` + `WishlistController` |
+| Profil publik (opt-in, bisa diakses tanpa login) + follow | `User/Profile/Show.tsx` (`PublicShell` untuk guest) + `ProfileController`, toggle di `Settings/Index.tsx` |
+| Direktori pengguna | `User/Directory/Index.tsx` + `ProfileController::directory()` |
+| Search gabungan AniList + RanobeDB (admin) | `Admin/Search/Index.tsx` + `ExternalSearchController` |
+| Reorder menu sidebar (drag & drop) | `Admin/Menus/Index.tsx` (`SortableMenuList.tsx`, `@dnd-kit`) + `AdminMenuController::reorder()`, preview di `Admin/Menus/UserSidebar.tsx` |
 
-**Belum dikerjakan (backlog):** Profil publik user + sistem follow + activity feed (gaya Steam) — lihat task list, sengaja ditunda.
+**Belum dikerjakan (backlog):**
+- Activity feed di profil publik (community hub, gaya Steam) — profil publik + follow sudah ada, activity feed-nya masih ditunda.
+- Badge/label selera genre ("Genre Explorer" vs "Genre Loyalist") berdasar distribusi genre koleksi — ditunda, numpang di data yang sama dengan fitur Selera Genre (word cloud + funfact AI).
 
 ---
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Collection;
 use App\Models\CollectionVolume;
 use App\Services\StorageSettingsService;
@@ -63,6 +64,7 @@ class CollectionController extends Controller
 
         $added = 0;
         $skipped = 0;
+        $createdIds = [];
 
         foreach ($request->series_ids as $seriesId) {
             if (in_array($seriesId, $existingIds)) {
@@ -70,7 +72,9 @@ class CollectionController extends Controller
 
                 continue;
             }
-            $user->collections()->create(['series_id' => $seriesId]);
+            $collection = $user->collections()->create(['series_id' => $seriesId]);
+            $createdIds[] = $collection->id;
+            $user->wishlistItems()->where('series_id', $seriesId)->delete();
             $added++;
         }
 
@@ -82,7 +86,28 @@ class CollectionController extends Controller
         $msg = "{$added} series berhasil ditambahkan ke koleksi."
             .($skipped > 0 ? " {$skipped} dilewati (sudah ada)." : '');
 
-        return redirect()->back()->with('success', $msg);
+        ActivityLog::record('collection.add', "{$user->name} menambahkan {$added} series ke koleksi.", $user);
+
+        return redirect()->back()->with([
+            'success' => $msg,
+            'undo_url' => route('collection.undo-store'),
+            'undo_payload' => ['collection_ids' => $createdIds],
+        ]);
+    }
+
+    public function undoStore(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'collection_ids' => ['required', 'array', 'min:1'],
+            'collection_ids.*' => ['uuid'],
+        ]);
+
+        $user = auth()->user();
+        $count = $user->collections()->whereIn('id', $request->collection_ids)->delete();
+
+        ActivityLog::record('collection.undo_add', "{$user->name} membatalkan penambahan {$count} series ke koleksi.", $user);
+
+        return redirect()->back()->with('success', "{$count} series dibatalkan penambahannya.");
     }
 
     public function show(Collection $collection): Response
@@ -99,6 +124,8 @@ class CollectionController extends Controller
                 'id' => $cv->id,
                 'volume_number' => $cv->volume_number,
                 'format' => $cv->format,
+                'ebook_source' => $cv->ebook_source,
+                'language' => $cv->language,
                 'read_at' => $cv->read_at?->toIso8601String(),
                 'active_loan' => $cv->activeLoans->first() ? [
                     'id' => $cv->activeLoans->first()->id,
@@ -138,10 +165,60 @@ class CollectionController extends Controller
     {
         $this->authorize('delete', $collection);
 
+        $payload = [
+            'series_id' => $collection->series_id,
+            'condition' => $collection->condition,
+            'personal_rating' => $collection->personal_rating,
+            'personal_review' => $collection->personal_review,
+            'volumes' => $collection->collectionVolumes()->get([
+                'volume_number', 'format', 'ebook_source', 'language', 'read_at',
+            ])->map->only(['volume_number', 'format', 'ebook_source', 'language', 'read_at'])->all(),
+        ];
+
+        $seriesTitle = $collection->series->title_romaji;
         $collection->delete();
 
-        return redirect()->route('collection.index')
-            ->with('success', 'Koleksi berhasil dihapus.');
+        ActivityLog::record('collection.remove', auth()->user()->name." menghapus \"{$seriesTitle}\" dari koleksi.", auth()->user());
+
+        return redirect()->route('collection.index')->with([
+            'success' => 'Koleksi berhasil dihapus.',
+            // Catatan: riwayat pinjaman (Loan) volume di koleksi ini tidak ikut dipulihkan oleh undo.
+            'undo_url' => route('collection.undo-destroy'),
+            'undo_payload' => $payload,
+        ]);
+    }
+
+    public function undoDestroy(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'series_id' => ['required', 'uuid', 'exists:series,id'],
+            'condition' => ['nullable', 'string'],
+            'personal_rating' => ['nullable', 'integer'],
+            'personal_review' => ['nullable', 'string'],
+            'volumes' => ['array'],
+        ]);
+
+        $user = auth()->user();
+
+        if ($user->collections()->where('series_id', $request->series_id)->exists()) {
+            return redirect()->back()->with('info', 'Series ini sudah ada lagi di koleksimu.');
+        }
+
+        // array_filter buang key yang nilainya null, supaya default kolom DB (mis. condition) tetap
+        // kepakai — kalau nggak, Eloquent akan insert NULL secara eksplisit dan melanggar NOT NULL.
+        $attributes = array_filter($request->only([
+            'series_id', 'condition', 'personal_rating', 'personal_review',
+        ]), fn ($value) => $value !== null);
+
+        $collection = $user->collections()->create($attributes);
+
+        foreach ($request->input('volumes', []) as $volume) {
+            $collection->collectionVolumes()->create(array_filter($volume, fn ($value) => $value !== null));
+        }
+
+        ActivityLog::record('collection.undo_remove', "{$user->name} memulihkan koleksi yang dihapus.", $user);
+
+        return redirect()->back()->with('success', 'Koleksi berhasil dipulihkan.');
     }
 
     public function updateCondition(Request $request, Collection $collection): RedirectResponse
@@ -154,6 +231,8 @@ class CollectionController extends Controller
 
         $collection->update(['condition' => $request->condition]);
 
+        ActivityLog::record('collection.update_condition', auth()->user()->name." mengubah kondisi koleksi \"{$collection->series->title_romaji}\" menjadi {$request->condition}.", auth()->user());
+
         return redirect()->back()->with('success', 'Kondisi koleksi berhasil diperbarui.');
     }
 
@@ -164,6 +243,8 @@ class CollectionController extends Controller
         $request->validate([
             'volumes' => ['required', 'string'],
             'format' => ['required', Rule::in(['physical', 'ebook', 'online', 'webtoon'])],
+            'ebook_source' => ['nullable', 'required_if:format,ebook', Rule::in(['bookwalker', 'amazon', 'local_epub'])],
+            'language' => ['nullable', Rule::in(['id', 'en', 'ja', 'other'])],
         ]);
 
         $numbers = collect(explode(',', $request->volumes))
@@ -207,6 +288,8 @@ class CollectionController extends Controller
             $collection->collectionVolumes()->create([
                 'volume_number' => $number,
                 'format' => $request->format,
+                'ebook_source' => $request->format === 'ebook' ? $request->ebook_source : null,
+                'language' => $request->language,
             ]);
             $created++;
         }
@@ -215,7 +298,71 @@ class CollectionController extends Controller
             ? "{$created} volume berhasil ditambahkan".($skipped > 0 ? ", {$skipped} dilewati (sudah ada)." : '.')
             : 'Semua volume yang diinput sudah ada di koleksimu.';
 
+        if ($created > 0) {
+            ActivityLog::record(
+                'collection.volumes.add',
+                auth()->user()->name." menambahkan {$created} volume ke \"{$collection->series->title_romaji}\".",
+                $collection,
+            );
+        }
+
         return redirect()->back()->with($created > 0 ? 'success' : 'info', $message);
+    }
+
+    public function updateVolumeFormat(Request $request, Collection $collection, CollectionVolume $collectionVolume): RedirectResponse
+    {
+        $this->authorize('update', $collection);
+
+        abort_if($collectionVolume->collection_id !== $collection->id, 403);
+
+        $request->validate([
+            'format' => ['required', Rule::in(['physical', 'ebook', 'online', 'webtoon'])],
+            'ebook_source' => ['nullable', 'required_if:format,ebook', Rule::in(['bookwalker', 'amazon', 'local_epub'])],
+            'language' => ['nullable', Rule::in(['id', 'en', 'ja', 'other'])],
+        ]);
+
+        $collectionVolume->update([
+            'format' => $request->format,
+            'ebook_source' => $request->format === 'ebook' ? $request->ebook_source : null,
+            'language' => $request->language,
+        ]);
+
+        ActivityLog::record(
+            'collection.volumes.update_format',
+            auth()->user()->name." mengubah format volume {$collectionVolume->volume_number} menjadi {$request->format}.",
+            $collectionVolume,
+        );
+
+        return redirect()->back()->with('success', "Format volume {$collectionVolume->volume_number} berhasil diperbarui.");
+    }
+
+    public function updateVolumesFormat(Request $request, Collection $collection): RedirectResponse
+    {
+        $this->authorize('update', $collection);
+
+        $request->validate([
+            'volume_ids' => ['required', 'array', 'min:1'],
+            'volume_ids.*' => ['uuid'],
+            'format' => ['required', Rule::in(['physical', 'ebook', 'online', 'webtoon'])],
+            'ebook_source' => ['nullable', 'required_if:format,ebook', Rule::in(['bookwalker', 'amazon', 'local_epub'])],
+            'language' => ['nullable', Rule::in(['id', 'en', 'ja', 'other'])],
+        ]);
+
+        $updated = $collection->collectionVolumes()
+            ->whereIn('id', $request->volume_ids)
+            ->update([
+                'format' => $request->format,
+                'ebook_source' => $request->format === 'ebook' ? $request->ebook_source : null,
+                'language' => $request->language,
+            ]);
+
+        ActivityLog::record(
+            'collection.volumes.bulk_update_format',
+            auth()->user()->name." mengubah format {$updated} volume menjadi {$request->format}.",
+            $collection,
+        );
+
+        return redirect()->back()->with('success', "{$updated} volume berhasil diubah formatnya.");
     }
 
     public function destroyVolume(Collection $collection, CollectionVolume $collectionVolume): RedirectResponse
@@ -224,9 +371,22 @@ class CollectionController extends Controller
 
         abort_if($collectionVolume->collection_id !== $collection->id, 403);
 
+        $payload = $collectionVolume->only(['volume_number', 'format', 'ebook_source', 'language', 'read_at']);
+        $volumeNumber = $collectionVolume->volume_number;
         $collectionVolume->delete();
 
-        return redirect()->back()->with('success', 'Volume berhasil dihapus dari koleksi.');
+        ActivityLog::record(
+            'collection.volumes.remove',
+            auth()->user()->name." menghapus volume {$volumeNumber} dari \"{$collection->series->title_romaji}\".",
+            $collection,
+        );
+
+        return redirect()->back()->with([
+            'success' => 'Volume berhasil dihapus dari koleksi.',
+            // Catatan: riwayat pinjaman (Loan) volume ini tidak ikut dipulihkan oleh undo.
+            'undo_url' => route('collection.volumes.restore', $collection->id),
+            'undo_payload' => ['volumes' => [$payload]],
+        ]);
     }
 
     public function destroyVolumes(Request $request, Collection $collection): RedirectResponse
@@ -238,11 +398,56 @@ class CollectionController extends Controller
             'volume_ids.*' => ['uuid'],
         ]);
 
+        $volumes = $collection->collectionVolumes()
+            ->whereIn('id', $request->volume_ids)
+            ->get(['volume_number', 'format', 'ebook_source', 'language', 'read_at'])
+            ->map->only(['volume_number', 'format', 'ebook_source', 'language', 'read_at'])
+            ->all();
+
         $deleted = $collection->collectionVolumes()
             ->whereIn('id', $request->volume_ids)
             ->delete();
 
-        return redirect()->back()->with('success', "{$deleted} volume berhasil dihapus dari koleksi.");
+        ActivityLog::record(
+            'collection.volumes.bulk_remove',
+            auth()->user()->name." menghapus {$deleted} volume dari \"{$collection->series->title_romaji}\".",
+            $collection,
+        );
+
+        return redirect()->back()->with([
+            'success' => "{$deleted} volume berhasil dihapus dari koleksi.",
+            // Catatan: riwayat pinjaman (Loan) volume-volume ini tidak ikut dipulihkan oleh undo.
+            'undo_url' => route('collection.volumes.restore', $collection->id),
+            'undo_payload' => ['volumes' => $volumes],
+        ]);
+    }
+
+    public function restoreVolumes(Request $request, Collection $collection): RedirectResponse
+    {
+        $this->authorize('update', $collection);
+
+        $request->validate([
+            'volumes' => ['required', 'array', 'min:1'],
+        ]);
+
+        $existing = $collection->collectionVolumes()->pluck('volume_number')->all();
+        $restored = 0;
+
+        foreach ($request->volumes as $volume) {
+            if (in_array($volume['volume_number'], $existing, true)) {
+                continue;
+            }
+            $collection->collectionVolumes()->create(array_filter($volume, fn ($value) => $value !== null));
+            $restored++;
+        }
+
+        ActivityLog::record(
+            'collection.volumes.undo_remove',
+            auth()->user()->name." memulihkan {$restored} volume di \"{$collection->series->title_romaji}\".",
+            $collection,
+        );
+
+        return redirect()->back()->with('success', "{$restored} volume berhasil dipulihkan.");
     }
 
     public function toggleVolumeRead(Collection $collection, CollectionVolume $collectionVolume): RedirectResponse
@@ -256,6 +461,12 @@ class CollectionController extends Controller
         $collectionVolume->update([
             'read_at' => $nowRead ? now() : null,
         ]);
+
+        ActivityLog::record(
+            'collection.volumes.toggle_read',
+            auth()->user()->name.' menandai volume '.$collectionVolume->volume_number.($nowRead ? ' sudah dibaca.' : ' belum dibaca.'),
+            $collectionVolume,
+        );
 
         return redirect()->back()->with([
             'success' => $nowRead
@@ -280,6 +491,12 @@ class CollectionController extends Controller
 
         $collection->collectionVolumes()->whereIn('id', $volumeIds)->update(['read_at' => now()]);
 
+        ActivityLog::record(
+            'collection.volumes.mark_all_read',
+            auth()->user()->name." menandai {$volumeIds->count()} volume di \"{$collection->series->title_romaji}\" sudah dibaca.",
+            $collection,
+        );
+
         return redirect()->back()->with([
             'success' => "{$volumeIds->count()} volume ditandai sudah dibaca.",
             'undo_url' => route('collection.volumes.unmarkRead', $collection->id),
@@ -300,6 +517,8 @@ class CollectionController extends Controller
             ->whereIn('id', $request->volume_ids)
             ->update(['read_at' => null]);
 
+        ActivityLog::record('collection.volumes.undo_mark_read', auth()->user()->name.' membatalkan tanda baca volume.', $collection);
+
         return redirect()->back()->with('success', 'Perubahan dibatalkan.');
     }
 
@@ -316,6 +535,12 @@ class CollectionController extends Controller
             'personal_rating' => $request->personal_rating,
             'personal_review' => $request->personal_review,
         ]);
+
+        ActivityLog::record(
+            'collection.update_review',
+            auth()->user()->name." memperbarui review/rating untuk \"{$collection->series->title_romaji}\".",
+            $collection,
+        );
 
         return redirect()->back()->with('success', 'Review berhasil disimpan.');
     }

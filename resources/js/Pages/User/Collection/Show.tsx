@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useTranslation } from 'react-i18next';
 import {
-    BookMarked, BookOpen, Check, Eye, EyeOff, LayoutGrid, List, Plus, RotateCcw, Trash2, X,
+    BookMarked, BookOpen, Check, Eye, EyeOff, LayoutGrid, List, Plus, RotateCcw, Trash2, Wand2, X,
 } from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -23,6 +24,9 @@ import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/Components/ui/select';
 import {
+    Popover, PopoverContent, PopoverHeader, PopoverTitle, PopoverTrigger,
+} from '@/Components/ui/popover';
+import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/Components/ui/table';
 import {
@@ -32,23 +36,10 @@ import { cn } from '@/lib/utils';
 import { PageProps } from '@/types';
 import {
     type SeriesStatus, type SeriesType, type CollectionVolumeFormat, type CollectionCondition,
+    type EbookSource, type VolumeLanguage,
 } from '@/lib/types';
 
 const VOLUME_VIEW_KEY = 'malas.collection.volumes.view';
-
-const CONDITION_LABELS: Record<CollectionCondition, string> = {
-    mint: 'Mint',
-    good: 'Bagus',
-    fair: 'Cukup',
-    poor: 'Buruk',
-};
-
-const FORMAT_LABELS: Record<string, string> = {
-    physical: 'Fisik',
-    ebook: 'Ebook',
-    online: 'Online',
-    webtoon: 'Webtoon',
-};
 
 interface ActiveLoan {
     id: string;
@@ -62,6 +53,8 @@ interface VolumeRow {
     id: string;
     volume_number: number;
     format: CollectionVolumeFormat;
+    ebook_source: EbookSource | null;
+    language: VolumeLanguage | null;
     read_at: string | null;
     active_loan: ActiveLoan | null;
 }
@@ -95,23 +88,38 @@ interface Props extends PageProps {
     last_read_volume: number | null;
 }
 
-const RATING_LABELS: { min: number; label: string; className: string }[] = [
-    { min: 5, label: 'Direkomendasikan', className: 'text-green-600 dark:text-green-400' },
-    { min: 1, label: 'Cukup Bagus', className: 'text-lime-600 dark:text-lime-400' },
-    { min: 0, label: 'Netral', className: 'text-muted-foreground' },
-    { min: -4, label: 'Kurang', className: 'text-orange-600 dark:text-orange-400' },
-    { min: -10, label: 'Tidak Direkomendasikan', className: 'text-destructive' },
-];
-
-function ratingLabel(value: number) {
-    return RATING_LABELS.find((r) => value >= r.min) ?? RATING_LABELS[RATING_LABELS.length - 1];
+function useRatingLabel() {
+    const { t } = useTranslation('collection');
+    const ratingTiers: { min: number; label: string; className: string }[] = [
+        { min: 5, label: t('show.review.labels.recommended'), className: 'text-green-600 dark:text-green-400' },
+        { min: 1, label: t('show.review.labels.prettyGood'), className: 'text-lime-600 dark:text-lime-400' },
+        { min: 0, label: t('show.review.labels.neutral'), className: 'text-muted-foreground' },
+        { min: -4, label: t('show.review.labels.lacking'), className: 'text-orange-600 dark:text-orange-400' },
+        { min: -10, label: t('show.review.labels.notRecommended'), className: 'text-destructive' },
+    ];
+    return (value: number) => ratingTiers.find((r) => value >= r.min) ?? ratingTiers[ratingTiers.length - 1];
 }
 
 const addVolumeSchema = z.object({
     volumes: z.string().min(1, 'Wajib diisi'),
     format:  z.enum(['physical', 'ebook', 'online', 'webtoon']),
+    ebook_source: z.enum(['bookwalker', 'amazon', 'local_epub']).optional(),
+    language: z.enum(['id', 'en', 'ja', 'other']).optional(),
+}).refine((data) => data.format !== 'ebook' || !!data.ebook_source, {
+    message: 'Pilih sumber ebook',
+    path: ['ebook_source'],
 });
 type AddVolumeValues = z.infer<typeof addVolumeSchema>;
+
+const formatUpdateSchema = z.object({
+    format: z.enum(['physical', 'ebook', 'online', 'webtoon']),
+    ebook_source: z.enum(['bookwalker', 'amazon', 'local_epub']).optional(),
+    language: z.enum(['id', 'en', 'ja', 'other']).optional(),
+}).refine((data) => data.format !== 'ebook' || !!data.ebook_source, {
+    message: 'Pilih sumber ebook',
+    path: ['ebook_source'],
+});
+type FormatUpdateValues = z.infer<typeof formatUpdateSchema>;
 
 const loanSchema = z.object({
     borrower_name: z.string().min(1, 'Wajib diisi'),
@@ -126,7 +134,178 @@ function FieldError({ message }: { message?: string }) {
     return <p className="text-xs text-destructive">{message}</p>;
 }
 
+function useFormatLabels(): Record<string, string> {
+    const { t } = useTranslation();
+    return {
+        physical: t('common:badge.format.physical'),
+        ebook: t('common:badge.format.ebook'),
+        online: t('common:badge.format.online'),
+        webtoon: t('common:badge.format.webtoon'),
+    };
+}
+
+function useEbookSourceLabels(): Record<EbookSource, string> {
+    const { t } = useTranslation('collection');
+    return {
+        bookwalker: t('show.ebookSource.bookwalker'),
+        amazon: t('show.ebookSource.amazon'),
+        local_epub: t('show.ebookSource.local_epub'),
+    };
+}
+
+function useLanguageLabels(): Record<VolumeLanguage, string> {
+    const { t } = useTranslation('collection');
+    return {
+        id: t('show.language.id'),
+        en: t('show.language.en'),
+        ja: t('show.language.ja'),
+        other: t('show.language.other'),
+    };
+}
+
+function useConditionLabels(): Record<CollectionCondition, string> {
+    const { t } = useTranslation('collection');
+    return {
+        mint: t('show.condition.mint'),
+        good: t('show.condition.good'),
+        fair: t('show.condition.fair'),
+        poor: t('show.condition.poor'),
+    };
+}
+
+function VolumeFormatSwitcher({ collectionId, volume }: { collectionId: string; volume: VolumeRow }) {
+    const { t } = useTranslation('collection');
+    const formatLabels = useFormatLabels();
+    const ebookSourceLabels = useEbookSourceLabels();
+    const languageLabels = useLanguageLabels();
+    const [open, setOpen] = useState(false);
+    const [saving, setSaving] = useState(false);
+
+    const {
+        control, handleSubmit, reset, watch,
+        formState: { errors },
+    } = useForm<FormatUpdateValues>({
+        resolver: zodResolver(formatUpdateSchema),
+        defaultValues: {
+            format: volume.format,
+            ebook_source: volume.ebook_source ?? undefined,
+            language: volume.language ?? undefined,
+        },
+    });
+
+    useEffect(() => {
+        if (open) {
+            reset({
+                format: volume.format,
+                ebook_source: volume.ebook_source ?? undefined,
+                language: volume.language ?? undefined,
+            });
+        }
+    }, [open, volume, reset]);
+
+    const currentFormat = watch('format');
+
+    function onSave(values: FormatUpdateValues) {
+        setSaving(true);
+        router.patch(
+            route('collection.volumes.updateFormat', { collection: collectionId, collectionVolume: volume.id }),
+            values,
+            { preserveScroll: true, onSuccess: () => setOpen(false), onFinish: () => setSaving(false) },
+        );
+    }
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger render={<button type="button" />}>
+                <VolumeFormatBadge format={volume.format} />
+            </PopoverTrigger>
+            <PopoverContent className="w-64" align="start" onClick={(e) => e.stopPropagation()}>
+                <PopoverHeader>
+                    <PopoverTitle>{t('show.formatSwitcher.title', { number: volume.volume_number })}</PopoverTitle>
+                </PopoverHeader>
+                <form onSubmit={handleSubmit(onSave)} className="space-y-3">
+                    <div className="space-y-1.5">
+                        <Label className="text-xs">{t('show.addVolumeDialog.format')}</Label>
+                        <Controller<FormatUpdateValues, 'format'>
+                            control={control}
+                            name="format"
+                            render={({ field }) => (
+                                <Select value={field.value} onValueChange={field.onChange}>
+                                    <SelectTrigger className="h-8 w-full text-xs">
+                                        <SelectValue>{(value: string) => formatLabels[value] ?? value}</SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="physical">{t('common:badge.format.physical')}</SelectItem>
+                                        <SelectItem value="ebook">{t('common:badge.format.ebook')}</SelectItem>
+                                        <SelectItem value="online">{t('common:badge.format.online')}</SelectItem>
+                                        <SelectItem value="webtoon">{t('common:badge.format.webtoon')}</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                    </div>
+                    {currentFormat === 'ebook' && (
+                        <div className="space-y-1.5">
+                            <Label className="text-xs">{t('show.addVolumeDialog.ebookSource')}</Label>
+                            <Controller<FormatUpdateValues, 'ebook_source'>
+                                control={control}
+                                name="ebook_source"
+                                render={({ field }) => (
+                                    <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                                        <SelectTrigger className="h-8 w-full text-xs">
+                                            <SelectValue placeholder={t('show.addVolumeDialog.selectSource')}>
+                                                {(value: string) => ebookSourceLabels[value as EbookSource] ?? t('show.addVolumeDialog.selectSource')}
+                                            </SelectValue>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="bookwalker">{t('show.ebookSource.bookwalker')}</SelectItem>
+                                            <SelectItem value="amazon">{t('show.ebookSource.amazon')}</SelectItem>
+                                            <SelectItem value="local_epub">{t('show.ebookSource.local_epub')}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
+                            <FieldError message={errors.ebook_source?.message} />
+                        </div>
+                    )}
+                    <div className="space-y-1.5">
+                        <Label className="text-xs">{t('show.addVolumeDialog.language')}</Label>
+                        <Controller<FormatUpdateValues, 'language'>
+                            control={control}
+                            name="language"
+                            render={({ field }) => (
+                                <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                                    <SelectTrigger className="h-8 w-full text-xs">
+                                        <SelectValue placeholder={t('show.addVolumeDialog.language')}>
+                                            {(value: string) => languageLabels[value as VolumeLanguage] ?? t('show.addVolumeDialog.language')}
+                                        </SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="id">{t('show.language.id')}</SelectItem>
+                                        <SelectItem value="en">{t('show.language.en')}</SelectItem>
+                                        <SelectItem value="ja">{t('show.language.ja')}</SelectItem>
+                                        <SelectItem value="other">{t('show.language.other')}</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                    </div>
+                    <Button type="submit" size="sm" className="w-full" disabled={saving}>
+                        {saving ? t('show.formatSwitcher.saving') : t('show.formatSwitcher.save')}
+                    </Button>
+                </form>
+            </PopoverContent>
+        </Popover>
+    );
+}
+
 export default function CollectionShow({ collection, series, volumes, last_read_volume }: Props) {
+    const { t } = useTranslation('collection');
+    const formatLabels = useFormatLabels();
+    const ebookSourceLabels = useEbookSourceLabels();
+    const languageLabels = useLanguageLabels();
+    const conditionLabels = useConditionLabels();
+    const ratingLabel = useRatingLabel();
     const [addVolumeOpen, setAddVolumeOpen]   = useState(false);
     const [loanTarget, setLoanTarget]         = useState<VolumeRow | null>(null);
     const [deleteVolume, setDeleteVolume]     = useState<VolumeRow | null>(null);
@@ -140,6 +319,9 @@ export default function CollectionShow({ collection, series, volumes, last_read_
     const [selectedIds, setSelectedIds]       = useState<Set<string>>(new Set());
     const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
     const [bulkDeleting, setBulkDeleting]     = useState(false);
+    const [formatFilter, setFormatFilter]     = useState('');
+    const [bulkFormatOpen, setBulkFormatOpen] = useState(false);
+    const [bulkFormatSaving, setBulkFormatSaving] = useState(false);
     const [togglingReadId, setTogglingReadId] = useState<string | null>(null);
     const [markingAllRead, setMarkingAllRead]  = useState(false);
     const [volumeView, setVolumeView]         = useState<'grid' | 'table'>(() => {
@@ -204,12 +386,14 @@ export default function CollectionShow({ collection, series, volumes, last_read_
     // Add volume form
     const {
         register: avReg, control: avCtrl, handleSubmit: avSubmit,
-        setError: avSetError, reset: avReset,
+        setError: avSetError, reset: avReset, watch: avWatch,
         formState: { errors: avErrors },
     } = useForm<AddVolumeValues>({
         resolver: zodResolver(addVolumeSchema),
         defaultValues: { format: 'physical' },
     });
+
+    const avFormat = avWatch('format');
 
     // Loan form
     const {
@@ -219,6 +403,29 @@ export default function CollectionShow({ collection, series, volumes, last_read_
         resolver: zodResolver(loanSchema),
         defaultValues: { loaned_at: today },
     });
+
+    // Bulk format-change form
+    const {
+        control: bfCtrl, handleSubmit: bfSubmit, reset: bfReset, watch: bfWatch,
+        formState: { errors: bfErrors },
+    } = useForm<FormatUpdateValues>({
+        resolver: zodResolver(formatUpdateSchema),
+        defaultValues: { format: 'physical' },
+    });
+    const bfFormat = bfWatch('format');
+
+    function onBulkFormatSave(values: FormatUpdateValues) {
+        setBulkFormatSaving(true);
+        router.patch(
+            route('collection.volumes.updateFormatBulk', collection.id),
+            { ...values, volume_ids: Array.from(selectedIds) },
+            {
+                preserveScroll: true,
+                onSuccess: () => { setBulkFormatOpen(false); setSelectedIds(new Set()); },
+                onFinish: () => setBulkFormatSaving(false),
+            },
+        );
+    }
 
     function onAddVolume(values: AddVolumeValues) {
         setAddingVolume(true);
@@ -292,6 +499,7 @@ export default function CollectionShow({ collection, series, volumes, last_read_
     }
 
     const ownedCount = volumes.length;
+    const filteredVolumes = formatFilter ? volumes.filter((v) => v.format === formatFilter) : volumes;
 
     return (
         <UserLayout
@@ -299,7 +507,7 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                 <PageHeader
                     title={series.title_romaji}
                     breadcrumbs={[
-                        { label: 'Koleksiku', href: route('collection.index') },
+                        { label: t('index.title'), href: route('collection.index') },
                         { label: series.title_romaji },
                     ]}
                     actions={
@@ -308,11 +516,11 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                                 href={route('catalog.show', series.id)}
                                 className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
                             >
-                                Lihat Katalog
+                                {t('show.viewCatalog')}
                             </Link>
                             <Button variant="destructive" size="sm" onClick={() => setDeleteOpen(true)}>
                                 <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                                Hapus Koleksi
+                                {t('show.deleteCollection')}
                             </Button>
                         </div>
                     }
@@ -348,20 +556,20 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                             {series.genres.map((g) => (
                                 <Badge key={g} variant="outline">{g}</Badge>
                             ))}
-                            {series.themes.map((t) => (
-                                <Badge key={t} variant="outline" className="text-muted-foreground">{t}</Badge>
+                            {series.themes.map((theme) => (
+                                <Badge key={theme} variant="outline" className="text-muted-foreground">{theme}</Badge>
                             ))}
                         </div>
                     )}
                     <div className="text-sm">
-                        <p className="text-xs text-muted-foreground">Progress</p>
+                        <p className="text-xs text-muted-foreground">{t('show.progress')}</p>
                         <p className="font-medium">
-                            {ownedCount}{series.total_volumes ? `/${series.total_volumes}` : ''} volume dimiliki
+                            {ownedCount}{series.total_volumes ? `/${series.total_volumes}` : ''} {t('show.volumesOwned')}
                         </p>
                         {last_read_volume !== null && (
                             <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
                                 <Eye className="h-3 w-3" />
-                                Terakhir dibaca: Vol. {last_read_volume}
+                                {t('show.lastRead', { number: last_read_volume })}
                             </p>
                         )}
                         {series.total_volumes && series.total_volumes > 0 && (
@@ -374,7 +582,7 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                         )}
                     </div>
                     <div className="flex items-center gap-2 text-sm">
-                        <span className="text-xs text-muted-foreground">Kondisi (opsional)</span>
+                        <span className="text-xs text-muted-foreground">{t('show.conditionOptional')}</span>
                         <Select
                             value={collection.condition}
                             onValueChange={handleConditionChange}
@@ -382,12 +590,12 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                         >
                             <SelectTrigger className="h-7 w-28 text-xs">
                                 <SelectValue>
-                                    {(value: CollectionCondition) => CONDITION_LABELS[value]}
+                                    {(value: CollectionCondition) => conditionLabels[value]}
                                 </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
-                                {(Object.keys(CONDITION_LABELS) as CollectionCondition[]).map((c) => (
-                                    <SelectItem key={c} value={c}>{CONDITION_LABELS[c]}</SelectItem>
+                                {(Object.keys(conditionLabels) as CollectionCondition[]).map((c) => (
+                                    <SelectItem key={c} value={c}>{conditionLabels[c]}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -407,21 +615,41 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                                 className="h-7 w-7 text-muted-foreground hover:text-foreground"
                                 disabled={markingAllRead}
                                 onClick={handleMarkAllRead}
-                                aria-label="Tandai semua volume sudah dibaca"
-                                title="Tandai semua volume sudah dibaca"
+                                aria-label={t('show.markAllRead')}
+                                title={t('show.markAllRead')}
                             >
                                 <Eye className="h-4 w-4" />
                             </Button>
                         )}
-                        <h2 className="text-base font-semibold">Volume yang Dimiliki ({ownedCount})</h2>
+                        <h2 className="text-base font-semibold">{t('show.volumesOwnedHeading', { count: ownedCount })}</h2>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                         {selectMode && selectedIds.size > 0 && (
-                            <Button size="sm" variant="destructive" onClick={() => setBulkDeleteOpen(true)}>
-                                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                                Hapus ({selectedIds.size})
-                            </Button>
+                            <>
+                                <Button size="sm" variant="outline" onClick={() => { bfReset({ format: 'physical' }); setBulkFormatOpen(true); }}>
+                                    <Wand2 className="mr-1.5 h-3.5 w-3.5" />
+                                    {t('show.changeFormat', { count: selectedIds.size })}
+                                </Button>
+                                <Button size="sm" variant="destructive" onClick={() => setBulkDeleteOpen(true)}>
+                                    <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                                    {t('show.deleteCount', { count: selectedIds.size })}
+                                </Button>
+                            </>
                         )}
+                        <Select value={formatFilter} onValueChange={(v) => setFormatFilter(v ?? '')}>
+                            <SelectTrigger className="h-8 w-32 text-xs">
+                                <SelectValue placeholder={t('show.allFormat')}>
+                                    {(value: string) => formatLabels[value] ?? t('show.allFormat')}
+                                </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="">{t('show.allFormat')}</SelectItem>
+                                <SelectItem value="physical">{t('common:badge.format.physical')}</SelectItem>
+                                <SelectItem value="ebook">{t('common:badge.format.ebook')}</SelectItem>
+                                <SelectItem value="online">{t('common:badge.format.online')}</SelectItem>
+                                <SelectItem value="webtoon">{t('common:badge.format.webtoon')}</SelectItem>
+                            </SelectContent>
+                        </Select>
                         <Button
                             type="button"
                             size="sm"
@@ -431,12 +659,12 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                             {selectMode ? (
                                 <>
                                     <X className="mr-1.5 h-3.5 w-3.5" />
-                                    Selesai
+                                    {t('show.done')}
                                 </>
                             ) : (
                                 <>
                                     <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                                    Hapus
+                                    {t('show.delete')}
                                 </>
                             )}
                         </Button>
@@ -447,7 +675,7 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                                 size="icon"
                                 className="h-7 w-7"
                                 onClick={() => handleVolumeViewChange('grid')}
-                                aria-label="Tampilan grid"
+                                aria-label={t('show.gridView')}
                             >
                                 <LayoutGrid className="h-3.5 w-3.5" />
                             </Button>
@@ -457,33 +685,37 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                                 size="icon"
                                 className="h-7 w-7"
                                 onClick={() => handleVolumeViewChange('table')}
-                                aria-label="Tampilan tabel"
+                                aria-label={t('show.tableView')}
                             >
                                 <List className="h-3.5 w-3.5" />
                             </Button>
                         </div>
                         <Button size="sm" onClick={() => setAddVolumeOpen(true)}>
                             <Plus className="mr-1.5 h-3.5 w-3.5" />
-                            Tambah Volume
+                            {t('show.addVolume')}
                         </Button>
                     </div>
                 </div>
 
                 {volumes.length === 0 ? (
                     <EmptyState
-                        title="Belum ada volume"
-                        description="Tambahkan volume yang kamu miliki, misalnya: 1,2,3,5"
+                        title={t('show.empty.title')}
+                        description={t('show.empty.description')}
                         icon={BookOpen}
                         action={
                             <Button size="sm" onClick={() => setAddVolumeOpen(true)}>
                                 <Plus className="mr-1.5 h-4 w-4" />
-                                Tambah Volume
+                                {t('show.addVolume')}
                             </Button>
                         }
                     />
+                ) : filteredVolumes.length === 0 ? (
+                    <p className="py-12 text-center text-sm text-muted-foreground">
+                        {t('show.noneForFormat')}
+                    </p>
                 ) : volumeView === 'grid' ? (
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                        {volumes.map((v) => (
+                        {filteredVolumes.map((v) => (
                             <div
                                 key={v.id}
                                 className={cn(
@@ -504,7 +736,7 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                                         <Checkbox
                                             checked={selectedIds.has(v.id)}
                                             className="pointer-events-none absolute left-1.5 top-1.5 bg-background"
-                                            aria-label={`Pilih volume ${v.volume_number}`}
+                                            aria-label={t('show.selectVolume', { number: v.volume_number })}
                                         />
                                     ) : (
                                         <button
@@ -512,20 +744,20 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                                             disabled={togglingReadId === v.id}
                                             onClick={() => toggleRead(v.id)}
                                             className="absolute left-1.5 top-1.5 rounded-md bg-background/80 p-1 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
-                                            aria-label={v.read_at ? `Tandai volume ${v.volume_number} belum dibaca` : `Tandai volume ${v.volume_number} sudah dibaca`}
+                                            aria-label={v.read_at ? t('show.markUnread', { number: v.volume_number }) : t('show.markRead', { number: v.volume_number })}
                                         >
                                             {v.read_at ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
                                         </button>
                                     )}
                                     <div className="text-center">
                                         <p className="text-2xl font-bold text-muted-foreground/40">{v.volume_number}</p>
-                                        <p className="text-xs text-muted-foreground/40">Vol.</p>
+                                        <p className="text-xs text-muted-foreground/40">{t('show.volumeShort')}</p>
                                     </div>
                                 </div>
 
                                 <div className="flex flex-col gap-1.5 p-2">
                                     <div className="flex items-center justify-between">
-                                        <p className="text-xs font-medium">Vol. {v.volume_number}</p>
+                                        <p className="text-xs font-medium">{t('show.volumeLabel', { number: v.volume_number })}</p>
                                         <Button
                                             type="button"
                                             variant="ghost"
@@ -537,7 +769,7 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                                         </Button>
                                     </div>
 
-                                    <VolumeFormatBadge format={v.format} />
+                                    <VolumeFormatSwitcher collectionId={collection.id} volume={v} />
 
                                     {v.active_loan ? (
                                         <div className="space-y-1">
@@ -550,7 +782,7 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                                                         : 'border-yellow-500 text-yellow-600 dark:text-yellow-400',
                                                 )}
                                             >
-                                                {v.active_loan.is_overdue ? 'Terlambat' : 'Dipinjam'}
+                                                {v.active_loan.is_overdue ? t('show.loanStatus.overdue') : t('show.loanStatus.onLoan')}
                                             </Badge>
                                             <p className="truncate text-xs text-muted-foreground">{v.active_loan.borrower_name}</p>
                                             <button
@@ -560,7 +792,7 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                                                 onClick={() => markReturned(v.active_loan!.id)}
                                             >
                                                 <RotateCcw className="h-3 w-3" />
-                                                {returningId === v.active_loan.id ? 'Menyimpan...' : 'Tandai kembali'}
+                                                {returningId === v.active_loan.id ? t('show.returning') : t('show.markReturned')}
                                             </button>
                                         </div>
                                     ) : (
@@ -570,7 +802,7 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                                             onClick={() => setLoanTarget(v)}
                                         >
                                             <BookMarked className="h-3 w-3" />
-                                            Pinjamkan
+                                            {t('show.lendOut')}
                                         </button>
                                     )}
                                 </div>
@@ -583,14 +815,14 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                             <TableHeader>
                                 <TableRow>
                                     <TableHead className="w-10" />
-                                    <TableHead className="w-20">Volume</TableHead>
-                                    <TableHead>Format</TableHead>
-                                    <TableHead>Status Pinjaman</TableHead>
+                                    <TableHead className="w-20">{t('show.columnVolume')}</TableHead>
+                                    <TableHead>{t('show.columnFormat')}</TableHead>
+                                    <TableHead>{t('show.columnLoanStatus')}</TableHead>
                                     <TableHead className="w-12" />
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {volumes.map((v) => (
+                                {filteredVolumes.map((v) => (
                                     <TableRow
                                         key={v.id}
                                         className={cn(
@@ -605,7 +837,7 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                                                 <Checkbox
                                                     checked={selectedIds.has(v.id)}
                                                     onCheckedChange={() => toggleVolumeSelect(v.id)}
-                                                    aria-label={`Pilih volume ${v.volume_number}`}
+                                                    aria-label={t('show.selectVolume', { number: v.volume_number })}
                                                 />
                                             ) : (
                                                 <button
@@ -613,14 +845,16 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                                                     disabled={togglingReadId === v.id}
                                                     onClick={() => toggleRead(v.id)}
                                                     className="text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
-                                                    aria-label={v.read_at ? `Tandai volume ${v.volume_number} belum dibaca` : `Tandai volume ${v.volume_number} sudah dibaca`}
+                                                    aria-label={v.read_at ? t('show.markUnread', { number: v.volume_number }) : t('show.markRead', { number: v.volume_number })}
                                                 >
                                                     {v.read_at ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                                                 </button>
                                             )}
                                         </TableCell>
-                                        <TableCell className="font-medium">Vol. {v.volume_number}</TableCell>
-                                        <TableCell><VolumeFormatBadge format={v.format} /></TableCell>
+                                        <TableCell className="font-medium">{t('show.volumeLabel', { number: v.volume_number })}</TableCell>
+                                        <TableCell onClick={(e) => e.stopPropagation()}>
+                                            <VolumeFormatSwitcher collectionId={collection.id} volume={v} />
+                                        </TableCell>
                                         <TableCell onClick={(e) => e.stopPropagation()}>
                                             {v.active_loan ? (
                                                 <div className="flex items-center gap-2">
@@ -633,7 +867,7 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                                                                 : 'border-yellow-500 text-yellow-600 dark:text-yellow-400',
                                                         )}
                                                     >
-                                                        {v.active_loan.is_overdue ? 'Terlambat' : 'Dipinjam'}
+                                                        {v.active_loan.is_overdue ? t('show.loanStatus.overdue') : t('show.loanStatus.onLoan')}
                                                     </Badge>
                                                     <span className="text-xs text-muted-foreground">{v.active_loan.borrower_name}</span>
                                                     <button
@@ -643,7 +877,7 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                                                         onClick={() => markReturned(v.active_loan!.id)}
                                                     >
                                                         <RotateCcw className="h-3 w-3" />
-                                                        Kembali
+                                                        {t('show.returnShort')}
                                                     </button>
                                                 </div>
                                             ) : (
@@ -653,7 +887,7 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                                                     onClick={() => setLoanTarget(v)}
                                                 >
                                                     <BookMarked className="h-3 w-3" />
-                                                    Pinjamkan
+                                                    {t('show.lendOut')}
                                                 </button>
                                             )}
                                         </TableCell>
@@ -680,12 +914,12 @@ export default function CollectionShow({ collection, series, volumes, last_read_
             <div className="mt-8">
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Review & Rating Pribadi</CardTitle>
+                        <CardTitle className="text-base">{t('show.review.title')}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-5">
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <Label>Rating</Label>
+                                <Label>{t('show.review.rating')}</Label>
                                 <span className={cn('text-sm font-semibold', ratingLabel(rating).className)}>
                                     {rating > 0 ? `+${rating}` : rating} · {ratingLabel(rating).label}
                                 </span>
@@ -698,23 +932,23 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                                 onValueChange={(v) => setRating(Array.isArray(v) ? v[0] : v)}
                             />
                             <div className="flex justify-between text-xs text-muted-foreground">
-                                <span>-10 Tidak Direkomendasikan</span>
-                                <span>10 Direkomendasikan</span>
+                                <span>-10 {t('show.review.notRecommended')}</span>
+                                <span>10 {t('show.review.recommended')}</span>
                             </div>
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor="personal_review">Komentar</Label>
+                            <Label htmlFor="personal_review">{t('show.review.comment')}</Label>
                             <Textarea
                                 id="personal_review"
                                 rows={4}
-                                placeholder="Menurutmu gimana series ini?"
+                                placeholder={t('show.review.commentPlaceholder')}
                                 value={reviewText}
                                 onChange={(e) => setReviewText(e.target.value)}
                             />
                         </div>
                         <Button size="sm" disabled={savingReview} onClick={handleSaveReview}>
                             <Check className="mr-1.5 h-3.5 w-3.5" />
-                            {savingReview ? 'Menyimpan...' : 'Simpan Review'}
+                            {savingReview ? t('show.review.saving') : t('show.review.save')}
                         </Button>
                     </CardContent>
                 </Card>
@@ -724,14 +958,14 @@ export default function CollectionShow({ collection, series, volumes, last_read_
             <Dialog open={addVolumeOpen} onOpenChange={(open) => { setAddVolumeOpen(open); if (!open) avReset({ format: 'physical' }); }}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Tambah Volume</DialogTitle>
+                        <DialogTitle>{t('show.addVolumeDialog.title')}</DialogTitle>
                         <DialogDescription>
-                            Pisahkan dengan koma. Gunakan tanda hubung untuk range. Contoh: <strong>1,2,3,5-9,11,12,15-18</strong>
+                            {t('show.addVolumeDialog.descriptionPrefix')} <strong>1,2,3,5-9,11,12,15-18</strong>
                         </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={avSubmit(onAddVolume)} className="space-y-4">
                         <div className="space-y-1.5">
-                            <Label htmlFor="volumes">Nomor Volume <span className="text-destructive">*</span></Label>
+                            <Label htmlFor="volumes">{t('show.addVolumeDialog.volumeNumber')} <span className="text-destructive">*</span></Label>
                             <Input
                                 id="volumes"
                                 placeholder="1,2,3,5-9,11,12"
@@ -740,7 +974,7 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                             <FieldError message={avErrors.volumes?.message} />
                         </div>
                         <div className="space-y-1.5">
-                            <Label>Format <span className="text-destructive">*</span></Label>
+                            <Label>{t('show.addVolumeDialog.format')} <span className="text-destructive">*</span></Label>
                             <Controller<AddVolumeValues, 'format'>
                                 control={avCtrl}
                                 name="format"
@@ -748,24 +982,70 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                                     <Select value={field.value} onValueChange={field.onChange}>
                                         <SelectTrigger>
                                             <SelectValue>
-                                                {(value: string) => FORMAT_LABELS[value] ?? value}
+                                                {(value: string) => formatLabels[value] ?? value}
                                             </SelectValue>
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="physical">Fisik</SelectItem>
-                                            <SelectItem value="ebook">Ebook</SelectItem>
-                                            <SelectItem value="online">Online</SelectItem>
-                                            <SelectItem value="webtoon">Webtoon</SelectItem>
+                                            <SelectItem value="physical">{t('common:badge.format.physical')}</SelectItem>
+                                            <SelectItem value="ebook">{t('common:badge.format.ebook')}</SelectItem>
+                                            <SelectItem value="online">{t('common:badge.format.online')}</SelectItem>
+                                            <SelectItem value="webtoon">{t('common:badge.format.webtoon')}</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 )}
                             />
                             <FieldError message={avErrors.format?.message} />
                         </div>
+                        {avFormat === 'ebook' && (
+                            <div className="space-y-1.5">
+                                <Label>{t('show.addVolumeDialog.ebookSource')} <span className="text-destructive">*</span></Label>
+                                <Controller<AddVolumeValues, 'ebook_source'>
+                                    control={avCtrl}
+                                    name="ebook_source"
+                                    render={({ field }) => (
+                                        <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={t('show.addVolumeDialog.selectSource')}>
+                                                    {(value: string) => ebookSourceLabels[value as EbookSource] ?? t('show.addVolumeDialog.selectSource')}
+                                                </SelectValue>
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="bookwalker">{t('show.ebookSource.bookwalker')}</SelectItem>
+                                                <SelectItem value="amazon">{t('show.ebookSource.amazon')}</SelectItem>
+                                                <SelectItem value="local_epub">{t('show.ebookSource.local_epub')}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                                <FieldError message={avErrors.ebook_source?.message} />
+                            </div>
+                        )}
+                        <div className="space-y-1.5">
+                            <Label>{t('show.addVolumeDialog.language')}</Label>
+                            <Controller<AddVolumeValues, 'language'>
+                                control={avCtrl}
+                                name="language"
+                                render={({ field }) => (
+                                    <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={t('show.addVolumeDialog.selectLanguageOptional')}>
+                                                {(value: string) => languageLabels[value as VolumeLanguage] ?? t('show.addVolumeDialog.selectLanguageOptional')}
+                                            </SelectValue>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="id">{t('show.language.id')}</SelectItem>
+                                            <SelectItem value="en">{t('show.language.en')}</SelectItem>
+                                            <SelectItem value="ja">{t('show.language.ja')}</SelectItem>
+                                            <SelectItem value="other">{t('show.language.other')}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
+                        </div>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setAddVolumeOpen(false)}>Batal</Button>
+                            <Button type="button" variant="outline" onClick={() => setAddVolumeOpen(false)}>{t('show.addVolumeDialog.cancel')}</Button>
                             <Button type="submit" disabled={addingVolume}>
-                                {addingVolume ? 'Menyimpan...' : 'Tambah'}
+                                {addingVolume ? t('show.addVolumeDialog.saving') : t('show.addVolumeDialog.add')}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -776,15 +1056,15 @@ export default function CollectionShow({ collection, series, volumes, last_read_
             <Dialog open={!!deleteVolume} onOpenChange={(open) => !open && setDeleteVolume(null)}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Hapus Volume #{deleteVolume?.volume_number}</DialogTitle>
+                        <DialogTitle>{t('show.deleteVolumeDialog.title', { number: deleteVolume?.volume_number })}</DialogTitle>
                     </DialogHeader>
                     <p className="text-sm text-muted-foreground">
-                        Yakin ingin menghapus volume ini dari koleksimu? Riwayat pinjaman terkait juga akan hilang.
+                        {t('show.deleteVolumeDialog.confirm')}
                     </p>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setDeleteVolume(null)}>Batal</Button>
+                        <Button variant="outline" onClick={() => setDeleteVolume(null)}>{t('show.deleteVolumeDialog.cancel')}</Button>
                         <Button variant="destructive" disabled={deletingVol} onClick={handleDeleteVolume}>
-                            {deletingVol ? 'Menghapus...' : 'Hapus'}
+                            {deletingVol ? t('show.deleteVolumeDialog.deleting') : t('show.deleteVolumeDialog.delete')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -794,17 +1074,102 @@ export default function CollectionShow({ collection, series, volumes, last_read_
             <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Hapus {selectedIds.size} Volume</DialogTitle>
+                        <DialogTitle>{t('show.bulkDeleteDialog.title', { count: selectedIds.size })}</DialogTitle>
                     </DialogHeader>
                     <p className="text-sm text-muted-foreground">
-                        Yakin ingin menghapus {selectedIds.size} volume terpilih dari koleksimu? Riwayat pinjaman terkait juga akan hilang.
+                        {t('show.bulkDeleteDialog.confirm', { count: selectedIds.size })}
                     </p>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setBulkDeleteOpen(false)}>Batal</Button>
+                        <Button variant="outline" onClick={() => setBulkDeleteOpen(false)}>{t('show.bulkDeleteDialog.cancel')}</Button>
                         <Button variant="destructive" disabled={bulkDeleting} onClick={handleBulkDelete}>
-                            {bulkDeleting ? 'Menghapus...' : 'Hapus'}
+                            {bulkDeleting ? t('show.bulkDeleteDialog.deleting') : t('show.bulkDeleteDialog.delete')}
                         </Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Bulk Format Change Dialog */}
+            <Dialog open={bulkFormatOpen} onOpenChange={setBulkFormatOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{t('show.bulkFormatDialog.title', { count: selectedIds.size })}</DialogTitle>
+                        <DialogDescription>{t('show.bulkFormatDialog.description')}</DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={bfSubmit(onBulkFormatSave)} className="space-y-4">
+                        <div className="space-y-1.5">
+                            <Label>{t('show.addVolumeDialog.format')} <span className="text-destructive">*</span></Label>
+                            <Controller<FormatUpdateValues, 'format'>
+                                control={bfCtrl}
+                                name="format"
+                                render={({ field }) => (
+                                    <Select value={field.value} onValueChange={field.onChange}>
+                                        <SelectTrigger>
+                                            <SelectValue>{(value: string) => formatLabels[value] ?? value}</SelectValue>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="physical">{t('common:badge.format.physical')}</SelectItem>
+                                            <SelectItem value="ebook">{t('common:badge.format.ebook')}</SelectItem>
+                                            <SelectItem value="online">{t('common:badge.format.online')}</SelectItem>
+                                            <SelectItem value="webtoon">{t('common:badge.format.webtoon')}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
+                            <FieldError message={bfErrors.format?.message} />
+                        </div>
+                        {bfFormat === 'ebook' && (
+                            <div className="space-y-1.5">
+                                <Label>{t('show.addVolumeDialog.ebookSource')} <span className="text-destructive">*</span></Label>
+                                <Controller<FormatUpdateValues, 'ebook_source'>
+                                    control={bfCtrl}
+                                    name="ebook_source"
+                                    render={({ field }) => (
+                                        <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={t('show.addVolumeDialog.selectSource')}>
+                                                    {(value: string) => ebookSourceLabels[value as EbookSource] ?? t('show.addVolumeDialog.selectSource')}
+                                                </SelectValue>
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="bookwalker">{t('show.ebookSource.bookwalker')}</SelectItem>
+                                                <SelectItem value="amazon">{t('show.ebookSource.amazon')}</SelectItem>
+                                                <SelectItem value="local_epub">{t('show.ebookSource.local_epub')}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                                <FieldError message={bfErrors.ebook_source?.message} />
+                            </div>
+                        )}
+                        <div className="space-y-1.5">
+                            <Label>{t('show.addVolumeDialog.language')}</Label>
+                            <Controller<FormatUpdateValues, 'language'>
+                                control={bfCtrl}
+                                name="language"
+                                render={({ field }) => (
+                                    <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={t('show.addVolumeDialog.selectLanguageOptional')}>
+                                                {(value: string) => languageLabels[value as VolumeLanguage] ?? t('show.addVolumeDialog.selectLanguageOptional')}
+                                            </SelectValue>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="id">{t('show.language.id')}</SelectItem>
+                                            <SelectItem value="en">{t('show.language.en')}</SelectItem>
+                                            <SelectItem value="ja">{t('show.language.ja')}</SelectItem>
+                                            <SelectItem value="other">{t('show.language.other')}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setBulkFormatOpen(false)}>{t('show.bulkFormatDialog.cancel')}</Button>
+                            <Button type="submit" disabled={bulkFormatSaving}>
+                                {bulkFormatSaving ? t('show.bulkFormatDialog.saving') : t('show.bulkFormatDialog.apply')}
+                            </Button>
+                        </DialogFooter>
+                    </form>
                 </DialogContent>
             </Dialog>
 
@@ -812,34 +1177,34 @@ export default function CollectionShow({ collection, series, volumes, last_read_
             <Dialog open={!!loanTarget} onOpenChange={(open) => { if (!open) { setLoanTarget(null); reset({ loaned_at: today }); } }}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Pinjamkan Vol. #{loanTarget?.volume_number}</DialogTitle>
-                        <DialogDescription>Catat siapa yang meminjam volume ini.</DialogDescription>
+                        <DialogTitle>{t('show.loanDialog.title', { number: loanTarget?.volume_number })}</DialogTitle>
+                        <DialogDescription>{t('show.loanDialog.description')}</DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleSubmit(onLoanSubmit)} className="space-y-4">
                         <div className="space-y-1.5">
-                            <Label htmlFor="borrower_name">Nama Peminjam <span className="text-destructive">*</span></Label>
+                            <Label htmlFor="borrower_name">{t('show.loanDialog.borrowerName')} <span className="text-destructive">*</span></Label>
                             <Input id="borrower_name" {...register('borrower_name')} />
                             <FieldError message={errors.borrower_name?.message} />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1.5">
-                                <Label htmlFor="loaned_at">Tanggal Pinjam <span className="text-destructive">*</span></Label>
+                                <Label htmlFor="loaned_at">{t('show.loanDialog.loanDate')} <span className="text-destructive">*</span></Label>
                                 <Input id="loaned_at" type="date" {...register('loaned_at')} />
                                 <FieldError message={errors.loaned_at?.message} />
                             </div>
                             <div className="space-y-1.5">
-                                <Label htmlFor="due_at">Jatuh Tempo</Label>
+                                <Label htmlFor="due_at">{t('show.loanDialog.dueDate')}</Label>
                                 <Input id="due_at" type="date" {...register('due_at')} />
                             </div>
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor="notes">Catatan</Label>
+                            <Label htmlFor="notes">{t('show.loanDialog.notes')}</Label>
                             <Textarea id="notes" rows={2} className="resize-none" {...register('notes')} />
                         </div>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setLoanTarget(null)}>Batal</Button>
+                            <Button type="button" variant="outline" onClick={() => setLoanTarget(null)}>{t('show.loanDialog.cancel')}</Button>
                             <Button type="submit" disabled={submittingLoan}>
-                                {submittingLoan ? 'Menyimpan...' : 'Catat Pinjaman'}
+                                {submittingLoan ? t('show.loanDialog.saving') : t('show.loanDialog.submit')}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -850,16 +1215,15 @@ export default function CollectionShow({ collection, series, volumes, last_read_
             <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Hapus dari Koleksi</DialogTitle>
+                        <DialogTitle>{t('show.deleteCollectionDialog.title')}</DialogTitle>
                         <DialogDescription>
-                            Yakin ingin menghapus <strong>{series.title_romaji}</strong> dari koleksimu?
-                            Semua data volume dan pinjaman aktif akan hilang.
+                            {t('show.deleteCollectionDialog.confirmPrefix')} <strong>{series.title_romaji}</strong> {t('show.deleteCollectionDialog.confirmSuffix')}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setDeleteOpen(false)}>Batal</Button>
+                        <Button variant="outline" onClick={() => setDeleteOpen(false)}>{t('show.deleteCollectionDialog.cancel')}</Button>
                         <Button variant="destructive" disabled={deleting} onClick={handleDelete}>
-                            {deleting ? 'Menghapus...' : 'Hapus'}
+                            {deleting ? t('show.deleteCollectionDialog.deleting') : t('show.deleteCollectionDialog.delete')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

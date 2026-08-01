@@ -13,6 +13,10 @@ use Inertia\Response;
 
 class SeriesController extends Controller
 {
+    // "Manga group" mencakup semua tipe komik; light novel berdiri sendiri karena
+    // vocab genre-nya (dari RanobeDB) cenderung berbeda dari manga (dari AniList).
+    private const MANGA_TYPES = ['manga', 'manhwa', 'manhua', 'one_shot', 'doujinshi'];
+
     public function __construct(private StorageSettingsService $storage) {}
 
     public function index(): Response
@@ -29,6 +33,7 @@ class SeriesController extends Controller
             ))
             ->when(request('status'), fn ($q, $s) => $q->where('status', $s))
             ->when(request('type'), fn ($q, $t) => $q->where('type', $t))
+            ->when(request('genre'), fn ($q, $g) => $q->whereJsonContains('genres', $g))
             ->when(request('ownership') === 'owned', fn ($q) => $q->whereIn('id', $collectionSeriesIds))
             ->when(request('ownership') === 'not_owned', fn ($q) => $q->whereNotIn('id', $collectionSeriesIds))
             ->withCount('volumes')
@@ -51,8 +56,29 @@ class SeriesController extends Controller
         return Inertia::render('User/Catalog/Index', [
             'series' => $series,
             'collectionSeriesIds' => $collectionSeriesIds,
-            'filters' => request()->only(['search', 'status', 'type', 'ownership']),
+            'genreOptions' => $this->genreOptions(),
+            'filters' => request()->only(['search', 'status', 'type', 'genre', 'ownership']),
         ]);
+    }
+
+    /** @return array{manga: array<int, string>, novel: array<int, string>} */
+    private function genreOptions(): array
+    {
+        $flatten = fn ($type) => Series::query()
+            ->when($type === 'novel', fn ($q) => $q->where('type', 'novel'))
+            ->when($type === 'manga', fn ($q) => $q->whereIn('type', self::MANGA_TYPES))
+            ->whereNotNull('genres')
+            ->pluck('genres')
+            ->flatten()
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+
+        return [
+            'manga' => $flatten('manga'),
+            'novel' => $flatten('novel'),
+        ];
     }
 
     public function search(Request $request): JsonResponse
@@ -103,14 +129,19 @@ class SeriesController extends Controller
             ->where('series_id', $series->id)
             ->first();
 
+        $wishlistItem = auth()->user()
+            ->wishlistItems()
+            ->where('series_id', $series->id)
+            ->first();
+
         $collectorsCount = Collection::where('series_id', $series->id)->count();
         $collectors = Collection::where('series_id', $series->id)
-            ->with('user:id,avatar')
+            ->with('user:id,username,avatar')
             ->limit(8)
             ->get()
             ->pluck('user')
             ->filter()
-            ->map(fn ($u) => ['id' => $u->id, 'avatar' => $u->avatar])
+            ->map(fn ($u) => ['id' => $u->id, 'username' => $u->username, 'avatar' => $u->avatar])
             ->values();
 
         return Inertia::render('User/Catalog/Show', [
@@ -131,6 +162,7 @@ class SeriesController extends Controller
                 'caption' => $m->caption,
             ]),
             'collection' => $collection ? ['id' => $collection->id] : null,
+            'wishlist_item' => $wishlistItem ? ['id' => $wishlistItem->id] : null,
             'collectors' => [
                 'avatars' => $collectors,
                 'count' => $collectorsCount,

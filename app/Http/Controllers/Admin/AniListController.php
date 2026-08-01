@@ -24,10 +24,12 @@ class AniListController extends Controller
         $error = null;
         $hideAdult = $request->boolean('hide_adult', true);
 
+        $type = $request->get('type');
+
         if ($q = $request->get('q')) {
             try {
                 $raw = $this->anilist->searchManga(trim($q), (int) $request->get('page', 1), $hideAdult);
-                $results = $this->formatResults($raw['data']);
+                $results = $this->filterByType($this->formatResults($raw['data']), $type);
                 $pagination = $raw['pagination'];
             } catch (\Exception $e) {
                 $error = $e->getMessage();
@@ -37,9 +39,26 @@ class AniListController extends Controller
         return Inertia::render('Admin/AniList/Index', [
             'results' => $results,
             'pagination' => $pagination,
-            'filters' => ['q' => $request->get('q', ''), 'hide_adult' => $hideAdult],
+            'filters' => ['q' => $request->get('q', ''), 'hide_adult' => $hideAdult, 'type' => $type],
             'error' => $error,
         ]);
+    }
+
+    /**
+     * Post-filter by our internal type — AniList's GraphQL query can't cleanly express
+     * "manhwa"/"manhua" (those are inferred from countryOfOrigin, not a real format enum),
+     * so filtering happens here instead of as a query variable.
+     *
+     * @param  array<int, array<string, mixed>>  $results
+     * @return array<int, array<string, mixed>>
+     */
+    private function filterByType(array $results, ?string $type): array
+    {
+        if (! $type) {
+            return $results;
+        }
+
+        return array_values(array_filter($results, fn ($r) => $r['type'] === $type));
     }
 
     public function searchJson(Request $request): JsonResponse

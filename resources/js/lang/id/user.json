@@ -1,0 +1,87 @@
+{
+    "wishlist": {
+        "title": "Wishlist",
+        "description": "{{count}} series yang mau dibaca",
+        "empty": {
+            "title": "Wishlist masih kosong",
+            "description": "Tambahkan series dari Katalog yang belum kamu miliki tapi mau dibaca nanti.",
+            "browseCatalog": "Jelajahi Katalog"
+        },
+        "noneForType": "Tidak ada wishlist dengan tipe ini.",
+        "addToCollection": "Tambah ke Koleksi",
+        "add": "Tambah",
+        "adding": "Menambahkan..."
+    },
+    "tickets": {
+        "title": "Tiket",
+        "newTicket": "Buat Tiket",
+        "count": "{{count}} tiket dikirim",
+        "emptyTitle": "Belum ada tiket",
+        "emptyDescription": "Punya request katalog atau laporan lain? Buat tiket untuk kirim ke admin.",
+        "subject": "Subjek",
+        "type": "Tipe",
+        "status": "Status",
+        "createdColumn": "Dibuat",
+        "yourMessage": "Pesan Kamu",
+        "adminResponse": "Respons Admin",
+        "waitingResponse": "Menunggu respons dari admin.",
+        "related": "Terkait: {{title}}",
+        "createdAt": "Dibuat {{date}}",
+        "repliedAt": "Dibalas {{date}}",
+        "form": {
+            "message": "Pesan",
+            "submit": "Kirim Tiket",
+            "submitting": "Mengirim...",
+            "relatedTo": "Tiket ini terkait dengan",
+            "limitWarning": "Kamu hanya bisa request {{max}} tiket di waktu yang sama. Untuk membuat tiket baru, pastikan tidak ada tiket yang belum direspon admin.",
+            "limitReached": "Saat ini kamu punya {{active}}/{{max}} tiket aktif — tunggu direspon/selesai dulu.",
+            "defaultSubject": "Terkait: {{title}}"
+        }
+    },
+    "loans": {
+        "title": "Riwayat Pinjaman",
+        "count": "{{count}} pinjaman tercatat",
+        "emptyTitle": "Belum ada pinjaman",
+        "emptyDescription": "Pinjamkan volume dari halaman koleksi untuk mulai mencatat.",
+        "seriesVolume": "Series / Volume",
+        "borrower": "Peminjam",
+        "status": "Status",
+        "loanedAt": "Dipinjam",
+        "dueAt": "Jatuh Tempo",
+        "returnedAt": "Dikembalikan",
+        "volumeShort": "Vol. {{number}}",
+        "statusReturned": "Dikembalikan",
+        "statusOverdue": "Terlambat",
+        "statusOnLoan": "Dipinjam"
+    },
+    "profile": {
+        "seriesInCollection": "{{count}} series di koleksi",
+        "manageProfile": "Kelola Profil",
+        "processing": "Memproses...",
+        "unfollow": "Berhenti Follow",
+        "follow": "Follow",
+        "followers": "Followers",
+        "following": "Following",
+        "collection": "Koleksi",
+        "genreTaste": "Selera Genre",
+        "collectionDetail": "Detail Koleksi",
+        "totalVolume": "Total Volume",
+        "collectionHeading": "Koleksi ({{visible}}/{{total}})",
+        "noneForType": "Tidak ada koleksi dengan tipe ini.",
+        "backToTop": "Kembali ke atas",
+        "show": {
+            "25": "Tampilkan 25",
+            "50": "Tampilkan 50",
+            "100": "Tampilkan 100",
+            "all": "Tampilkan Semua"
+        }
+    },
+    "directory": {
+        "title": "Cari Pengguna",
+        "description": "Temukan pengguna lain lewat username atau nama",
+        "searchPlaceholder": "Cari username atau nama...",
+        "promptSearch": "Ketik username atau nama untuk mulai mencari.",
+        "noResults": "Tidak ada pengguna ditemukan.",
+        "privateProfile": "Profil ini privat"
+    }
+}

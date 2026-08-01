@@ -13,7 +13,7 @@ class SiteSettingController extends Controller
 {
     public function update(Request $request): RedirectResponse
     {
-        abort_unless(auth()->user()->hasRole('super_admin'), 403);
+        abort_unless(auth()->user()->isSuperAdmin(), 403);
 
         $request->validate([
             'blur_adult_content' => ['required', 'boolean'],

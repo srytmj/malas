@@ -1,0 +1,51 @@
+{
+    "title": "ダッシュボード",
+    "welcome": "ようこそ、{{name}}さん。",
+    "stats": {
+        "seriesInCollection": "コレクション内シリーズ",
+        "seriesInCollectionHint": "コレクション内のシリーズ",
+        "volumesOwned": "所有巻数",
+        "volumesOwnedHint": "所有している巻数",
+        "onLoan": "貸出中",
+        "onLoanHint": "アクティブな貸出",
+        "overdue": "延滞",
+        "overdueHint": "返却期限を過ぎた貸出"
+    },
+    "continueReading": "続きを読む",
+    "volumeUnread": "第{{number}}巻 未読",
+    "collectionsByStatus": "ステータス別コレクション",
+    "status": {
+        "publishing": "連載中",
+        "finished": "完結",
+        "on_hiatus": "休載中",
+        "discontinued": "打ち切り",
+        "not_yet_published": "未刊行"
+    },
+    "funfact": {
+        "title": "ジャンルの好み",
+        "generate": "再生成",
+        "generating": "生成中...",
+        "notEligible": "コレクションに15シリーズ以上追加すると、ジャンルの好みに関するファンファクトを表示できます。",
+        "noGenreData": "ジャンルデータがまだありません。",
+        "clickGenreHint": "ジャンルをクリックすると関連コレクションとおすすめが表示されます",
+        "quotaRemaining": "今週の残り再生成回数: {{remaining}}/{{max}}",
+        "loadingDetail": "読み込み中...",
+        "noSeriesForGenre": "ジャンル「{{genre}}」のシリーズはありません。",
+        "ownedWithGenre": "ジャンル「{{genre}}」のコレクション",
+        "recommendedWithGenre": "ジャンル「{{genre}}」のおすすめ",
+        "generateFailed": "ファンファクトの生成に失敗しました。後でもう一度お試しください。"
+    },
+    "recommendations": {
+        "title": "あなたへのおすすめ",
+        "surpriseMe": "サプライズ",
+        "empty": "お気に入りのジャンルに基づくおすすめを表示するには、まずコレクションにシリーズを追加してください。"
+    },
+    "latestTicket": "最新チケット",
+    "surprise": {
+        "title": "これ、気に入るかも！",
+        "description": "まだコレクションにないシリーズからランダムに選ばれました。",
+        "empty": "おすすめできる他のシリーズはまだありません。",
+        "tryAgain": "もう一度",
+        "viewSeries": "シリーズを見る"
+    }
+}

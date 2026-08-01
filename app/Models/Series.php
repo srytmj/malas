@@ -15,6 +15,7 @@ class Series extends Model
     protected $fillable = [
         'mal_id',
         'anilist_id',
+        'ranobedb_id',
         'title_romaji',
         'title_english',
         'title_japanese',
@@ -29,6 +30,7 @@ class Series extends Model
         'rank',
         'genres',
         'authors',
+        'illustrators',
         'themes',
         'demographics',
         'is_adult',
@@ -43,6 +45,7 @@ class Series extends Model
             'deleted_at' => 'datetime',
             'genres' => 'array',
             'authors' => 'array',
+            'illustrators' => 'array',
             'themes' => 'array',
             'demographics' => 'array',
             'is_adult' => 'boolean',

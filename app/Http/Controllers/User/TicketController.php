@@ -4,6 +4,7 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTicketRequest;
+use App\Models\ActivityLog;
 use App\Models\Series;
 use App\Models\Ticket;
 use App\Services\StorageSettingsService;
@@ -14,6 +15,8 @@ use Inertia\Response;
 
 class TicketController extends Controller
 {
+    private const MAX_ACTIVE_TICKETS = 2;
+
     public function __construct(private StorageSettingsService $storage) {}
 
     public function index(): Response
@@ -50,21 +53,42 @@ class TicketController extends Controller
                 ->find($request->series_id);
         }
 
+        $activeCount = $this->activeTicketsCount();
+
         return Inertia::render('User/Tickets/Create', [
             'series' => $series ? [
                 'id' => $series->id,
                 'title_romaji' => $series->title_romaji,
                 'cover_url' => $this->storage->url($series->cover_path),
             ] : null,
+            'activeTicketsCount' => $activeCount,
+            'maxActiveTickets' => self::MAX_ACTIVE_TICKETS,
+            'canCreate' => $activeCount < self::MAX_ACTIVE_TICKETS,
         ]);
     }
 
     public function store(StoreTicketRequest $request): RedirectResponse
     {
-        auth()->user()->tickets()->create($request->validated());
+        if ($this->activeTicketsCount() >= self::MAX_ACTIVE_TICKETS) {
+            return redirect()->back()->with(
+                'error',
+                'Kamu hanya bisa punya '.self::MAX_ACTIVE_TICKETS.' tiket aktif dalam waktu yang sama. Tunggu tiket yang ada direspon/selesai dulu.'
+            );
+        }
+
+        $ticket = auth()->user()->tickets()->create($request->validated());
+
+        ActivityLog::record('ticket.create', auth()->user()->name." membuat tiket \"{$ticket->subject}\".", $ticket);
 
         return redirect()->route('tickets.index')
             ->with('success', 'Tiket berhasil dikirim. Admin akan segera meninjau.');
+    }
+
+    private function activeTicketsCount(): int
+    {
+        return auth()->user()->tickets()
+            ->whereIn('status', ['open', 'in_progress'])
+            ->count();
     }
 
     public function show(Ticket $ticket): Response

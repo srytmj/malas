@@ -1,0 +1,229 @@
+{
+    "nav": {
+        "search": "Cari",
+        "quickSearch": "Cari cepat...",
+        "quickSearchHint": "Cari cepat (⌘K)",
+        "navigation": "Navigasi",
+        "lightMode": "Mode Terang",
+        "darkMode": "Mode Gelap",
+        "logout": "Keluar",
+        "member": "Anggota",
+        "expandSidebar": "Perluas sidebar",
+        "collapseSidebar": "Ciutkan sidebar",
+        "openMenu": "Buka menu",
+        "searchPlaceholder": "Cari manga, koleksi, atau halaman...",
+        "login": "Login"
+    },
+    "profile": {
+        "loginToFollow": "Login untuk follow"
+    },
+    "menu": {
+        "dashboard": "Dashboard",
+        "series": "Series",
+        "collections": "Koleksi",
+        "loans": "Peminjaman",
+        "users": "Pengguna",
+        "importData": "Import Data",
+        "searchAllSources": "Cari Semua Sumber",
+        "searchManga": "Cari Manga",
+        "anilistStatus": "Status AniList",
+        "searchLightNovel": "Cari Light Novel",
+        "others": "Lainnya",
+        "menuManagement": "Menu",
+        "userSidebar": "Sidebar User",
+        "announcements": "Pengumuman",
+        "tickets": "Tiket",
+        "settings": "Pengaturan",
+        "activityLog": "Log Aktivitas",
+        "funfactQuota": "Kuota Funfact",
+        "catalog": "Katalog",
+        "myCollection": "Koleksiku",
+        "wishlist": "Wishlist",
+        "myLoans": "Pinjaman Saya",
+        "findUsers": "Cari Pengguna",
+        "profile": "Profil"
+    },
+    "common": {
+        "save": "Simpan",
+        "saving": "Menyimpan...",
+        "cancel": "Batal",
+        "delete": "Hapus",
+        "edit": "Edit",
+        "back": "Kembali",
+        "loading": "Memuat...",
+        "search": "Cari",
+        "filter": "Filter",
+        "chooseFile": "Pilih File",
+        "searching": "Mencari...",
+        "noResults": "Tidak ada hasil.",
+        "generalError": "Gagal menghubungi server.",
+        "deleting": "Menghapus...",
+        "creating": "Membuat...",
+        "generate": "Generate",
+        "add": "Tambah",
+        "yes": "Ya",
+        "no": "Tidak",
+        "close": "Tutup",
+        "confirm": "Konfirmasi",
+        "actions": "Aksi",
+        "status": "Status",
+        "type": "Tipe",
+        "required": "Wajib diisi",
+        "optional": "opsional",
+        "allTypes": "Semua Tipe",
+        "manga": "Manga",
+        "lightNovel": "Light Novel",
+        "oneShot": "One Shot",
+        "doujinshi": "Doujinshi",
+        "manhwa": "Manhwa",
+        "manhua": "Manhua"
+    },
+    "palette": {
+        "adminTitle": "Command Palette",
+        "adminDescription": "Navigasi cepat ke halaman admin",
+        "adminPlaceholder": "Cari halaman, series, pengguna, atau tiket...",
+        "userTitle": "Cari",
+        "userDescription": "Cari manga di katalog atau koleksimu, atau navigasi cepat ke halaman lain",
+        "userPlaceholder": "Cari judul manga, koleksi, atau halaman...",
+        "noResults": "Tidak ada hasil.",
+        "navigation": "Navigasi",
+        "series": "Series",
+        "users": "Pengguna",
+        "tickets": "Tiket",
+        "myCollection": "Koleksiku",
+        "catalog": "Katalog"
+    },
+    "settings": {
+        "title": "Pengaturan",
+        "description": "Informasi akunmu, dikelola lewat whitearchive.id.",
+        "profile": "Profil",
+        "profileDescription": "Nama, username, dan email disinkron dari akun whitearchive.id-mu setiap login.",
+        "email": "Email",
+        "role": "Role",
+        "manageAccount": "Kelola Akun di whitearchive.id",
+        "publicProfile": "Profil Publik",
+        "publicProfileDescription": "Kalau aktif, orang lain bisa lihat koleksi dan Selera Genre-mu, dan bisa follow kamu. Konten 18+ tetap di-blur seperti biasa.",
+        "showProfilePublicly": "Tampilkan profilku ke publik",
+        "showProfilePublicHint": "Default privat — hanya kamu yang bisa lihat sampai ini diaktifkan.",
+        "viewMyProfile": "Lihat Profilku",
+        "roles": {
+            "super_admin": "Super Admin",
+            "admin": "Admin",
+            "user": "User"
+        }
+    },
+    "pagination": {
+        "showing": "Menampilkan {{from}}–{{to}} dari {{total}}",
+        "total": "Total {{total}}",
+        "perPage": "per halaman"
+    },
+    "badge": {
+        "status": {
+            "publishing": "Publishing",
+            "finished": "Selesai",
+            "on_hiatus": "Hiatus",
+            "discontinued": "Discontinued",
+            "not_yet_published": "Belum Terbit"
+        },
+        "type": {
+            "manga": "Manga",
+            "manhwa": "Manhwa",
+            "manhua": "Manhua",
+            "novel": "Novel",
+            "one_shot": "One Shot",
+            "doujinshi": "Doujinshi"
+        },
+        "volumeType": {
+            "regular": "Regular",
+            "digital": "Digital",
+            "bind_up": "Bind-up"
+        },
+        "format": {
+            "physical": "Fisik",
+            "ebook": "Ebook",
+            "online": "Online",
+            "webtoon": "Webtoon"
+        },
+        "ticketStatus": {
+            "open": "Terbuka",
+            "in_progress": "Diproses",
+            "resolved": "Selesai",
+            "closed": "Ditutup"
+        },
+        "ticketType": {
+            "catalog_request": "Request Katalog",
+            "title_revision": "Revisi Judul",
+            "other": "Lainnya"
+        }
+    },
+    "components": {
+        "seriesMediaGallery": {
+            "title": "Galeri Media ({{count}})",
+            "uploading": "Mengunggah...",
+            "addImage": "Tambah Gambar",
+            "empty": "Belum ada media tambahan. Upload artwork, banner, atau screenshot untuk memperkaya halaman katalog series ini."
+        },
+        "sortableMenuList": {
+            "dragToReorder": "Seret untuk mengurutkan",
+            "shared": "Bersama",
+            "visible": "Tampil",
+            "maintenance": "Maintenance"
+        },
+        "adultBlurOverlay": {
+            "clickToView": "18+ · Klik untuk lihat"
+        },
+        "announcementBanner": {
+            "close": "Tutup pengumuman"
+        },
+        "seriesCard": {
+            "inCollection": "Di koleksi"
+        },
+        "volumeGrid": {
+            "volumePrefix": "Vol. {{number}}",
+            "empty": "Belum ada volume."
+        }
+    },
+    "errorPage": {
+        "400": { "title": "Permintaan Tidak Valid", "description": "Permintaan tidak lengkap atau tidak valid." },
+        "403": { "title": "Akses Ditolak", "description": "Kamu tidak punya izin untuk mengakses halaman ini." },
+        "404": { "title": "Halaman Tidak Ditemukan", "description": "Halaman yang kamu cari tidak ada atau sudah dipindahkan." },
+        "500": { "title": "Terjadi Kesalahan", "description": "Server mengalami masalah. Silakan coba lagi nanti." },
+        "502": { "title": "SSO Tidak Merespons", "description": "Tidak dapat menghubungi server whitearchive.id. Coba lagi beberapa saat lagi." },
+        "503": { "title": "Server Tidak Tersedia", "description": "Layanan sedang dalam pemeliharaan. Silakan coba beberapa saat lagi." },
+        "back": "Kembali",
+        "home": "Beranda"
+    },
+    "bannedPage": {
+        "title": "Akun Diblokir",
+        "description": "Akun Anda telah diblokir dan tidak dapat mengakses aplikasi ini.",
+        "reasonLabel": "Alasan pemblokiran:",
+        "logout": "Keluar",
+        "contactAdmin": "Hubungi administrator jika Anda merasa ini adalah kesalahan."
+    },
+    "maintenancePage": {
+        "title": "Pemeliharaan",
+        "heading": "Sedang Dalam Pemeliharaan",
+        "description": "Halaman ini sedang tidak tersedia untuk sementara waktu.",
+        "backHome": "Kembali ke Beranda"
+    },
+    "landing": {
+        "pageTitle": "Selamat Datang",
+        "heading": "Manajemen Koleksi Manga & Light Novel",
+        "subheading": "Kelola katalog, koleksi pribadi, dan peminjaman manga dan light novel-mu di satu tempat.",
+        "loginButton": "Login dengan whitearchive.id",
+        "features": {
+            "catalog": { "title": "Katalog", "description": "Jelajahi dan cari manga, manhwa, manhua, hingga novel lengkap dengan metadata dari AniList." },
+            "collection": { "title": "Koleksi Pribadi", "description": "Tandai volume yang sudah kamu miliki dan kelola koleksimu sendiri." },
+            "loans": { "title": "Peminjaman", "description": "Catat volume yang kamu pinjamkan ke orang lain beserta tanggal jatuh temponya." },
+            "announcements": { "title": "Pengumuman", "description": "Dapatkan info terbaru seputar koleksi dan layanan langsung dari admin." }
+        }
+    },
+    "locale": {
+        "id": "Bahasa Indonesia",
+        "en": "English",
+        "ja": "日本語",
+        "label": "Bahasa",
+        "cardTitle": "Bahasa",
+        "cardDescription": "Pilih bahasa tampilan aplikasi. Perubahan berlaku langsung."
+    }
+}

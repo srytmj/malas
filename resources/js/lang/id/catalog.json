@@ -1,0 +1,37 @@
+{
+    "title": "Katalog",
+    "seriesAvailable": "{{count}} series tersedia",
+    "searchPlaceholder": "Cari judul...",
+    "refresh": "Segarkan",
+    "allStatus": "Semua status",
+    "allGenre": "Semua genre",
+    "ownership": {
+        "all": "Semua",
+        "owned": "Sudah di Koleksi",
+        "notOwned": "Belum di Koleksi"
+    },
+    "empty": {
+        "title": "Tidak ada series ditemukan.",
+        "requestPrompt": "Judul yang kamu cari belum ada di katalog?",
+        "createTicket": "Buat tiket request",
+        "toAdmin": "ke admin."
+    },
+    "show": {
+        "createTicket": "Buat Tiket",
+        "viewInCollection": "Lihat di Koleksi",
+        "addToCollection": "Tambah ke Koleksi",
+        "adding": "Menambahkan...",
+        "removeFromWishlist": "Hapus dari Wishlist",
+        "addToWishlist": "Tambah ke Wishlist",
+        "processing": "Memproses...",
+        "author": "Author:",
+        "totalVolume": "Total Volume",
+        "score": "Skor",
+        "rank": "Rank",
+        "published": "Terbit",
+        "collectorsCount": "{{count}} orang mengoleksi manga ini",
+        "viewOnAnilist": "Lihat di AniList",
+        "gallery": "Galeri",
+        "volumes": "Volume ({{count}})"
+    }
+}

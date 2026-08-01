@@ -3,7 +3,8 @@ import { Head, router } from '@inertiajs/react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { BookOpen, Send } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { AlertTriangle, BookOpen, Send } from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import { Button } from '@/Components/ui/button';
@@ -24,6 +25,9 @@ interface SeriesRef {
 
 interface Props extends PageProps {
     series: SeriesRef | null;
+    activeTicketsCount: number;
+    maxActiveTickets: number;
+    canCreate: boolean;
 }
 
 const ticketSchema = z.object({
@@ -33,18 +37,18 @@ const ticketSchema = z.object({
 });
 type TicketFormValues = z.infer<typeof ticketSchema>;
 
-const TICKET_TYPE_LABELS: Record<string, string> = {
-    catalog_request: 'Request Katalog',
-    title_revision: 'Revisi Judul',
-    other: 'Lainnya',
-};
-
 function FieldError({ message }: { message?: string }) {
     if (!message) return null;
     return <p className="text-xs text-destructive">{message}</p>;
 }
 
-export default function TicketCreate({ series }: Props) {
+export default function TicketCreate({ series, activeTicketsCount, maxActiveTickets, canCreate }: Props) {
+    const { t } = useTranslation('user');
+    const ticketTypeLabels: Record<string, string> = {
+        catalog_request: t('common:badge.ticketType.catalog_request'),
+        title_revision: t('common:badge.ticketType.title_revision'),
+        other: t('common:badge.ticketType.other'),
+    };
     const [submitting, setSubmitting] = useState(false);
 
     const {
@@ -54,7 +58,7 @@ export default function TicketCreate({ series }: Props) {
         resolver: zodResolver(ticketSchema),
         defaultValues: {
             type:    series ? 'catalog_request' : 'other',
-            subject: series ? `Terkait: ${series.title_romaji}` : '',
+            subject: series ? t('tickets.form.defaultSubject', { title: series.title_romaji }) : '',
         },
     });
 
@@ -78,17 +82,30 @@ export default function TicketCreate({ series }: Props) {
         <UserLayout
             header={
                 <PageHeader
-                    title="Buat Tiket"
+                    title={t('tickets.newTicket')}
                     breadcrumbs={[
-                        { label: 'Tiket', href: route('tickets.index') },
-                        { label: 'Buat Tiket' },
+                        { label: t('tickets.title'), href: route('tickets.index') },
+                        { label: t('tickets.newTicket') },
                     ]}
                 />
             }
         >
-            <Head title="Buat Tiket" />
+            <Head title={t('tickets.newTicket')} />
 
             <div className="max-w-xl">
+                <div className={`mb-4 flex items-start gap-2 rounded-lg border p-3 text-sm ${
+                    canCreate
+                        ? 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400'
+                        : 'border-destructive/50 bg-destructive/10 text-destructive'
+                }`}
+                >
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>
+                        {t('tickets.form.limitWarning', { max: maxActiveTickets })}
+                        {!canCreate && ` ${t('tickets.form.limitReached', { active: activeTicketsCount, max: maxActiveTickets })}`}
+                    </span>
+                </div>
+
                 {series && (
                     <Card className="mb-4">
                         <CardContent className="flex items-center gap-3 py-4">
@@ -100,7 +117,7 @@ export default function TicketCreate({ series }: Props) {
                                 </div>
                             )}
                             <div>
-                                <p className="text-xs text-muted-foreground">Tiket ini terkait dengan</p>
+                                <p className="text-xs text-muted-foreground">{t('tickets.form.relatedTo')}</p>
                                 <p className="text-sm font-medium">{series.title_romaji}</p>
                             </div>
                         </CardContent>
@@ -109,13 +126,13 @@ export default function TicketCreate({ series }: Props) {
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <div className="space-y-1.5">
-                        <Label htmlFor="subject">Subjek <span className="text-destructive">*</span></Label>
+                        <Label htmlFor="subject">{t('tickets.subject')} <span className="text-destructive">*</span></Label>
                         <Input id="subject" {...register('subject')} />
                         <FieldError message={errors.subject?.message} />
                     </div>
 
                     <div className="space-y-1.5">
-                        <Label>Tipe <span className="text-destructive">*</span></Label>
+                        <Label>{t('tickets.type')} <span className="text-destructive">*</span></Label>
                         <Controller<TicketFormValues, 'type'>
                             control={control}
                             name="type"
@@ -123,13 +140,13 @@ export default function TicketCreate({ series }: Props) {
                                 <Select value={field.value} onValueChange={field.onChange}>
                                     <SelectTrigger>
                                         <SelectValue>
-                                            {(value: string) => TICKET_TYPE_LABELS[value] ?? value}
+                                            {(value: string) => ticketTypeLabels[value] ?? value}
                                         </SelectValue>
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="catalog_request">Request Katalog</SelectItem>
-                                        <SelectItem value="title_revision">Revisi Judul</SelectItem>
-                                        <SelectItem value="other">Lainnya</SelectItem>
+                                        <SelectItem value="catalog_request">{t('common:badge.ticketType.catalog_request')}</SelectItem>
+                                        <SelectItem value="title_revision">{t('common:badge.ticketType.title_revision')}</SelectItem>
+                                        <SelectItem value="other">{t('common:badge.ticketType.other')}</SelectItem>
                                     </SelectContent>
                                 </Select>
                             )}
@@ -138,14 +155,14 @@ export default function TicketCreate({ series }: Props) {
                     </div>
 
                     <div className="space-y-1.5">
-                        <Label htmlFor="message">Pesan <span className="text-destructive">*</span></Label>
+                        <Label htmlFor="message">{t('tickets.form.message')} <span className="text-destructive">*</span></Label>
                         <Textarea id="message" rows={6} className="resize-none" {...register('message')} />
                         <FieldError message={errors.message?.message} />
                     </div>
 
-                    <Button type="submit" disabled={submitting}>
+                    <Button type="submit" disabled={submitting || !canCreate}>
                         <Send className="mr-1.5 h-3.5 w-3.5" />
-                        {submitting ? 'Mengirim...' : 'Kirim Tiket'}
+                        {submitting ? t('tickets.form.submitting') : t('tickets.form.submit')}
                     </Button>
                 </form>
             </div>

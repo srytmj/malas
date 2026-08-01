@@ -6,6 +6,7 @@ use App\Models\Announcement;
 use App\Models\Menu;
 use App\Models\SiteSetting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Middleware;
 
@@ -56,9 +57,11 @@ class HandleInertiaRequests extends Middleware
                     'role' => $user->role,
                     'is_banned' => $user->is_banned,
                     'ban_reason' => $user->ban_reason,
+                    'is_profile_public' => $user->is_profile_public,
                 ] : null,
             ],
             'menus' => $menus,
+            'locale' => App::getLocale(),
             'site_settings' => [
                 'blur_adult_content' => $blurAdultContent,
             ],

@@ -1,0 +1,170 @@
+{
+    "index": {
+        "title": "マイコレクション",
+        "count": "コレクション内 {{count}}シリーズ",
+        "addSeries": "シリーズを追加",
+        "empty": {
+            "title": "コレクションはまだ空です",
+            "description": "所有している巻の記録を始めるにはシリーズを追加してください。",
+            "notInCatalog": "カタログにまだありませんか？",
+            "requestViaTicket": "チケットでリクエスト"
+        },
+        "searchPlaceholder": "コレクションを検索...",
+        "refresh": "更新",
+        "allStatus": "すべてのステータス",
+        "allGenre": "すべてのジャンル",
+        "sort": {
+            "label": "並び替え",
+            "added_desc": "追加が新しい順",
+            "added_asc": "追加が古い順",
+            "name_asc": "名前 A-Z",
+            "name_desc": "名前 Z-A",
+            "volumes_desc": "巻数が多い順",
+            "volumes_asc": "巻数が少ない順"
+        },
+        "gridView": "グリッド表示",
+        "tableView": "テーブル表示",
+        "noneMatchFilter": "現在のフィルターに一致するコレクションはありません。",
+        "volumeShort": "巻",
+        "columnTitle": "タイトル",
+        "columnGenre": "ジャンル",
+        "columnVolume": "巻数",
+        "readCount": "{{read}}/{{total}} 既読",
+        "view": "見る",
+        "removeFromCollection": "コレクションから削除",
+        "addDialog": {
+            "title": "コレクションにシリーズを追加",
+            "description": "1つ以上のシリーズを選択してください。画像をクリックして選択します。",
+            "searchPlaceholder": "シリーズのタイトルを検索...",
+            "searching": "検索中...",
+            "noResults": "結果がありません。",
+            "typeToSearch": "入力してシリーズを検索してください。",
+            "notFound": "タイトルが見つかりませんか？",
+            "requestViaTicket": "チケットでリクエスト",
+            "selectedCount": "{{count}}件選択中",
+            "cancel": "キャンセル",
+            "adding": "追加中...",
+            "add": "追加",
+            "addWithCount": "追加 ({{count}})"
+        },
+        "deleteDialog": {
+            "title": "コレクションから削除",
+            "confirmPrefix": "",
+            "confirmSuffix": "をコレクションから削除しますか？すべての巻と貸出中のデータが失われます。",
+            "cancel": "キャンセル",
+            "deleting": "削除中...",
+            "delete": "削除"
+        }
+    },
+    "show": {
+        "viewCatalog": "カタログで見る",
+        "deleteCollection": "コレクションを削除",
+        "progress": "進捗",
+        "volumesOwned": "巻所有",
+        "lastRead": "最終既読: 第{{number}}巻",
+        "conditionOptional": "状態（任意）",
+        "condition": { "mint": "美品", "good": "良好", "fair": "可", "poor": "傷み" },
+        "markAllRead": "すべての巻を既読にする",
+        "volumesOwnedHeading": "所有巻数 ({{count}})",
+        "changeFormat": "フォーマット変更 ({{count}})",
+        "deleteCount": "削除 ({{count}})",
+        "allFormat": "すべてのフォーマット",
+        "done": "完了",
+        "delete": "削除",
+        "gridView": "グリッド表示",
+        "tableView": "テーブル表示",
+        "addVolume": "巻を追加",
+        "empty": { "title": "巻はまだありません", "description": "所有している巻を追加してください。例: 1,2,3,5" },
+        "noneForFormat": "このフォーマットの巻はありません。",
+        "selectVolume": "第{{number}}巻を選択",
+        "markUnread": "第{{number}}巻を未読にする",
+        "markRead": "第{{number}}巻を既読にする",
+        "volumeShort": "巻",
+        "volumeLabel": "第{{number}}巻",
+        "loanStatus": { "overdue": "延滞", "onLoan": "貸出中" },
+        "markReturned": "返却済みにする",
+        "returning": "保存中...",
+        "returnShort": "返却",
+        "lendOut": "貸し出す",
+        "columnVolume": "巻",
+        "columnFormat": "フォーマット",
+        "columnLoanStatus": "貸出ステータス",
+        "review": {
+            "title": "個人レビュー＆評価",
+            "rating": "評価",
+            "notRecommended": "おすすめしない",
+            "recommended": "おすすめ",
+            "comment": "コメント",
+            "commentPlaceholder": "このシリーズについてどう思いますか？",
+            "save": "レビューを保存",
+            "saving": "保存中...",
+            "labels": {
+                "recommended": "おすすめ",
+                "prettyGood": "まあまあ良い",
+                "neutral": "普通",
+                "lacking": "いまいち",
+                "notRecommended": "おすすめしない"
+            }
+        },
+        "addVolumeDialog": {
+            "title": "巻を追加",
+            "descriptionPrefix": "カンマで区切ってください。範囲にはハイフンを使います。例:",
+            "volumeNumber": "巻番号",
+            "format": "フォーマット",
+            "ebookSource": "電子書籍の入手先",
+            "selectSource": "入手先を選択",
+            "language": "言語",
+            "selectLanguageOptional": "言語を選択（任意）",
+            "cancel": "キャンセル",
+            "saving": "保存中...",
+            "add": "追加"
+        },
+        "deleteVolumeDialog": {
+            "title": "第{{number}}巻を削除",
+            "confirm": "この巻をコレクションから削除してもよろしいですか？関連する貸出履歴も失われます。",
+            "cancel": "キャンセル",
+            "deleting": "削除中...",
+            "delete": "削除"
+        },
+        "bulkDeleteDialog": {
+            "title": "{{count}}巻を削除",
+            "confirm": "選択した{{count}}巻をコレクションから削除してもよろしいですか？関連する貸出履歴も失われます。",
+            "cancel": "キャンセル",
+            "deleting": "削除中...",
+            "delete": "削除"
+        },
+        "bulkFormatDialog": {
+            "title": "{{count}}巻のフォーマットを変更",
+            "description": "フォーマット、電子書籍の入手先、言語が選択したすべての巻に適用されます。",
+            "cancel": "キャンセル",
+            "saving": "保存中...",
+            "apply": "適用"
+        },
+        "loanDialog": {
+            "title": "第{{number}}巻を貸し出す",
+            "description": "この巻を借りる人を記録してください。",
+            "borrowerName": "借り手の名前",
+            "loanDate": "貸出日",
+            "dueDate": "返却期限",
+            "notes": "メモ",
+            "cancel": "キャンセル",
+            "saving": "保存中...",
+            "submit": "貸出を記録"
+        },
+        "deleteCollectionDialog": {
+            "title": "コレクションから削除",
+            "confirmPrefix": "",
+            "confirmSuffix": "をコレクションから削除しますか？すべての巻と貸出中のデータが失われます。",
+            "cancel": "キャンセル",
+            "deleting": "削除中...",
+            "delete": "削除"
+        },
+        "formatSwitcher": {
+            "title": "第{{number}}巻のフォーマットを変更",
+            "save": "保存",
+            "saving": "保存中..."
+        },
+        "ebookSource": { "bookwalker": "BookWalker", "amazon": "Amazon", "local_epub": "ローカルEpub" },
+        "language": { "id": "インドネシア語", "en": "英語", "ja": "日本語", "other": "その他" }
+    }
+}

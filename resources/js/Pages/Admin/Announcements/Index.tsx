@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -31,13 +32,6 @@ interface Props extends PageProps {
     items: PaginatedData<AnnouncementRow>;
 }
 
-const TYPE_LABELS: Record<string, string> = {
-    info:    'Info',
-    warning: 'Peringatan',
-    danger:  'Bahaya',
-    success: 'Sukses',
-};
-
 const TYPE_VARIANTS: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
     info:    'secondary',
     warning: 'outline',
@@ -46,6 +40,15 @@ const TYPE_VARIANTS: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 };
 
 export default function AnnouncementsIndex({ items }: Props) {
+    const { t } = useTranslation('admin');
+
+    const TYPE_LABELS: Record<string, string> = {
+        info:    t('announcements.types.info'),
+        warning: t('announcements.types.warning'),
+        danger:  t('announcements.types.danger'),
+        success: t('announcements.types.success'),
+    };
+
     const [deleteTarget, setDeleteTarget] = useState<AnnouncementRow | null>(null);
     const [deleting, setDeleting]         = useState(false);
 
@@ -61,29 +64,29 @@ export default function AnnouncementsIndex({ items }: Props) {
         <AdminLayout
             header={
                 <PageHeader
-                    title="Pengumuman"
-                    description="Kelola pengumuman yang tampil untuk semua pengguna."
+                    title={t('announcements.title')}
+                    description={t('announcements.description')}
                     actions={
                         <Link
                             href={route('admin.announcements.create')}
                             className={cn(buttonVariants({ size: 'sm' }))}
                         >
                             <Plus className="mr-1.5 h-4 w-4" />
-                            Buat Pengumuman
+                            {t('announcements.create')}
                         </Link>
                     }
                 />
             }
         >
-            <Head title="Pengumuman" />
+            <Head title={t('announcements.title')} />
             {items.data.length === 0 ? (
                 <EmptyState
-                    title="Belum ada pengumuman"
-                    description="Buat pengumuman pertama untuk ditampilkan ke pengguna."
+                    title={t('announcements.emptyTitle')}
+                    description={t('announcements.emptyDescription')}
                     icon={Plus}
                     action={
                         <Link href={route('admin.announcements.create')} className={cn(buttonVariants({ size: 'sm' }))}>
-                            Buat Pengumuman
+                            {t('announcements.create')}
                         </Link>
                     }
                 />
@@ -93,11 +96,11 @@ export default function AnnouncementsIndex({ items }: Props) {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Judul</TableHead>
-                                    <TableHead className="w-28">Tipe</TableHead>
-                                    <TableHead className="w-24">Status</TableHead>
-                                    <TableHead className="w-40">Mulai</TableHead>
-                                    <TableHead className="w-40">Berakhir</TableHead>
+                                    <TableHead>{t('announcements.table.title')}</TableHead>
+                                    <TableHead className="w-28">{t('announcements.table.type')}</TableHead>
+                                    <TableHead className="w-24">{t('announcements.table.status')}</TableHead>
+                                    <TableHead className="w-40">{t('announcements.table.starts')}</TableHead>
+                                    <TableHead className="w-40">{t('announcements.table.expires')}</TableHead>
                                     <TableHead className="w-20" />
                                 </TableRow>
                             </TableHeader>
@@ -112,7 +115,7 @@ export default function AnnouncementsIndex({ items }: Props) {
                                         </TableCell>
                                         <TableCell>
                                             <Badge variant={a.is_active ? 'default' : 'outline'}>
-                                                {a.is_active ? 'Aktif' : 'Nonaktif'}
+                                                {a.is_active ? t('announcements.active') : t('announcements.inactive')}
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-sm text-muted-foreground">
@@ -155,15 +158,15 @@ export default function AnnouncementsIndex({ items }: Props) {
             <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Hapus Pengumuman</DialogTitle>
+                        <DialogTitle>{t('announcements.deleteTitle')}</DialogTitle>
                     </DialogHeader>
                     <p className="text-sm text-muted-foreground">
-                        Yakin ingin menghapus <strong>"{deleteTarget?.title}"</strong>? Aksi ini tidak dapat dibatalkan.
+                        {t('announcements.deleteConfirmPrefix')} <strong>&quot;{deleteTarget?.title}&quot;</strong>{t('announcements.deleteConfirmSuffix')}
                     </p>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setDeleteTarget(null)}>Batal</Button>
+                        <Button variant="outline" onClick={() => setDeleteTarget(null)}>{t('common:common.cancel')}</Button>
                         <Button variant="destructive" disabled={deleting} onClick={handleDelete}>
-                            {deleting ? 'Menghapus...' : 'Hapus'}
+                            {deleting ? t('common:common.deleting') : t('common:common.delete')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

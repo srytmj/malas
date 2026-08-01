@@ -1,7 +1,7 @@
 # PRD — MALAS (Manga Library Admin System)
 
-**Versi:** 2.2
-**Tanggal:** 2026-06-26, diperbarui 2026-07-26
+**Versi:** 2.3
+**Tanggal:** 2026-06-26, diperbarui 2026-08-01
 **Status:** Active
 
 ---
@@ -203,6 +203,50 @@ User mencatat volume yang dipinjamkan dari koleksinya:
 - Toast notifikasi (sonner) bisa menampilkan tombol "Undo" untuk aksi yang reversible, didorong dari flash session (`undo_url` + `undo_payload`)
 - Contoh: tandai baca per-volume, tandai-semua-baca (undo hanya revert volume yang baru diubah aksi tersebut, bukan semua)
 
+### F-16 — Wishlist *(User)*
+
+- User bisa tandai series yang ingin dibaca tapi belum dikoleksi (`wishlist_items`, unique per user+series)
+- Berbeda dari Koleksi — tidak ada tracking volume/format, murni penanda minat
+- Akses: `/wishlist` (index), tambah dari halaman Katalog, hapus dengan Undo (`restore`)
+
+### F-17 — Profil Publik & Follow *(User, opt-in)*
+
+- User bisa opt-in tampilkan profil publik (`users.is_profile_public`, default false) via toggle di Settings
+- Profil publik (`/u/{username-atau-id}`) **bisa diakses tanpa login** — guest bisa lihat koleksi user (cover + judul, tidak bisa diklik ke detail katalog karena itu butuh login), tapi tidak bisa follow atau lihat menu internal
+- User yang sudah login bisa follow/unfollow user lain dari profil publik atau Direktori Pengguna (`/directory`, butuh login)
+- Direktori Pengguna: daftar user dengan `is_profile_public = true`, cari & lihat profil orang lain
+- Route model binding profil: coba match `username` dulu, fallback ke `id`
+
+### F-18 — Selera Genre (AI Funfact) *(User)*
+
+- Dashboard user menampilkan word cloud genre dari koleksi + "funfact" singkat hasil generate AI berdasarkan pola koleksi user
+- Provider AI dikonfigurasi admin di `/admin/settings` tab AI: **Puter.js** (default — client-side, jalan di browser user, gratis, tanpa API key server) atau Gemini/OpenAI/Claude (server-side, butuh `api_key` tersimpan ter-encrypt di `ai_settings`)
+- Auto-generate ulang saat koleksi user bertambah signifikan; generate manual dibatasi kuota (`GenreFunfact::DEFAULT_MANUAL_QUOTA` = 5×/minggu), admin bisa override kuota per user di `/admin/funfact-quota`
+- Rate limit (HTTP 429) dari provider server-side ditangani khusus (`AiRateLimitException`) — funfact jatuh ke fallback text, tidak memotong kuota generate-ulang manual user
+- Log aktivitas mencatat kategori `ai` untuk aksi generate/error funfact
+
+### F-19 — Import Metadata Light Novel (RanobeDB) *(Admin)*
+
+- Cari & import metadata light novel dari [RanobeDB](https://ranobedb.org) REST API (tanpa auth), paralel dengan AniList — sisi manga/manhwa/manhua tetap pakai AniList, RanobeDB khusus light novel
+- Staff di-split native jadi `authors` dan `illustrators` (kolom terpisah), lebih detail dari AniList yang menggabungkan semua staff
+- Sentinel tanggal `99999999` dari RanobeDB (artinya ongoing) ditangani eksplisit, tidak di-parse sebagai tanggal literal
+- Sync ulang metadata ke series yang sudah ada (Popover "Sync RanobeDB" di Edit Series, sama pola dengan "Sync AniList")
+- Import duplikat (`ranobedb_id` sama) update series yang ada, bukan bikin baru
+- Detail lengkap: [`docs/RANOBEDB_INTEGRATION.md`](RANOBEDB_INTEGRATION.md)
+
+### F-20 — Multi-Bahasa (id/en/ja)
+
+- Seluruh UI mendukung Bahasa Indonesia (default), Inggris, dan Jepang — preferensi disimpan per-user (`users.locale`)
+- Ganti bahasa dari kartu "Bahasa" di Settings atau tombol quick-switch di sidebar footer (tidak perlu buka Settings)
+- Pesan validasi & paginator Laravel bawaan ikut bahasa aktif user (`lang/{id,en,ja}/validation.php`, `pagination.php`)
+- **Wajib untuk semua fitur baru** — setiap teks user-facing baru harus langsung disiapkan terjemahannya di ketiga bahasa, tidak boleh ditunda. Lihat [`CLAUDE.md`](../CLAUDE.md) untuk daftar halaman yang sudah/belum diterjemahkan (masih ada backlog di sisi admin)
+- Flash message dari controller (`->with('success', '...')`) belum masuk sistem terjemahan terpusat — backlog terpisah, dicatat di CLAUDE.md
+
+### F-21 — Reorder Menu Sidebar *(Admin)*
+
+- Admin bisa drag-and-drop urutan menu di `/admin/menus` (`SortableMenuList.tsx`, `@dnd-kit`), langsung update `menus.sort_order` via `PATCH /admin/menus/reorder`
+- Preview sidebar user tersedia di `/admin/menus/user` untuk melihat hasil susunan tanpa harus login sebagai user biasa
+
 ---
 
 ## 5. Access Matrix
@@ -229,6 +273,15 @@ User mencatat volume yang dipinjamkan dari koleksinya:
 | Log Aktivitas | ✓ | ✓ | — |
 | Storage & Database Backup | ✓ | — | — |
 | Global Search / Command Palette | ✓ | ✓ | ✓ |
+| Wishlist | ✓ | ✓ | ✓ |
+| Profil Publik & Follow | ✓ | ✓ | ✓ |
+| Direktori Pengguna | ✓ | ✓ | ✓ |
+| Selera Genre (AI Funfact): lihat & generate | ✓ | ✓ | ✓ |
+| Kuota AI Funfact: kelola | ✓ | ✓ | — |
+| Konfigurasi Provider AI | ✓ | — | — |
+| RanobeDB Import | ✓ | ✓ | — |
+| Reorder Menu Sidebar | ✓ | ✓ | — |
+| Ganti Bahasa (id/en/ja) | ✓ | ✓ | ✓ |
 
 ---
 
@@ -237,5 +290,6 @@ User mencatat volume yang dipinjamkan dari koleksinya:
 - Aplikasi mobile native
 - Marketplace / jual beli
 - Integrasi payment
-- Scraping selain AniList
-- Profil publik + sistem follow + activity feed (gaya Steam) — sengaja ditunda, lihat backlog di [`PHASES.md`](PHASES.md)
+- Scraping selain AniList/RanobeDB
+- Activity feed di profil publik (gaya Steam) — profil publik + follow sudah dibangun (F-17), activity feed-nya masih ditunda
+- Badge/label selera genre ("Genre Explorer" vs "Genre Loyalist") berdasar distribusi genre koleksi — ditunda, numpang di data yang sama dengan fitur Selera Genre (F-18)

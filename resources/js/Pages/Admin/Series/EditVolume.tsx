@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -31,7 +32,7 @@ interface Props extends PageProps {
 }
 
 const schema = z.object({
-    volume_number: z.string().min(1, 'Wajib diisi'),
+    volume_number: z.string().min(1),
     type:          z.enum(['regular', 'digital', 'bind_up']),
     isbn:          z.string().optional(),
     published_at:  z.string().optional(),
@@ -39,18 +40,20 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
-const VOLUME_TYPE_LABELS: Record<string, string> = {
-    regular: 'Regular',
-    digital: 'Digital',
-    bind_up: 'Bind-up',
-};
-
 function FieldError({ message }: { message?: string }) {
     if (!message) return null;
     return <p className="text-sm text-destructive">{message}</p>;
 }
 
 export default function EditVolume({ volume, series }: Props) {
+    const { t } = useTranslation('admin');
+
+    const VOLUME_TYPE_LABELS: Record<string, string> = {
+        regular: t('common:badge.volumeType.regular'),
+        digital: t('common:badge.volumeType.digital'),
+        bind_up: t('common:badge.volumeType.bind_up'),
+    };
+
     const [coverFile, setCoverFile] = useState<File | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const fileRef = useRef<HTMLInputElement>(null);
@@ -96,26 +99,26 @@ export default function EditVolume({ volume, series }: Props) {
         <AdminLayout
             header={
                 <PageHeader
-                    title={`Edit Volume #${volume.volume_number}`}
+                    title={t('editVolume.title', { number: volume.volume_number })}
                     breadcrumbs={[
-                        { label: 'Series', href: route('admin.series.index') },
+                        { label: t('series.breadcrumb'), href: route('admin.series.index') },
                         { label: series.title_romaji, href: route('admin.series.show', series.id) },
-                        { label: `Volume #${volume.volume_number}` },
+                        { label: t('editVolume.breadcrumbVolume', { number: volume.volume_number }) },
                     ]}
                 />
             }
         >
-            <Head title={`Edit Vol. ${volume.volume_number}`} />
+            <Head title={t('editVolume.title', { number: volume.volume_number })} />
             <form onSubmit={handleSubmit(onSubmit)} className="max-w-md space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                        <Label htmlFor="volume_number">Nomor Volume <span className="text-destructive">*</span></Label>
+                        <Label htmlFor="volume_number">{t('series.volumeNumberLabel')} <span className="text-destructive">*</span></Label>
                         <Input id="volume_number" type="number" min={1} {...register('volume_number')} />
-                        <FieldError message={errors.volume_number?.message} />
+                        <FieldError message={errors.volume_number ? t('common:common.required') : undefined} />
                     </div>
 
                     <div className="space-y-1.5">
-                        <Label>Tipe <span className="text-destructive">*</span></Label>
+                        <Label>{t('series.typeLabel')} <span className="text-destructive">*</span></Label>
                         <Controller<FormValues, 'type'>
                             control={control}
                             name="type"
@@ -123,9 +126,9 @@ export default function EditVolume({ volume, series }: Props) {
                                 <Select value={field.value} onValueChange={field.onChange}>
                                     <SelectTrigger><SelectValue>{(value: string) => VOLUME_TYPE_LABELS[value] ?? value}</SelectValue></SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="regular">Regular</SelectItem>
-                                        <SelectItem value="digital">Digital</SelectItem>
-                                        <SelectItem value="bind_up">Bind-up</SelectItem>
+                                        <SelectItem value="regular">{VOLUME_TYPE_LABELS.regular}</SelectItem>
+                                        <SelectItem value="digital">{VOLUME_TYPE_LABELS.digital}</SelectItem>
+                                        <SelectItem value="bind_up">{VOLUME_TYPE_LABELS.bind_up}</SelectItem>
                                     </SelectContent>
                                 </Select>
                             )}
@@ -135,21 +138,21 @@ export default function EditVolume({ volume, series }: Props) {
                 </div>
 
                 <div className="space-y-1.5">
-                    <Label htmlFor="isbn">ISBN</Label>
+                    <Label htmlFor="isbn">{t('series.isbnLabel')}</Label>
                     <Input id="isbn" {...register('isbn')} />
                 </div>
 
                 <div className="space-y-1.5">
-                    <Label htmlFor="published_at">Tanggal Terbit</Label>
+                    <Label htmlFor="published_at">{t('series.publishedAtLabel')}</Label>
                     <Input id="published_at" type="date" {...register('published_at')} />
                 </div>
 
                 <div className="space-y-1.5">
-                    <Label>Cover</Label>
+                    <Label>{t('series.coverLabel')}</Label>
                     {volume.cover_url && !coverFile && (
                         <img
                             src={volume.cover_url}
-                            alt={`Cover Volume #${volume.volume_number}`}
+                            alt={t('editVolume.breadcrumbVolume', { number: volume.volume_number })}
                             className="h-24 w-16 rounded object-cover"
                         />
                     )}
@@ -160,18 +163,18 @@ export default function EditVolume({ volume, series }: Props) {
                         className="cursor-pointer"
                         onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)}
                     />
-                    {coverFile && <p className="text-xs text-muted-foreground">Baru: {coverFile.name}</p>}
+                    {coverFile && <p className="text-xs text-muted-foreground">{t('editVolume.newFile', { name: coverFile.name })}</p>}
                 </div>
 
                 <div className="flex gap-3 pt-2">
                     <Button type="submit" disabled={submitting}>
-                        {submitting ? 'Menyimpan...' : 'Simpan Perubahan'}
+                        {submitting ? t('common:common.saving') : t('announcements.saveChanges')}
                     </Button>
                     <Link
                         href={route('admin.series.show', series.id)}
                         className={cn(buttonVariants({ variant: 'outline' }))}
                     >
-                        Batal
+                        {t('common:common.cancel')}
                     </Link>
                 </div>
             </form>

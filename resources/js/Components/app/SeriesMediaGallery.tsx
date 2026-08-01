@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { router } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import { ImagePlus, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 
@@ -15,6 +16,7 @@ interface SeriesMediaGalleryProps {
 }
 
 export function SeriesMediaGallery({ seriesId, media }: SeriesMediaGalleryProps) {
+    const { t } = useTranslation();
     const fileRef = useRef<HTMLInputElement>(null);
     const [uploading, setUploading] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -48,7 +50,7 @@ export function SeriesMediaGallery({ seriesId, media }: SeriesMediaGalleryProps)
     return (
         <div className="mt-8">
             <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-base font-semibold">Galeri Media ({media.length})</h2>
+                <h2 className="text-base font-semibold">{t('components.seriesMediaGallery.title', { count: media.length })}</h2>
                 <input
                     ref={fileRef}
                     type="file"
@@ -69,13 +71,13 @@ export function SeriesMediaGallery({ seriesId, media }: SeriesMediaGalleryProps)
                     ) : (
                         <ImagePlus className="mr-1.5 h-3.5 w-3.5" />
                     )}
-                    {uploading ? 'Mengunggah...' : 'Tambah Gambar'}
+                    {uploading ? t('components.seriesMediaGallery.uploading') : t('components.seriesMediaGallery.addImage')}
                 </Button>
             </div>
 
             {media.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                    Belum ada media tambahan. Upload artwork, banner, atau screenshot untuk memperkaya halaman katalog series ini.
+                    {t('components.seriesMediaGallery.empty')}
                 </p>
             ) : (
                 <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">

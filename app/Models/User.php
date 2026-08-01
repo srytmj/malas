@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -26,6 +27,8 @@ class User extends Authenticatable
         'is_banned',
         'ban_reason',
         'banned_at',
+        'is_profile_public',
+        'locale',
     ];
 
     protected $hidden = [
@@ -41,6 +44,7 @@ class User extends Authenticatable
             'is_banned' => 'boolean',
             'banned_at' => 'datetime',
             'deleted_at' => 'datetime',
+            'is_profile_public' => 'boolean',
         ];
     }
 
@@ -59,6 +63,21 @@ class User extends Authenticatable
         return $this->hasMany(Collection::class);
     }
 
+    public function wishlistItems(): HasMany
+    {
+        return $this->hasMany(WishlistItem::class);
+    }
+
+    public function genreFunfact(): HasOne
+    {
+        return $this->hasOne(GenreFunfact::class);
+    }
+
+    public function activityLogs(): HasMany
+    {
+        return $this->hasMany(ActivityLog::class);
+    }
+
     public function tickets(): HasMany
     {
         return $this->hasMany(Ticket::class);
@@ -68,5 +87,31 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Announcement::class, 'announcement_user')
             ->withPivot('dismissed_at');
+    }
+
+    public function followers(): HasMany
+    {
+        return $this->hasMany(Follow::class, 'following_id');
+    }
+
+    public function following(): HasMany
+    {
+        return $this->hasMany(Follow::class, 'follower_id');
+    }
+
+    public function isFollowing(string $userId): bool
+    {
+        return $this->following()->where('following_id', $userId)->exists();
+    }
+
+    /**
+     * Route model binding: coba cocokkan lewat username dulu (URL profil publik
+     * pakai username), fallback ke id — karena tidak semua user (mis. yang belum
+     * sinkron dari SSO) punya username terisi.
+     */
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        return static::where('username', $value)->first()
+            ?? static::where('id', $value)->first();
     }
 }

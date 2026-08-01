@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import { ChevronRight } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -24,24 +25,25 @@ interface Props extends PageProps {
 }
 
 export default function AdminCollectionsIndex({ users }: Props) {
+    const { t } = useTranslation('admin');
     return (
         <AdminLayout
             header={
                 <PageHeader
-                    title="Semua Koleksi"
-                    description={`${users.total} pengguna memiliki koleksi`}
+                    title={t('collections.title')}
+                    description={t('collections.description', { count: users.total })}
                 />
             }
         >
-            <Head title="Semua Koleksi" />
+            <Head title={t('collections.title')} />
             <div className="rounded-lg border">
                 <Table>
                     <TableHeader>
                         <TableRow>
                             <TableHead className="w-10" />
-                            <TableHead>Pengguna</TableHead>
-                            <TableHead className="w-32 text-right">Series</TableHead>
-                            <TableHead className="w-32 text-right">Volume Dimiliki</TableHead>
+                            <TableHead>{t('collections.table.user')}</TableHead>
+                            <TableHead className="w-32 text-right">{t('collections.table.series')}</TableHead>
+                            <TableHead className="w-32 text-right">{t('collections.table.ownedVolumes')}</TableHead>
                             <TableHead className="w-10" />
                         </TableRow>
                     </TableHeader>
@@ -49,7 +51,7 @@ export default function AdminCollectionsIndex({ users }: Props) {
                         {users.data.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={5} className="py-12 text-center text-muted-foreground">
-                                    Belum ada koleksi.
+                                    {t('collections.empty')}
                                 </TableCell>
                             </TableRow>
                         ) : users.data.map((u) => (

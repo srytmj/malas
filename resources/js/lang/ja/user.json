@@ -1,0 +1,87 @@
+{
+    "wishlist": {
+        "title": "ウィッシュリスト",
+        "description": "読みたいシリーズ {{count}}件",
+        "empty": {
+            "title": "ウィッシュリストは空です",
+            "description": "まだ所有していないが後で読みたいシリーズをカタログから追加しましょう。",
+            "browseCatalog": "カタログを見る"
+        },
+        "noneForType": "このタイプのウィッシュリストはありません。",
+        "addToCollection": "コレクションに追加",
+        "add": "追加",
+        "adding": "追加中..."
+    },
+    "tickets": {
+        "title": "チケット",
+        "newTicket": "チケット作成",
+        "count": "{{count}}件のチケットを送信済み",
+        "emptyTitle": "チケットはまだありません",
+        "emptyDescription": "カタログリクエストや他の報告がありますか？管理者に送るチケットを作成しましょう。",
+        "subject": "件名",
+        "type": "タイプ",
+        "status": "ステータス",
+        "createdColumn": "作成日",
+        "yourMessage": "あなたのメッセージ",
+        "adminResponse": "管理者からの返信",
+        "waitingResponse": "管理者からの返信をお待ちください。",
+        "related": "関連: {{title}}",
+        "createdAt": "{{date}} に作成",
+        "repliedAt": "{{date}} に返信",
+        "form": {
+            "message": "メッセージ",
+            "submit": "チケットを送信",
+            "submitting": "送信中...",
+            "relatedTo": "このチケットの関連先",
+            "limitWarning": "同時に作成できるチケットは{{max}}件までです。新しいチケットを作成するには、管理者からの返信待ちのチケットがないことを確認してください。",
+            "limitReached": "現在{{active}}/{{max}}件のアクティブなチケットがあります — 返信または解決をお待ちください。",
+            "defaultSubject": "関連: {{title}}"
+        }
+    },
+    "loans": {
+        "title": "貸出履歴",
+        "count": "{{count}}件の貸出記録",
+        "emptyTitle": "貸出履歴はまだありません",
+        "emptyDescription": "コレクションページから巻を貸し出すと記録が始まります。",
+        "seriesVolume": "シリーズ / 巻",
+        "borrower": "借り手",
+        "status": "ステータス",
+        "loanedAt": "貸出日",
+        "dueAt": "返却期限",
+        "returnedAt": "返却日",
+        "volumeShort": "第{{number}}巻",
+        "statusReturned": "返却済み",
+        "statusOverdue": "延滞",
+        "statusOnLoan": "貸出中"
+    },
+    "profile": {
+        "seriesInCollection": "コレクション内 {{count}}シリーズ",
+        "manageProfile": "プロフィール管理",
+        "processing": "処理中...",
+        "unfollow": "フォロー解除",
+        "follow": "フォロー",
+        "followers": "フォロワー",
+        "following": "フォロー中",
+        "collection": "コレクション",
+        "genreTaste": "ジャンルの好み",
+        "collectionDetail": "コレクション詳細",
+        "totalVolume": "総巻数",
+        "collectionHeading": "コレクション ({{visible}}/{{total}})",
+        "noneForType": "このタイプのコレクションはありません。",
+        "backToTop": "トップに戻る",
+        "show": {
+            "25": "25件表示",
+            "50": "50件表示",
+            "100": "100件表示",
+            "all": "すべて表示"
+        }
+    },
+    "directory": {
+        "title": "ユーザー検索",
+        "description": "ユーザー名や名前で他のユーザーを探す",
+        "searchPlaceholder": "ユーザー名または名前を検索...",
+        "promptSearch": "ユーザー名または名前を入力して検索を開始してください。",
+        "noResults": "ユーザーが見つかりません。",
+        "privateProfile": "このプロフィールは非公開です"
+    }
+}

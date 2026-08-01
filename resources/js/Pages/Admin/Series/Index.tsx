@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import { Plus, MoreHorizontal, Pencil, RefreshCw, Trash2, Eye } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -24,9 +25,11 @@ import {
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/Components/ui/select';
+import { ToggleGroup, ToggleGroupItem } from '@/Components/ui/toggle-group';
 import { cn } from '@/lib/utils';
 import { PageProps } from '@/types';
 import { type PaginatedData, type SeriesStatus, type SeriesType } from '@/lib/types';
+import { useTypeFilterOptions } from '@/lib/typeFilters';
 
 interface SeriesRow {
     id: string;
@@ -45,24 +48,18 @@ interface Props extends PageProps {
     filters: { search?: string | null; status?: string | null; type?: string | null };
 }
 
-const STATUSES = [
-    { value: 'publishing',        label: 'Publishing' },
-    { value: 'finished',          label: 'Selesai' },
-    { value: 'on_hiatus',         label: 'Hiatus' },
-    { value: 'discontinued',      label: 'Discontinued' },
-    { value: 'not_yet_published', label: 'Belum Terbit' },
-];
-
-const TYPES = [
-    { value: 'manga',     label: 'Manga' },
-    { value: 'manhwa',    label: 'Manhwa' },
-    { value: 'manhua',    label: 'Manhua' },
-    { value: 'novel',     label: 'Novel' },
-    { value: 'one_shot',  label: 'One Shot' },
-    { value: 'doujinshi', label: 'Doujinshi' },
-];
-
 export default function SeriesIndex({ series, filters }: Props) {
+    const { t } = useTranslation('admin');
+    const typeOptions = useTypeFilterOptions();
+
+    const STATUSES = [
+        { value: 'publishing',        label: t('common:badge.status.publishing') },
+        { value: 'finished',          label: t('common:badge.status.finished') },
+        { value: 'on_hiatus',         label: t('common:badge.status.on_hiatus') },
+        { value: 'discontinued',      label: t('common:badge.status.discontinued') },
+        { value: 'not_yet_published', label: t('common:badge.status.not_yet_published') },
+    ];
+
     const [search, setSearch]               = useState(filters.search ?? '');
     const [deleteTarget, setDeleteTarget]   = useState<SeriesRow | null>(null);
     const [deleting, setDeleting]           = useState(false);
@@ -82,14 +79,14 @@ export default function SeriesIndex({ series, filters }: Props) {
             isFirstRender.current = false;
             return;
         }
-        const t = setTimeout(() => {
+        const timer = setTimeout(() => {
             router.get(
                 route('admin.series.index'),
                 { ...filters, search: search || undefined },
                 { preserveState: true, preserveScroll: true, replace: true },
             );
         }, 400);
-        return () => clearTimeout(t);
+        return () => clearTimeout(timer);
     }, [search]);
 
     function handleFilter(key: string, value: string) {
@@ -152,8 +149,8 @@ export default function SeriesIndex({ series, filters }: Props) {
         <AdminLayout
             header={
                 <PageHeader
-                    title="Series"
-                    description={`${series.total} series terdaftar`}
+                    title={t('series.breadcrumb')}
+                    description={t('series.index.totalCount', { count: series.total })}
                     actions={
                         <div className="flex flex-wrap items-center gap-2">
                             <Link
@@ -161,7 +158,7 @@ export default function SeriesIndex({ series, filters }: Props) {
                                 className={buttonVariants()}
                             >
                                 <Plus className="h-4 w-4 mr-1.5" />
-                                Tambah Series
+                                {t('series.create.title')}
                             </Link>
                             {selectedIds.size > 0 && (
                                 <Button
@@ -171,7 +168,7 @@ export default function SeriesIndex({ series, filters }: Props) {
                                     onClick={() => setBulkDeleteOpen(true)}
                                 >
                                     <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                                    Hapus ({selectedIds.size})
+                                    {t('series.index.deleteCount', { count: selectedIds.size })}
                                 </Button>
                             )}
                         </div>
@@ -179,11 +176,11 @@ export default function SeriesIndex({ series, filters }: Props) {
                 />
             }
         >
-            <Head title="Series" />
+            <Head title={t('series.breadcrumb')} />
             {/* Filters */}
             <div className="mb-4 flex flex-wrap items-center gap-2">
                 <Input
-                    placeholder="Cari judul..."
+                    placeholder={t('series.index.searchPlaceholder')}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="w-56"
@@ -194,7 +191,7 @@ export default function SeriesIndex({ series, filters }: Props) {
                     size="icon"
                     onClick={handleRefresh}
                     disabled={refreshing}
-                    aria-label="Segarkan"
+                    aria-label={t('series.index.refresh')}
                 >
                     <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} />
                 </Button>
@@ -203,33 +200,33 @@ export default function SeriesIndex({ series, filters }: Props) {
                     onValueChange={(v) => handleFilter('status', v ?? '')}
                 >
                     <SelectTrigger className="w-40">
-                        <SelectValue placeholder="Semua status">
-                            {(value: string) => STATUSES.find((s) => s.value === value)?.label ?? 'Semua status'}
+                        <SelectValue placeholder={t('series.index.allStatuses')}>
+                            {(value: string) => STATUSES.find((s) => s.value === value)?.label ?? t('series.index.allStatuses')}
                         </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="">Semua status</SelectItem>
+                        <SelectItem value="">{t('series.index.allStatuses')}</SelectItem>
                         {STATUSES.map((s) => (
                             <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
-                <Select
-                    value={filters.type ?? ''}
-                    onValueChange={(v) => handleFilter('type', v ?? '')}
+            </div>
+
+            {/* Quick filter tipe — Segmented Control, terpisah dari filter lain */}
+            <div className="mb-4 overflow-x-auto">
+                <ToggleGroup
+                    value={[filters.type || 'all']}
+                    onValueChange={(vals) => handleFilter('type', vals[0] === 'all' ? '' : (vals[0] ?? ''))}
+                    variant="outline"
+                    size="sm"
                 >
-                    <SelectTrigger className="w-40">
-                        <SelectValue placeholder="Semua tipe">
-                            {(value: string) => TYPES.find((t) => t.value === value)?.label ?? 'Semua tipe'}
-                        </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="">Semua tipe</SelectItem>
-                        {TYPES.map((t) => (
-                            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                    {typeOptions.map((opt) => (
+                        <ToggleGroupItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                        </ToggleGroupItem>
+                    ))}
+                </ToggleGroup>
             </div>
 
             {/* Table */}
@@ -242,15 +239,15 @@ export default function SeriesIndex({ series, filters }: Props) {
                                     checked={allSelected}
                                     indeterminate={someSelected}
                                     onCheckedChange={toggleAll}
-                                    aria-label="Pilih semua"
+                                    aria-label={t('series.index.selectAll')}
                                 />
                             </TableHead>
                             <TableHead className="w-12" />
-                            <TableHead>Judul</TableHead>
-                            <TableHead className="w-28">Tipe</TableHead>
-                            <TableHead className="w-36">Status</TableHead>
-                            <TableHead className="w-20 text-right">Volume</TableHead>
-                            <TableHead className="w-20 text-right">Skor</TableHead>
+                            <TableHead>{t('series.index.table.title')}</TableHead>
+                            <TableHead className="w-28">{t('series.index.table.type')}</TableHead>
+                            <TableHead className="w-36">{t('series.index.table.status')}</TableHead>
+                            <TableHead className="w-20 text-right">{t('series.index.table.volume')}</TableHead>
+                            <TableHead className="w-20 text-right">{t('series.index.table.score')}</TableHead>
                             <TableHead className="w-12" />
                         </TableRow>
                     </TableHeader>
@@ -258,7 +255,7 @@ export default function SeriesIndex({ series, filters }: Props) {
                         {series.data.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={8} className="py-12 text-center text-muted-foreground">
-                                    Tidak ada series ditemukan.
+                                    {t('series.index.empty')}
                                 </TableCell>
                             </TableRow>
                         ) : series.data.map((s) => (
@@ -271,20 +268,20 @@ export default function SeriesIndex({ series, filters }: Props) {
                                         <Checkbox
                                             checked={selectedIds.has(s.id)}
                                             onCheckedChange={() => toggleRow(s.id)}
-                                            aria-label={`Pilih ${s.title_romaji}`}
+                                            aria-label={t('series.index.selectItem', { title: s.title_romaji })}
                                         />
                                     </TableCell>
-                                    <TableCell>
+                                    <TableCell className="align-middle">
                                         {s.cover_url ? (
-                                            <img src={s.cover_url} alt={s.title_romaji} className="h-10 w-7 rounded object-cover" />
+                                            <img src={s.cover_url} alt={s.title_romaji} className="h-24 w-16 rounded object-cover" />
                                         ) : (
-                                            <div className="h-10 w-7 rounded bg-muted" />
+                                            <div className="h-24 w-16 rounded bg-muted" />
                                         )}
                                     </TableCell>
-                                    <TableCell onClick={(e) => e.stopPropagation()}>
+                                    <TableCell onClick={(e) => e.stopPropagation()} className="w-64 max-w-64 whitespace-normal align-middle">
                                         <HoverCard>
                                             <HoverCardTrigger
-                                                render={<Link href={route('admin.series.show', s.id)} className="font-medium hover:underline" />}
+                                                render={<Link href={route('admin.series.show', s.id)} className="font-medium leading-snug hover:underline" />}
                                             >
                                                 {s.title_romaji}
                                             </HoverCardTrigger>
@@ -302,8 +299,8 @@ export default function SeriesIndex({ series, filters }: Props) {
                                                             <SeriesStatusBadge status={s.status} />
                                                         </div>
                                                         <p className="text-xs text-muted-foreground">
-                                                            {s.volumes_count}{s.total_volumes ? `/${s.total_volumes}` : ''} volume
-                                                            {s.score !== null ? ` · Skor ${Number(s.score).toFixed(1)}` : ''}
+                                                            {t('series.index.volumeCount', { count: `${s.volumes_count}${s.total_volumes ? `/${s.total_volumes}` : ''}` })}
+                                                            {s.score !== null ? t('series.index.scoreSuffix', { score: Number(s.score).toFixed(1) }) : ''}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -333,7 +330,7 @@ export default function SeriesIndex({ series, filters }: Props) {
                                                     onClick={() => router.visit(route('admin.series.edit', s.id))}
                                                 >
                                                     <Pencil className="mr-2 h-4 w-4" />
-                                                    Edit
+                                                    {t('common:common.edit')}
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem
@@ -341,7 +338,7 @@ export default function SeriesIndex({ series, filters }: Props) {
                                                     onClick={() => setDeleteTarget(s)}
                                                 >
                                                     <Trash2 className="mr-2 h-4 w-4" />
-                                                    Hapus
+                                                    {t('common:common.delete')}
                                                 </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
@@ -350,16 +347,16 @@ export default function SeriesIndex({ series, filters }: Props) {
                                 <ContextMenuContent>
                                     <ContextMenuItem onClick={() => router.visit(route('admin.series.show', s.id))}>
                                         <Eye className="mr-2 h-4 w-4" />
-                                        Lihat
+                                        {t('series.index.view')}
                                     </ContextMenuItem>
                                     <ContextMenuItem onClick={() => router.visit(route('admin.series.edit', s.id))}>
                                         <Pencil className="mr-2 h-4 w-4" />
-                                        Edit
+                                        {t('common:common.edit')}
                                     </ContextMenuItem>
                                     <ContextMenuSeparator />
                                     <ContextMenuItem variant="destructive" onClick={() => setDeleteTarget(s)}>
                                         <Trash2 className="mr-2 h-4 w-4" />
-                                        Hapus
+                                        {t('common:common.delete')}
                                     </ContextMenuItem>
                                 </ContextMenuContent>
                             </ContextMenu>
@@ -380,16 +377,16 @@ export default function SeriesIndex({ series, filters }: Props) {
             <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Hapus Series</DialogTitle>
+                        <DialogTitle>{t('series.index.deleteSeriesTitle')}</DialogTitle>
                         <DialogDescription>
-                            Yakin ingin menghapus <strong>{deleteTarget?.title_romaji}</strong>?
-                            Semua volume, koleksi, dan pinjaman terkait juga akan terhapus.
+                            {t('series.index.deleteSeriesConfirmPrefix')} <strong>{deleteTarget?.title_romaji}</strong>
+                            {t('series.index.deleteSeriesConfirmSuffix')}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setDeleteTarget(null)}>Batal</Button>
+                        <Button variant="outline" onClick={() => setDeleteTarget(null)}>{t('common:common.cancel')}</Button>
                         <Button variant="destructive" disabled={deleting} onClick={handleDelete}>
-                            {deleting ? 'Menghapus...' : 'Hapus'}
+                            {deleting ? t('common:common.deleting') : t('common:common.delete')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -399,17 +396,16 @@ export default function SeriesIndex({ series, filters }: Props) {
             <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Hapus {selectedIds.size} Series</DialogTitle>
+                        <DialogTitle>{t('series.index.bulkDeleteTitle', { count: selectedIds.size })}</DialogTitle>
                         <DialogDescription>
-                            Yakin ingin menghapus <strong>{selectedIds.size} series</strong> yang dipilih?
-                            Semua volume, koleksi user, dan pinjaman terkait juga akan ikut terhapus.
-                            Tindakan ini tidak dapat dibatalkan.
+                            {t('series.index.bulkDeleteConfirmPrefix')} <strong>{selectedIds.size} {t('series.index.bulkDeleteConfirmMiddle')}</strong>{' '}
+                            {t('series.index.bulkDeleteConfirmSuffix')}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setBulkDeleteOpen(false)}>Batal</Button>
+                        <Button variant="outline" onClick={() => setBulkDeleteOpen(false)}>{t('common:common.cancel')}</Button>
                         <Button variant="destructive" disabled={bulkDeleting} onClick={handleBulkDelete}>
-                            {bulkDeleting ? 'Menghapus...' : `Hapus ${selectedIds.size} Series`}
+                            {bulkDeleting ? t('common:common.deleting') : t('series.index.bulkDeleteTitle', { count: selectedIds.size })}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

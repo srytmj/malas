@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import { MessageSquare } from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -24,13 +25,14 @@ interface Props extends PageProps {
 }
 
 export default function TicketShow({ ticket }: Props) {
+    const { t } = useTranslation('user');
     return (
         <UserLayout
             header={
                 <PageHeader
                     title={ticket.subject}
                     breadcrumbs={[
-                        { label: 'Tiket', href: route('tickets.index') },
+                        { label: t('tickets.title'), href: route('tickets.index') },
                         { label: ticket.subject },
                     ]}
                 />
@@ -44,15 +46,15 @@ export default function TicketShow({ ticket }: Props) {
                     <TicketTypeBadge type={ticket.type} />
                     {ticket.series && (
                         <Link href={route('catalog.show', ticket.series.id)} className="text-sm text-muted-foreground hover:underline">
-                            Terkait: {ticket.series.title_romaji}
+                            {t('tickets.related', { title: ticket.series.title_romaji })}
                         </Link>
                     )}
-                    <span className="ml-auto text-xs text-muted-foreground">Dibuat {ticket.created_at}</span>
+                    <span className="ml-auto text-xs text-muted-foreground">{t('tickets.createdAt', { date: ticket.created_at })}</span>
                 </div>
 
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Pesan Kamu</CardTitle>
+                        <CardTitle className="text-base">{t('tickets.yourMessage')}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <p className="whitespace-pre-wrap text-sm text-muted-foreground leading-relaxed">{ticket.message}</p>
@@ -64,18 +66,18 @@ export default function TicketShow({ ticket }: Props) {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-base">
                                 <MessageSquare className="h-4 w-4" />
-                                Respons Admin
+                                {t('tickets.adminResponse')}
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-1">
                             <p className="whitespace-pre-wrap text-sm leading-relaxed">{ticket.admin_response}</p>
                             {ticket.responded_at && (
-                                <p className="text-xs text-muted-foreground">Dibalas {ticket.responded_at}</p>
+                                <p className="text-xs text-muted-foreground">{t('tickets.repliedAt', { date: ticket.responded_at })}</p>
                             )}
                         </CardContent>
                     </Card>
                 ) : (
-                    <p className="text-sm text-muted-foreground">Menunggu respons dari admin.</p>
+                    <p className="text-sm text-muted-foreground">{t('tickets.waitingResponse')}</p>
                 )}
             </div>
         </UserLayout>

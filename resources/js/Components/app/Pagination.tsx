@@ -1,4 +1,5 @@
 import { Link, router } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { type PaginatedData } from '@/lib/types';
 import {
@@ -16,6 +17,7 @@ interface PaginationProps<T> {
 }
 
 export function Pagination<T>({ data, routeName, filters = {} }: PaginationProps<T>) {
+    const { t } = useTranslation();
     if (data.total === 0) return null;
 
     function handlePerPageChange(value: string | null) {
@@ -32,12 +34,12 @@ export function Pagination<T>({ data, routeName, filters = {} }: PaginationProps
             <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm text-muted-foreground">
                     {data.from !== null && data.to !== null
-                        ? `Menampilkan ${data.from}–${data.to} dari ${data.total}`
-                        : `Total ${data.total}`}
+                        ? t('pagination.showing', { from: data.from, to: data.to, total: data.total })
+                        : t('pagination.total', { total: data.total })}
                 </p>
                 {routeName && (
                     <div className="flex items-center gap-1.5">
-                        <span className="text-sm text-muted-foreground">per halaman</span>
+                        <span className="text-sm text-muted-foreground">{t('pagination.perPage')}</span>
                         <Select value={String(data.per_page)} onValueChange={handlePerPageChange}>
                             <SelectTrigger className="h-8 w-[68px]">
                                 <SelectValue>{(v: string) => v}</SelectValue>

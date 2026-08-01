@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { BookOpen, Save, X, Plus, Pencil, Trash2, ImageIcon, RefreshCw, Loader2, Search, Wand2 } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
@@ -47,6 +48,31 @@ interface AniListResult {
     already_imported: boolean;
 }
 
+interface RanobeDbResult {
+    ranobedb_id: number;
+    title: string;
+    title_display: string | null;
+    cover_url: string | null;
+    volumes: number | null;
+    published_from: string | null;
+    published_to: string | null;
+    already_imported: boolean;
+}
+
+interface RanobeDbDetail {
+    title_romaji: string;
+    title_english: string | null;
+    title_japanese: string | null;
+    synopsis: string | null;
+    status: SeriesStatus;
+    type: SeriesType;
+    published_from: string | null;
+    published_to: string | null;
+    total_volumes: number | null;
+    score: number | null;
+    cover_url: string | null;
+}
+
 interface VolumeRow {
     id: string;
     volume_number: number;
@@ -80,7 +106,7 @@ interface Props extends PageProps {
 }
 
 const seriesSchema = z.object({
-    title_romaji:   z.string().min(1, 'Wajib diisi'),
+    title_romaji:   z.string().min(1),
     title_english:  z.string().optional(),
     title_japanese: z.string().optional(),
     synopsis:       z.string().optional(),
@@ -94,7 +120,7 @@ const seriesSchema = z.object({
 });
 
 const volumeSchema = z.object({
-    volume_number: z.string().min(1, 'Wajib diisi'),
+    volume_number: z.string().min(1),
     type:          z.enum(['regular', 'digital', 'bind_up']),
     isbn:          z.string().optional(),
     published_at:  z.string().optional(),
@@ -103,35 +129,37 @@ const volumeSchema = z.object({
 type SeriesFormValues = z.infer<typeof seriesSchema>;
 type VolumeFormValues = z.infer<typeof volumeSchema>;
 
-const STATUS_LABELS: Record<string, string> = {
-    publishing: 'Publishing',
-    finished: 'Selesai',
-    on_hiatus: 'Hiatus',
-    discontinued: 'Discontinued',
-    not_yet_published: 'Belum Terbit',
-};
-
-const TYPE_LABELS: Record<string, string> = {
-    manga: 'Manga',
-    manhwa: 'Manhwa',
-    manhua: 'Manhua',
-    novel: 'Novel',
-    one_shot: 'One Shot',
-    doujinshi: 'Doujinshi',
-};
-
-const VOLUME_TYPE_LABELS: Record<string, string> = {
-    regular: 'Regular',
-    digital: 'Digital',
-    bind_up: 'Bind-up',
-};
-
 function FieldError({ message }: { message?: string }) {
     if (!message) return null;
     return <p className="text-xs text-destructive">{message}</p>;
 }
 
 export default function SeriesEdit({ series, volumes, media }: Props) {
+    const { t } = useTranslation('admin');
+
+    const STATUS_LABELS: Record<string, string> = {
+        publishing: t('common:badge.status.publishing'),
+        finished: t('common:badge.status.finished'),
+        on_hiatus: t('common:badge.status.on_hiatus'),
+        discontinued: t('common:badge.status.discontinued'),
+        not_yet_published: t('common:badge.status.not_yet_published'),
+    };
+
+    const TYPE_LABELS: Record<string, string> = {
+        manga: t('common:badge.type.manga'),
+        manhwa: t('common:badge.type.manhwa'),
+        manhua: t('common:badge.type.manhua'),
+        novel: t('common:badge.type.novel'),
+        one_shot: t('common:badge.type.one_shot'),
+        doujinshi: t('common:badge.type.doujinshi'),
+    };
+
+    const VOLUME_TYPE_LABELS: Record<string, string> = {
+        regular: t('common:badge.volumeType.regular'),
+        digital: t('common:badge.volumeType.digital'),
+        bind_up: t('common:badge.volumeType.bind_up'),
+    };
+
     // Series form state
     const [coverMode, setCoverMode]         = useState<'local' | 'url'>('local');
     const [coverFile, setCoverFile]         = useState<File | null>(null);
@@ -153,6 +181,14 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
     const [syncResults, setSyncResults]     = useState<AniListResult[]>([]);
     const [syncLoading, setSyncLoading]     = useState(false);
     const [syncError, setSyncError]         = useState<string | null>(null);
+
+    // RanobeDB sync dialog state
+    const [rdSyncOpen, setRdSyncOpen]       = useState(false);
+    const [rdSyncQuery, setRdSyncQuery]     = useState('');
+    const [rdSyncResults, setRdSyncResults] = useState<RanobeDbResult[]>([]);
+    const [rdSyncLoading, setRdSyncLoading] = useState(false);
+    const [rdSyncError, setRdSyncError]     = useState<string | null>(null);
+    const [rdApplying, setRdApplying]       = useState(false);
 
     // Volume — add dialog
     const [addVolumeOpen, setAddVolumeOpen] = useState(false);
@@ -321,7 +357,7 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
             return;
         }
         setCoverSearchLoading(true);
-        const t = setTimeout(async () => {
+        const timer = setTimeout(async () => {
             try {
                 const url = new URL(route('admin.images.search'), window.location.origin);
                 url.searchParams.set('q', coverSearchQuery.trim());
@@ -330,13 +366,13 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                 setCoverSearchResults(data.results);
                 setCoverSearchError(data.error);
             } catch {
-                setCoverSearchError('Gagal menghubungi server.');
+                setCoverSearchError(t('common:common.generalError'));
                 setCoverSearchResults([]);
             } finally {
                 setCoverSearchLoading(false);
             }
         }, 450);
-        return () => clearTimeout(t);
+        return () => clearTimeout(timer);
     }, [coverSearchQuery, coverSearchOpen]);
 
     function openCoverSearch() {
@@ -407,7 +443,7 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
             return;
         }
         setSyncLoading(true);
-        const t = setTimeout(async () => {
+        const timer = setTimeout(async () => {
             try {
                 const url = new URL(route('admin.anilist.search'), window.location.origin);
                 url.searchParams.set('q', syncQuery.trim());
@@ -416,13 +452,13 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                 setSyncResults(data.results);
                 setSyncError(data.error);
             } catch {
-                setSyncError('Gagal menghubungi server.');
+                setSyncError(t('common:common.generalError'));
                 setSyncResults([]);
             } finally {
                 setSyncLoading(false);
             }
         }, 450);
-        return () => clearTimeout(t);
+        return () => clearTimeout(timer);
     }, [syncQuery, syncOpen]);
 
     // Apply AniList result to form
@@ -442,15 +478,83 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
         setSyncOpen(false);
     }
 
+    // Open RanobeDB sync popover pre-filled with current title
+    function openRdSync() {
+        setRdSyncQuery(titleRomaji);
+        setRdSyncResults([]);
+        setRdSyncError(null);
+        setRdSyncOpen(true);
+    }
+
+    // Debounced RanobeDB search via JSON endpoint
+    useEffect(() => {
+        if (!rdSyncOpen || !rdSyncQuery.trim()) {
+            setRdSyncResults([]);
+            return;
+        }
+        setRdSyncLoading(true);
+        const timer = setTimeout(async () => {
+            try {
+                const url = new URL(route('admin.ranobedb.search'), window.location.origin);
+                url.searchParams.set('q', rdSyncQuery.trim());
+                const res = await fetch(url.toString(), { credentials: 'same-origin' });
+                const data: { results: RanobeDbResult[]; error: string | null } = await res.json();
+                setRdSyncResults(data.results);
+                setRdSyncError(data.error);
+            } catch {
+                setRdSyncError(t('common:common.generalError'));
+                setRdSyncResults([]);
+            } finally {
+                setRdSyncLoading(false);
+            }
+        }, 450);
+        return () => clearTimeout(timer);
+    }, [rdSyncQuery, rdSyncOpen]);
+
+    // Fetch full detail for a RanobeDB result and apply it to the form
+    async function applyRdSync(item: RanobeDbResult) {
+        setRdApplying(true);
+        try {
+            const url = new URL(route('admin.ranobedb.detail'), window.location.origin);
+            url.searchParams.set('ranobedb_id', String(item.ranobedb_id));
+            const res = await fetch(url.toString(), { credentials: 'same-origin' });
+            const data: { data: RanobeDbDetail | null; error: string | null } = await res.json();
+            if (data.data) {
+                const d = data.data;
+                setValue('title_romaji',   d.title_romaji);
+                setValue('title_english',  d.title_english  ?? '');
+                setValue('title_japanese', d.title_japanese ?? '');
+                setValue('status',         d.status);
+                setValue('type',           d.type);
+                setValue('total_volumes',  d.total_volumes ? String(d.total_volumes) : '');
+                setValue('score',          d.score ? String(d.score) : '');
+                setValue('synopsis',       d.synopsis ?? '');
+                setValue('published_from', d.published_from ?? '');
+                setValue('published_to',   d.published_to   ?? '');
+                if (d.cover_url) {
+                    setCoverMode('url');
+                    setCoverUrlInput(d.cover_url);
+                }
+                setRdSyncOpen(false);
+            } else {
+                setRdSyncError(data.error);
+            }
+        } catch {
+            setRdSyncError(t('common:common.generalError'));
+        } finally {
+            setRdApplying(false);
+        }
+    }
+
     return (
         <AdminLayout
             header={
                 <PageHeader
                     title={series.title_romaji}
                     breadcrumbs={[
-                        { label: 'Series', href: route('admin.series.index') },
+                        { label: t('series.breadcrumb'), href: route('admin.series.index') },
                         { label: series.title_romaji, href: route('admin.series.show', series.id) },
-                        { label: 'Edit' },
+                        { label: t('series.breadcrumbEdit') },
                     ]}
                     actions={
                         <div className="flex gap-2">
@@ -470,12 +574,12 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                     render={<Button type="button" variant="outline" size="sm" />}
                                 >
                                     <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-                                    Sync AniList
+                                    {t('series.syncAnilist')}
                                 </PopoverTrigger>
 
                                 <PopoverContent className="w-[420px]" align="end">
                                     <PopoverHeader>
-                                        <PopoverTitle>Sync dari AniList</PopoverTitle>
+                                        <PopoverTitle>{t('series.syncAnilistTitle')}</PopoverTitle>
                                     </PopoverHeader>
 
                                     {/* Search input */}
@@ -483,7 +587,7 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                         <Input
                                             className="pl-9"
-                                            placeholder="Cari judul manga, manhwa..."
+                                            placeholder={t('series.searchMangaPlaceholder')}
                                             value={syncQuery}
                                             onChange={(e) => setSyncQuery(e.target.value)}
                                             autoFocus
@@ -495,7 +599,7 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                         {syncLoading && (
                                             <div className="flex items-center justify-center py-10 text-muted-foreground">
                                                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                                Mencari...
+                                                {t('common:common.searching')}
                                             </div>
                                         )}
 
@@ -504,7 +608,7 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                         )}
 
                                         {!syncLoading && !syncError && syncQuery.trim() && syncResults.length === 0 && (
-                                            <p className="py-6 text-center text-sm text-muted-foreground">Tidak ada hasil.</p>
+                                            <p className="py-6 text-center text-sm text-muted-foreground">{t('common:common.noResults')}</p>
                                         )}
 
                                         {!syncLoading && !syncError && syncResults.length > 0 && (
@@ -547,7 +651,99 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                     </div>
 
                                     <p className="text-xs text-muted-foreground">
-                                        Klik salah satu hasil untuk mengisi form dengan data dari AniList. Data belum disimpan sampai kamu klik Simpan.
+                                        {t('series.syncAnilistHint')}
+                                    </p>
+                                </PopoverContent>
+                            </Popover>
+                            <Popover
+                                open={rdSyncOpen}
+                                onOpenChange={(open) => {
+                                    if (open) {
+                                        openRdSync();
+                                    } else {
+                                        setRdSyncOpen(false);
+                                        setRdSyncQuery('');
+                                        setRdSyncResults([]);
+                                    }
+                                }}
+                            >
+                                <PopoverTrigger
+                                    render={<Button type="button" variant="outline" size="sm" />}
+                                >
+                                    <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                                    {t('series.syncRanobedb')}
+                                </PopoverTrigger>
+
+                                <PopoverContent className="w-[420px]" align="end">
+                                    <PopoverHeader>
+                                        <PopoverTitle>{t('series.syncRanobedbTitle')}</PopoverTitle>
+                                    </PopoverHeader>
+
+                                    {/* Search input */}
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                        <Input
+                                            className="pl-9"
+                                            placeholder={t('series.searchNovelPlaceholder')}
+                                            value={rdSyncQuery}
+                                            onChange={(e) => setRdSyncQuery(e.target.value)}
+                                            autoFocus
+                                        />
+                                    </div>
+
+                                    {/* States */}
+                                    <div className="max-h-80 overflow-y-auto">
+                                        {(rdSyncLoading || rdApplying) && (
+                                            <div className="flex items-center justify-center py-10 text-muted-foreground">
+                                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                                {rdApplying ? t('series.fetchingDetail') : t('common:common.searching')}
+                                            </div>
+                                        )}
+
+                                        {!rdSyncLoading && !rdApplying && rdSyncError && (
+                                            <p className="py-6 text-center text-sm text-destructive">{rdSyncError}</p>
+                                        )}
+
+                                        {!rdSyncLoading && !rdApplying && !rdSyncError && rdSyncQuery.trim() && rdSyncResults.length === 0 && (
+                                            <p className="py-6 text-center text-sm text-muted-foreground">{t('common:common.noResults')}</p>
+                                        )}
+
+                                        {!rdSyncLoading && !rdApplying && !rdSyncError && rdSyncResults.length > 0 && (
+                                            <div className="grid grid-cols-3 gap-2 pb-1">
+                                                {rdSyncResults.map((item) => (
+                                                    <button
+                                                        key={item.ranobedb_id}
+                                                        type="button"
+                                                        onClick={() => applyRdSync(item)}
+                                                        className="group flex flex-col overflow-hidden rounded-lg border bg-card text-left transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ring"
+                                                    >
+                                                        <div className="relative aspect-[2/3] overflow-hidden bg-muted">
+                                                            {item.cover_url ? (
+                                                                <img
+                                                                    src={item.cover_url}
+                                                                    alt={item.title}
+                                                                    className="h-full w-full object-cover transition-transform duration-150 group-hover:scale-105"
+                                                                />
+                                                            ) : (
+                                                                <div className="flex h-full items-center justify-center">
+                                                                    <BookOpen className="h-6 w-6 text-muted-foreground/30" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="p-1.5 text-xs">
+                                                            <p className="line-clamp-2 font-medium leading-tight">{item.title}</p>
+                                                            {item.volumes && (
+                                                                <p className="mt-1 text-muted-foreground">{t('series.volumeCount', { count: item.volumes })}</p>
+                                                            )}
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <p className="text-xs text-muted-foreground">
+                                        {t('series.syncRanobedbHint')}
                                     </p>
                                 </PopoverContent>
                             </Popover>
@@ -558,14 +754,14 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                 disabled={submitting}
                             >
                                 <Save className="mr-1.5 h-3.5 w-3.5" />
-                                {submitting ? 'Menyimpan...' : 'Simpan'}
+                                {submitting ? t('common:common.saving') : t('common:common.save')}
                             </Button>
                             <Link
                                 href={route('admin.series.show', series.id)}
                                 className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
                             >
                                 <X className="mr-1.5 h-3.5 w-3.5" />
-                                Batal
+                                {t('common:common.cancel')}
                             </Link>
                         </div>
                     }
@@ -606,7 +802,7 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                         : 'hover:bg-muted',
                                 )}
                             >
-                                Lokal
+                                {t('series.local')}
                             </button>
                             <button
                                 type="button"
@@ -618,7 +814,7 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                         : 'hover:bg-muted',
                                 )}
                             >
-                                URL
+                                {t('series.url')}
                             </button>
                         </div>
 
@@ -639,7 +835,7 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                     className="w-32 text-xs"
                                     onClick={() => fileRef.current?.click()}
                                 >
-                                    Pilih File
+                                    {t('common:common.chooseFile')}
                                 </Button>
                                 {coverFile && (
                                     <p className="w-32 truncate text-xs text-muted-foreground">{coverFile.name}</p>
@@ -652,7 +848,7 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                             <div className="w-32 space-y-1.5">
                                 <Input
                                     className="h-7 text-xs"
-                                    placeholder="Tempel URL gambar"
+                                    placeholder={t('series.pasteImageUrl')}
                                     value={coverUrlInput}
                                     onChange={(e) => setCoverUrlInput(e.target.value)}
                                 />
@@ -664,7 +860,7 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                     onClick={openCoverSearch}
                                 >
                                     <ImageIcon className="mr-1 h-3 w-3" />
-                                    Cari Gambar
+                                    {t('series.searchImage')}
                                 </Button>
                             </div>
                         )}
@@ -675,19 +871,19 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                         <div>
                             <Input
                                 className="h-8 text-base font-semibold"
-                                placeholder="Judul Romaji *"
+                                placeholder={t('series.titleRomajiPlaceholder')}
                                 {...register('title_romaji')}
                             />
-                            <FieldError message={errors.title_romaji?.message} />
+                            <FieldError message={errors.title_romaji ? t('common:common.required') : undefined} />
                         </div>
                         <Input
                             className="text-sm text-muted-foreground"
-                            placeholder="Judul Inggris (opsional)"
+                            placeholder={t('series.titleEnglishPlaceholder')}
                             {...register('title_english')}
                         />
                         <Input
                             className="text-sm text-muted-foreground"
-                            placeholder="Judul Jepang (opsional)"
+                            placeholder={t('series.titleJapanesePlaceholder')}
                             {...register('title_japanese')}
                         />
 
@@ -699,16 +895,16 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                 render={({ field }) => (
                                     <Select value={field.value} onValueChange={field.onChange}>
                                         <SelectTrigger className="h-7 w-44 text-xs">
-                                            <SelectValue placeholder="Status">
-                                                {(value: string) => STATUS_LABELS[value] ?? 'Status'}
+                                            <SelectValue placeholder={t('common:common.status')}>
+                                                {(value: string) => STATUS_LABELS[value] ?? t('common:common.status')}
                                             </SelectValue>
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="publishing">Publishing</SelectItem>
-                                            <SelectItem value="finished">Selesai</SelectItem>
-                                            <SelectItem value="on_hiatus">Hiatus</SelectItem>
-                                            <SelectItem value="discontinued">Discontinued</SelectItem>
-                                            <SelectItem value="not_yet_published">Belum Terbit</SelectItem>
+                                            <SelectItem value="publishing">{STATUS_LABELS.publishing}</SelectItem>
+                                            <SelectItem value="finished">{STATUS_LABELS.finished}</SelectItem>
+                                            <SelectItem value="on_hiatus">{STATUS_LABELS.on_hiatus}</SelectItem>
+                                            <SelectItem value="discontinued">{STATUS_LABELS.discontinued}</SelectItem>
+                                            <SelectItem value="not_yet_published">{STATUS_LABELS.not_yet_published}</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 )}
@@ -719,17 +915,17 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                 render={({ field }) => (
                                     <Select value={field.value} onValueChange={field.onChange}>
                                         <SelectTrigger className="h-7 w-36 text-xs">
-                                            <SelectValue placeholder="Tipe">
-                                                {(value: string) => TYPE_LABELS[value] ?? 'Tipe'}
+                                            <SelectValue placeholder={t('common:common.type')}>
+                                                {(value: string) => TYPE_LABELS[value] ?? t('common:common.type')}
                                             </SelectValue>
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="manga">Manga</SelectItem>
-                                            <SelectItem value="manhwa">Manhwa</SelectItem>
-                                            <SelectItem value="manhua">Manhua</SelectItem>
-                                            <SelectItem value="novel">Novel</SelectItem>
-                                            <SelectItem value="one_shot">One Shot</SelectItem>
-                                            <SelectItem value="doujinshi">Doujinshi</SelectItem>
+                                            <SelectItem value="manga">{TYPE_LABELS.manga}</SelectItem>
+                                            <SelectItem value="manhwa">{TYPE_LABELS.manhwa}</SelectItem>
+                                            <SelectItem value="manhua">{TYPE_LABELS.manhua}</SelectItem>
+                                            <SelectItem value="novel">{TYPE_LABELS.novel}</SelectItem>
+                                            <SelectItem value="one_shot">{TYPE_LABELS.one_shot}</SelectItem>
+                                            <SelectItem value="doujinshi">{TYPE_LABELS.doujinshi}</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 )}
@@ -739,19 +935,19 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                         {/* Stats grid — same 4-column layout as Show */}
                         <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm sm:grid-cols-4">
                             <div className="space-y-1">
-                                <p className="text-xs text-muted-foreground">Total Volume</p>
+                                <p className="text-xs text-muted-foreground">{t('series.totalVolumes')}</p>
                                 <Input type="number" min={1} className="h-7 text-sm" {...register('total_volumes')} />
                             </div>
                             <div className="space-y-1">
-                                <p className="text-xs text-muted-foreground">Skor (0–10)</p>
+                                <p className="text-xs text-muted-foreground">{t('series.score')}</p>
                                 <Input type="number" step="0.01" min={0} max={10} className="h-7 text-sm" {...register('score')} />
                             </div>
                             <div className="space-y-1">
-                                <p className="text-xs text-muted-foreground">Rank</p>
+                                <p className="text-xs text-muted-foreground">{t('series.rank')}</p>
                                 <Input type="number" min={1} className="h-7 text-sm" {...register('rank')} />
                             </div>
                             <div className="space-y-1">
-                                <p className="text-xs text-muted-foreground">Terbit</p>
+                                <p className="text-xs text-muted-foreground">{t('series.published')}</p>
                                 <div className="space-y-1">
                                     <Input type="date" className="h-7 text-xs" {...register('published_from')} />
                                     <Input type="date" className="h-7 text-xs" {...register('published_to')} />
@@ -762,7 +958,7 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                         {/* Synopsis */}
                         <Textarea
                             rows={4}
-                            placeholder="Sinopsis..."
+                            placeholder={t('series.synopsisPlaceholder')}
                             className="resize-none text-sm text-muted-foreground leading-relaxed"
                             {...register('synopsis')}
                         />
@@ -775,7 +971,7 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                 {/* Volumes — full management */}
                 <div className="mt-8">
                     <div className="mb-3 flex items-center justify-between">
-                        <h2 className="text-base font-semibold">Volume ({volumes.length})</h2>
+                        <h2 className="text-base font-semibold">{t('series.volumeSection', { count: volumes.length })}</h2>
                         <div className="flex gap-2">
                             {series.status === 'finished' && series.total_volumes && (() => {
                                 const existing = new Set(volumes.map((v) => v.volume_number));
@@ -784,25 +980,25 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                 return missing > 0 ? (
                                     <Button size="sm" type="button" variant="outline" onClick={() => setGenerateOpen(true)}>
                                         <Wand2 className="mr-1.5 h-3.5 w-3.5" />
-                                        Generate ({missing})
+                                        {t('series.generateCount', { count: missing })}
                                     </Button>
                                 ) : null;
                             })()}
                             <Button size="sm" type="button" onClick={() => setAddVolumeOpen(true)}>
                                 <Plus className="mr-1.5 h-4 w-4" />
-                                Tambah Volume
+                                {t('series.addVolume')}
                             </Button>
                         </div>
                     </div>
 
                     {volumes.length === 0 ? (
                         <EmptyState
-                            title="Belum ada volume"
-                            description="Tambahkan volume pertama untuk series ini."
+                            title={t('series.emptyVolumesTitle')}
+                            description={t('series.emptyVolumesDescription')}
                             icon={BookOpen}
                             action={
                                 <Button size="sm" type="button" onClick={() => setAddVolumeOpen(true)}>
-                                    Tambah Volume
+                                    {t('series.addVolume')}
                                 </Button>
                             }
                         />
@@ -812,10 +1008,10 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead className="w-12" />
-                                        <TableHead className="w-24">Volume</TableHead>
-                                        <TableHead className="w-28">Tipe</TableHead>
-                                        <TableHead>ISBN</TableHead>
-                                        <TableHead className="w-32">Terbit</TableHead>
+                                        <TableHead className="w-24">{t('series.table.volume')}</TableHead>
+                                        <TableHead className="w-28">{t('series.table.type')}</TableHead>
+                                        <TableHead>{t('series.table.isbn')}</TableHead>
+                                        <TableHead className="w-32">{t('series.table.published')}</TableHead>
                                         <TableHead className="w-20" />
                                     </TableRow>
                                 </TableHeader>
@@ -865,16 +1061,16 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
             {/* Add Volume Dialog */}
             <Dialog open={addVolumeOpen} onOpenChange={(open) => { setAddVolumeOpen(open); if (!open) vReset({ type: 'regular' }); }}>
                 <DialogContent>
-                    <DialogHeader><DialogTitle>Tambah Volume</DialogTitle></DialogHeader>
+                    <DialogHeader><DialogTitle>{t('series.addVolume')}</DialogTitle></DialogHeader>
                     <form onSubmit={vSubmit(onAddVolume)} className="space-y-4">
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1.5">
-                                <Label htmlFor="volume_number">Nomor Volume <span className="text-destructive">*</span></Label>
+                                <Label htmlFor="volume_number">{t('series.volumeNumberLabel')} <span className="text-destructive">*</span></Label>
                                 <Input id="volume_number" type="number" min={1} {...vReg('volume_number')} />
-                                <FieldError message={vErrors.volume_number?.message} />
+                                <FieldError message={vErrors.volume_number ? t('common:common.required') : undefined} />
                             </div>
                             <div className="space-y-1.5">
-                                <Label>Tipe <span className="text-destructive">*</span></Label>
+                                <Label>{t('series.typeLabel')} <span className="text-destructive">*</span></Label>
                                 <Controller<VolumeFormValues, 'type'>
                                     control={vCtrl}
                                     name="type"
@@ -882,9 +1078,9 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                         <Select value={field.value} onValueChange={field.onChange}>
                                             <SelectTrigger><SelectValue>{(value: string) => VOLUME_TYPE_LABELS[value] ?? value}</SelectValue></SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="regular">Regular</SelectItem>
-                                                <SelectItem value="digital">Digital</SelectItem>
-                                                <SelectItem value="bind_up">Bind-up</SelectItem>
+                                                <SelectItem value="regular">{VOLUME_TYPE_LABELS.regular}</SelectItem>
+                                                <SelectItem value="digital">{VOLUME_TYPE_LABELS.digital}</SelectItem>
+                                                <SelectItem value="bind_up">{VOLUME_TYPE_LABELS.bind_up}</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     )}
@@ -892,15 +1088,15 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                             </div>
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor="isbn">ISBN</Label>
+                            <Label htmlFor="isbn">{t('series.isbnLabel')}</Label>
                             <Input id="isbn" {...vReg('isbn')} />
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor="published_at">Tanggal Terbit</Label>
+                            <Label htmlFor="published_at">{t('series.publishedAtLabel')}</Label>
                             <Input id="published_at" type="date" {...vReg('published_at')} />
                         </div>
                         <div className="space-y-1.5">
-                            <Label>Cover</Label>
+                            <Label>{t('series.coverLabel')}</Label>
                             <input
                                 ref={volFileRef}
                                 type="file"
@@ -914,16 +1110,16 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                 size="sm"
                                 onClick={() => volFileRef.current?.click()}
                             >
-                                Pilih File
+                                {t('common:common.chooseFile')}
                             </Button>
                             {volCoverFile && (
                                 <p className="text-xs text-muted-foreground">{volCoverFile.name}</p>
                             )}
                         </div>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setAddVolumeOpen(false)}>Batal</Button>
+                            <Button type="button" variant="outline" onClick={() => setAddVolumeOpen(false)}>{t('common:common.cancel')}</Button>
                             <Button type="submit" disabled={addingVolume}>
-                                {addingVolume ? 'Menyimpan...' : 'Simpan'}
+                                {addingVolume ? t('common:common.saving') : t('common:common.save')}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -934,14 +1130,14 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
             <Dialog open={coverSearchOpen} onOpenChange={(open) => { setCoverSearchOpen(open); if (!open) { setCoverSearchResults([]); } }}>
                 <DialogContent className="max-w-3xl">
                     <DialogHeader>
-                        <DialogTitle>Cari Gambar Cover</DialogTitle>
+                        <DialogTitle>{t('series.searchCoverTitle')}</DialogTitle>
                     </DialogHeader>
 
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             className="pl-9"
-                            placeholder="Cari gambar..."
+                            placeholder={t('series.searchImagePlaceholder')}
                             value={coverSearchQuery}
                             onChange={(e) => setCoverSearchQuery(e.target.value)}
                             autoFocus
@@ -952,7 +1148,7 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                         {coverSearchLoading && (
                             <div className="flex items-center justify-center py-12 text-muted-foreground">
                                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                Mencari gambar...
+                                {t('series.searchingImage')}
                             </div>
                         )}
 
@@ -961,7 +1157,7 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                         )}
 
                         {!coverSearchLoading && !coverSearchError && coverSearchQuery.trim() && coverSearchResults.length === 0 && (
-                            <p className="py-8 text-center text-sm text-muted-foreground">Tidak ada hasil.</p>
+                            <p className="py-8 text-center text-sm text-muted-foreground">{t('common:common.noResults')}</p>
                         )}
 
                         {!coverSearchLoading && coverSearchResults.length > 0 && (
@@ -989,7 +1185,7 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                     </div>
 
                     <p className="text-xs text-muted-foreground">
-                        Klik gambar untuk menggunakannya sebagai cover. URL gambar akan diunduh saat Simpan.
+                        {t('series.searchImageHint')}
                     </p>
                 </DialogContent>
             </Dialog>
@@ -998,7 +1194,7 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
             <Sheet open={!!editVolume} onOpenChange={(open) => !open && setEditVolume(null)}>
                 <SheetContent className="flex flex-col gap-0 p-0 sm:max-w-md">
                     <SheetHeader className="border-b px-6 py-4">
-                        <SheetTitle>Edit Volume #{editVolume?.volume_number}</SheetTitle>
+                        <SheetTitle>{t('series.editVolumeTitle', { number: editVolume?.volume_number })}</SheetTitle>
                     </SheetHeader>
 
                     <ScrollArea className="flex-1">
@@ -1030,11 +1226,11 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                     <div className="flex w-20 overflow-hidden rounded-md border text-xs">
                                         <button type="button" onClick={() => setEvCoverMode('local')}
                                             className={cn('flex-1 py-1 transition-colors', evCoverMode === 'local' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted')}>
-                                            Lokal
+                                            {t('series.local')}
                                         </button>
                                         <button type="button" onClick={() => setEvCoverMode('url')}
                                             className={cn('flex-1 py-1 transition-colors', evCoverMode === 'url' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted')}>
-                                            URL
+                                            {t('series.url')}
                                         </button>
                                     </div>
 
@@ -1048,7 +1244,7 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                                 }} />
                                             <Button type="button" variant="outline" size="sm" className="w-20 text-xs"
                                                 onClick={() => evFileRef.current?.click()}>
-                                                Pilih File
+                                                {t('common:common.chooseFile')}
                                             </Button>
                                             {evCoverFile && <p className="w-20 truncate text-xs text-muted-foreground">{evCoverFile.name}</p>}
                                         </>
@@ -1056,10 +1252,10 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
 
                                     {evCoverMode === 'url' && (
                                         <div className="w-20 space-y-1.5">
-                                            <Input className="h-7 text-xs" placeholder="URL gambar" value={evCoverUrlInput} onChange={(e) => setEvCoverUrlInput(e.target.value)} />
+                                            <Input className="h-7 text-xs" placeholder={t('series.pasteImageUrl')} value={evCoverUrlInput} onChange={(e) => setEvCoverUrlInput(e.target.value)} />
                                             <Button type="button" variant="outline" size="sm" className="w-full text-xs" onClick={openVolumeCoverSearch}>
                                                 <ImageIcon className="mr-1 h-3 w-3" />
-                                                Cari
+                                                {t('common:common.search')}
                                             </Button>
                                         </div>
                                     )}
@@ -1068,12 +1264,12 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                 {/* Form fields */}
                                 <div className="flex-1 space-y-3">
                                     <div>
-                                        <Label htmlFor="ev-volume_number">Nomor Volume <span className="text-destructive">*</span></Label>
+                                        <Label htmlFor="ev-volume_number">{t('series.volumeNumberLabel')} <span className="text-destructive">*</span></Label>
                                         <Input id="ev-volume_number" type="number" min={1} className="mt-1" {...evReg('volume_number')} />
-                                        <FieldError message={evErrors.volume_number?.message} />
+                                        <FieldError message={evErrors.volume_number ? t('common:common.required') : undefined} />
                                     </div>
                                     <div>
-                                        <Label>Tipe <span className="text-destructive">*</span></Label>
+                                        <Label>{t('series.typeLabel')} <span className="text-destructive">*</span></Label>
                                         <Controller<VolumeFormValues, 'type'>
                                             control={evCtrl}
                                             name="type"
@@ -1081,20 +1277,20 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                                 <Select value={field.value} onValueChange={field.onChange}>
                                                     <SelectTrigger className="mt-1"><SelectValue>{(value: string) => VOLUME_TYPE_LABELS[value] ?? value}</SelectValue></SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value="regular">Regular</SelectItem>
-                                                        <SelectItem value="digital">Digital</SelectItem>
-                                                        <SelectItem value="bind_up">Bind-up</SelectItem>
+                                                        <SelectItem value="regular">{VOLUME_TYPE_LABELS.regular}</SelectItem>
+                                                        <SelectItem value="digital">{VOLUME_TYPE_LABELS.digital}</SelectItem>
+                                                        <SelectItem value="bind_up">{VOLUME_TYPE_LABELS.bind_up}</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             )}
                                         />
                                     </div>
                                     <div>
-                                        <Label htmlFor="ev-isbn">ISBN</Label>
+                                        <Label htmlFor="ev-isbn">{t('series.isbnLabel')}</Label>
                                         <Input id="ev-isbn" className="mt-1" {...evReg('isbn')} />
                                     </div>
                                     <div>
-                                        <Label htmlFor="ev-published_at">Tanggal Terbit</Label>
+                                        <Label htmlFor="ev-published_at">{t('series.publishedAtLabel')}</Label>
                                         <Input id="ev-published_at" type="date" className="mt-1" {...evReg('published_at')} />
                                     </div>
                                 </div>
@@ -1103,10 +1299,10 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                     </ScrollArea>
 
                     <SheetFooter className="border-t px-6 py-4">
-                        <Button type="button" variant="outline" onClick={() => setEditVolume(null)}>Batal</Button>
+                        <Button type="button" variant="outline" onClick={() => setEditVolume(null)}>{t('common:common.cancel')}</Button>
                         <Button form="ev-form" type="submit" disabled={updatingVolume}>
                             <Save className="mr-1.5 h-3.5 w-3.5" />
-                            {updatingVolume ? 'Menyimpan...' : 'Simpan'}
+                            {updatingVolume ? t('common:common.saving') : t('common:common.save')}
                         </Button>
                     </SheetFooter>
                 </SheetContent>
@@ -1115,14 +1311,14 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
             {/* Delete Volume Dialog */}
             <Dialog open={!!deleteVolume} onOpenChange={(open) => !open && setDeleteVolume(null)}>
                 <DialogContent>
-                    <DialogHeader><DialogTitle>Hapus Volume #{deleteVolume?.volume_number}</DialogTitle></DialogHeader>
+                    <DialogHeader><DialogTitle>{t('series.deleteVolumeTitle', { number: deleteVolume?.volume_number })}</DialogTitle></DialogHeader>
                     <p className="text-sm text-muted-foreground">
-                        Yakin ingin menghapus volume ini? Aksi ini tidak dapat dibatalkan.
+                        {t('series.deleteVolumeConfirm')}
                     </p>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setDeleteVolume(null)}>Batal</Button>
+                        <Button variant="outline" onClick={() => setDeleteVolume(null)}>{t('common:common.cancel')}</Button>
                         <Button variant="destructive" disabled={deletingVol} onClick={handleDeleteVolume}>
-                            {deletingVol ? 'Menghapus...' : 'Hapus'}
+                            {deletingVol ? t('common:common.deleting') : t('common:common.delete')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -1132,19 +1328,19 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
             <Dialog open={generateOpen} onOpenChange={setGenerateOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Generate Volumes Otomatis</DialogTitle>
+                        <DialogTitle>{t('series.generateVolumesTitle')}</DialogTitle>
                     </DialogHeader>
                     <p className="text-sm text-muted-foreground">
-                        Buat semua volume yang belum ada dari{' '}
-                        <strong>Vol. 1</strong> hingga{' '}
+                        {t('series.generateVolumesDescriptionPrefix')}{' '}
+                        <strong>Vol. 1</strong> {t('series.generateVolumesDescriptionMiddle')}{' '}
                         <strong>Vol. {series.total_volumes}</strong>.
-                        Volume yang sudah ada tidak akan ditimpa.
+                        {' '}{t('series.generateVolumesDescriptionSuffix')}
                     </p>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setGenerateOpen(false)}>Batal</Button>
+                        <Button variant="outline" onClick={() => setGenerateOpen(false)}>{t('common:common.cancel')}</Button>
                         <Button disabled={generatingVolumes} onClick={handleGenerateVolumes}>
                             <Wand2 className="mr-1.5 h-3.5 w-3.5" />
-                            {generatingVolumes ? 'Membuat...' : 'Generate'}
+                            {generatingVolumes ? t('common:common.creating') : t('common:common.generate')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

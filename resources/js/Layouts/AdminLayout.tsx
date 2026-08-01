@@ -1,18 +1,27 @@
-import { PropsWithChildren, ReactNode, useState } from 'react';
+import { PropsWithChildren, ReactNode, useEffect, useRef, useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/lib/i18n';
 import {
     Activity, BookOpen, Database, HandCoins, HardDrive, Layers, LayoutDashboard, Library, LogOut,
-    Megaphone, Menu as MenuIcon, Moon, Search, Settings, Sun, Ticket, User, Users, X,
+    Megaphone, Menu as MenuIcon, Moon, PanelLeftClose, PanelLeftOpen, Search, Settings, Sparkles, Sun,
+    Ticket, User, Users, X,
     type LucideIcon,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/Components/ui/avatar';
 import { Button } from '@/Components/ui/button';
 import { ScrollArea } from '@/Components/ui/scroll-area';
+import {
+    Sheet, SheetContent, SheetHeader, SheetTitle,
+} from '@/Components/ui/sheet';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/Components/ui/tooltip';
 import { useTheme } from '@/hooks/useTheme';
 import { useFlash } from '@/hooks/useFlash';
 import AnnouncementBanner from '@/Components/app/AnnouncementBanner';
 import { SidebarNav } from '@/Components/app/SidebarNav';
 import { CommandPalette } from '@/Components/app/CommandPalette';
+import { LanguageSwitcher } from '@/Components/app/LanguageSwitcher';
+import { cn } from '@/lib/utils';
 import { type MenuItem } from '@/types';
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -31,12 +40,21 @@ const ICON_MAP: Record<string, LucideIcon> = {
     'hard-drive':       HardDrive,
     'database':         Database,
     'layers':           Layers,
+    'sparkles':         Sparkles,
 };
 
-function SidebarContent({ menus, onNavClick }: { menus: MenuItem[]; onNavClick?: () => void }) {
+interface SidebarContentProps {
+    menus: MenuItem[];
+    onNavClick?: () => void;
+    collapsed?: boolean;
+    onToggleCollapsed?: () => void;
+}
+
+function SidebarContent({ menus, onNavClick, collapsed, onToggleCollapsed }: SidebarContentProps) {
     const { auth } = usePage().props;
     const user = auth.user!;
     const { theme, toggleTheme } = useTheme();
+    const { t } = useTranslation();
 
     function handleLogout() {
         router.post(route('logout'));
@@ -44,66 +62,141 @@ function SidebarContent({ menus, onNavClick }: { menus: MenuItem[]; onNavClick?:
 
     return (
         <div className="flex h-full flex-col">
-            <div className="flex h-14 items-center border-b px-5">
-                <span className="text-base font-bold tracking-tight">MALAS</span>
+            <div className={cn('flex h-14 items-center border-b', collapsed ? 'justify-center px-2' : 'justify-between px-5')}>
+                {!collapsed && <span className="text-base font-bold tracking-tight">MALAS</span>}
+                {onToggleCollapsed && (
+                    <Tooltip>
+                        <TooltipTrigger
+                            render={
+                                <Button variant="ghost" size="icon-sm" onClick={onToggleCollapsed} aria-label={collapsed ? t('nav.expandSidebar') : t('nav.collapseSidebar')}>
+                                    {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+                                </Button>
+                            }
+                        />
+                        <TooltipContent side="right">{collapsed ? t('nav.expandSidebar') : t('nav.collapseSidebar')}</TooltipContent>
+                    </Tooltip>
+                )}
             </div>
 
             <div className="px-2 pt-2">
-                <button
-                    type="button"
-                    onClick={() => window.dispatchEvent(new Event('command-palette:open'))}
-                    className="flex w-full items-center gap-2 rounded-lg border border-input/50 bg-muted/50 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent"
-                >
-                    <Search className="h-3.5 w-3.5" />
-                    <span className="flex-1 text-left">Cari cepat...</span>
-                    <kbd className="rounded border bg-background px-1 py-0.5 font-mono text-[10px]">⌘K</kbd>
-                </button>
+                {collapsed ? (
+                    <Tooltip>
+                        <TooltipTrigger
+                            render={
+                                <button
+                                    type="button"
+                                    onClick={() => window.dispatchEvent(new Event('command-palette:open'))}
+                                    className="flex w-full items-center justify-center rounded-lg border border-input/50 bg-muted/50 py-1.5 text-muted-foreground transition-colors hover:bg-accent"
+                                >
+                                    <Search className="h-3.5 w-3.5" />
+                                </button>
+                            }
+                        />
+                        <TooltipContent side="right">{t('nav.quickSearchHint')}</TooltipContent>
+                    </Tooltip>
+                ) : (
+                    <button
+                        type="button"
+                        onClick={() => window.dispatchEvent(new Event('command-palette:open'))}
+                        className="flex w-full items-center gap-2 rounded-lg border border-input/50 bg-muted/50 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent"
+                    >
+                        <Search className="h-3.5 w-3.5" />
+                        <span className="flex-1 text-left">{t('nav.quickSearch')}</span>
+                        <kbd className="rounded border bg-background px-1 py-0.5 font-mono text-[10px]">⌘K</kbd>
+                    </button>
+                )}
             </div>
 
             <ScrollArea className="min-h-0 flex-1">
                 <nav className="px-2 py-3">
-                    <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                        Navigasi
-                    </p>
-                    <SidebarNav menus={menus} iconMap={ICON_MAP} onNavClick={onNavClick} />
+                    {!collapsed && (
+                        <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                            {t('nav.navigation')}
+                        </p>
+                    )}
+                    <SidebarNav menus={menus} iconMap={ICON_MAP} onNavClick={onNavClick} collapsed={collapsed} />
                 </nav>
             </ScrollArea>
 
             <div className="border-t px-2 py-3 space-y-0.5">
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start gap-3 text-muted-foreground"
-                    onClick={toggleTheme}
-                >
-                    {theme === 'dark'
-                        ? <Sun className="h-4 w-4" />
-                        : <Moon className="h-4 w-4" />}
-                    {theme === 'dark' ? 'Mode Terang' : 'Mode Gelap'}
-                </Button>
+                {collapsed ? (
+                    <Tooltip>
+                        <TooltipTrigger
+                            render={
+                                <Button variant="ghost" size="icon" className="mx-auto flex" onClick={toggleTheme} aria-label={theme === 'dark' ? t('nav.lightMode') : t('nav.darkMode')}>
+                                    {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                                </Button>
+                            }
+                        />
+                        <TooltipContent side="right">{theme === 'dark' ? t('nav.lightMode') : t('nav.darkMode')}</TooltipContent>
+                    </Tooltip>
+                ) : (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start gap-3 text-muted-foreground"
+                        onClick={toggleTheme}
+                    >
+                        {theme === 'dark'
+                            ? <Sun className="h-4 w-4" />
+                            : <Moon className="h-4 w-4" />}
+                        {theme === 'dark' ? t('nav.lightMode') : t('nav.darkMode')}
+                    </Button>
+                )}
 
-                <div className="flex items-center gap-2.5 px-3 py-2">
-                    <Avatar className="h-8 w-8 shrink-0">
-                        <AvatarImage src={user.avatar || undefined} alt={user.name} />
-                        <AvatarFallback className="text-xs">{user.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{user.name}</p>
-                        <p className="text-xs text-muted-foreground capitalize">
-                            {user.role.replace('_', ' ')}
-                        </p>
+                <LanguageSwitcher collapsed={collapsed} />
+
+                {collapsed ? (
+                    <Tooltip>
+                        <TooltipTrigger
+                            render={
+                                <div className="flex items-center justify-center py-2">
+                                    <Avatar className="h-8 w-8 shrink-0">
+                                        <AvatarImage src={user.avatar || undefined} alt={user.name} />
+                                        <AvatarFallback className="text-xs">{user.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                                    </Avatar>
+                                </div>
+                            }
+                        />
+                        <TooltipContent side="right">{user.name}</TooltipContent>
+                    </Tooltip>
+                ) : (
+                    <div className="flex items-center gap-2.5 px-3 py-2">
+                        <Avatar className="h-8 w-8 shrink-0">
+                            <AvatarImage src={user.avatar || undefined} alt={user.name} />
+                            <AvatarFallback className="text-xs">{user.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{user.name}</p>
+                            <p className="text-xs text-muted-foreground capitalize">
+                                {user.role.replace('_', ' ')}
+                            </p>
+                        </div>
                     </div>
-                </div>
+                )}
 
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
-                    onClick={handleLogout}
-                >
-                    <LogOut className="h-4 w-4" />
-                    Keluar
-                </Button>
+                {collapsed ? (
+                    <Tooltip>
+                        <TooltipTrigger
+                            render={
+                                <Button variant="ghost" size="icon" className="mx-auto flex text-muted-foreground hover:text-destructive" onClick={handleLogout} aria-label={t('nav.logout')}>
+                                    <LogOut className="h-4 w-4" />
+                                </Button>
+                            }
+                        />
+                        <TooltipContent side="right">{t('nav.logout')}</TooltipContent>
+                    </Tooltip>
+                ) : (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
+                        onClick={handleLogout}
+                    >
+                        <LogOut className="h-4 w-4" />
+                        {t('nav.logout')}
+                    </Button>
+                )}
             </div>
         </div>
     );
@@ -114,53 +207,89 @@ interface AdminLayoutProps extends PropsWithChildren {
 }
 
 export default function AdminLayout({ children, header }: AdminLayoutProps) {
-    const { menus } = usePage().props;
+    const { menus, announcements, locale } = usePage().props;
+    const { t } = useTranslation();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [fabVisible, setFabVisible] = useState(true);
+    const [collapsed, setCollapsed] = useState(() => (
+        typeof window !== 'undefined' && window.localStorage.getItem('admin-sidebar-collapsed') === '1'
+    ));
+    const scrollWrapRef = useRef<HTMLDivElement>(null);
+    const lastScrollTop = useRef(0);
     useFlash();
 
     function closeSidebar() {
         setSidebarOpen(false);
     }
 
+    function toggleCollapsed() {
+        setCollapsed((prev) => {
+            const next = !prev;
+            window.localStorage.setItem('admin-sidebar-collapsed', next ? '1' : '0');
+            return next;
+        });
+    }
+
+    useEffect(() => {
+        const viewport = scrollWrapRef.current?.querySelector('[data-slot="scroll-area-viewport"]');
+        if (!viewport) return;
+
+        function onScroll() {
+            const scrollTop = (viewport as HTMLElement).scrollTop;
+            setFabVisible(scrollTop <= lastScrollTop.current || scrollTop < 80);
+            lastScrollTop.current = scrollTop;
+        }
+
+        viewport.addEventListener('scroll', onScroll);
+        return () => viewport.removeEventListener('scroll', onScroll);
+    }, []);
+
+    useEffect(() => {
+        if (locale) void i18n.changeLanguage(locale);
+    }, [locale]);
+
     return (
         <div className="flex h-screen overflow-hidden bg-background">
             <CommandPalette />
 
             {/* Desktop sidebar */}
-            <aside className="hidden w-56 shrink-0 border-r bg-background lg:flex lg:flex-col">
-                <SidebarContent menus={menus} />
+            <aside
+                className={cn(
+                    'hidden shrink-0 border-r bg-background transition-[width] duration-200 lg:flex lg:flex-col',
+                    collapsed ? 'w-16' : 'w-56',
+                )}
+            >
+                <SidebarContent menus={menus} collapsed={collapsed} onToggleCollapsed={toggleCollapsed} />
             </aside>
 
-            {/* Mobile sidebar overlay */}
-            {sidebarOpen && (
-                <>
-                    <div
-                        className="fixed inset-0 z-30 bg-black/50 lg:hidden"
-                        onClick={closeSidebar}
-                    />
-                    <aside className="fixed inset-y-0 left-0 z-40 w-56 border-r bg-background lg:hidden">
-                        <SidebarContent menus={menus} onNavClick={closeSidebar} />
-                    </aside>
-                </>
-            )}
+            {/* Mobile menu — popup bottom sheet, dipicu dari FAB, bukan panel slide-in dari sisi */}
+            <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+                <SheetContent side="bottom" className="flex h-[85vh] flex-col gap-0 p-0 lg:hidden">
+                    <SheetHeader className="sr-only">
+                        <SheetTitle>{t('nav.navigation')}</SheetTitle>
+                    </SheetHeader>
+                    <SidebarContent menus={menus} onNavClick={closeSidebar} />
+                </SheetContent>
+            </Sheet>
+
+            {/* Mobile floating menu button — satu-satunya elemen mengambang, buka panel menu (termasuk Cari cepat) */}
+            <Button
+                size="icon"
+                className={cn(
+                    'fixed bottom-6 right-6 z-[60] h-14 w-14 rounded-full shadow-lg transition-all duration-200 lg:hidden',
+                    fabVisible || sidebarOpen ? 'scale-100 opacity-100' : 'pointer-events-none scale-75 opacity-0',
+                )}
+                onClick={() => setSidebarOpen((prev) => !prev)}
+                aria-label={t('nav.openMenu')}
+            >
+                {sidebarOpen ? <X className="h-6 w-6" /> : <MenuIcon className="h-6 w-6" />}
+                {!sidebarOpen && announcements.length > 0 && (
+                    <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-background" />
+                )}
+            </Button>
 
             {/* Main area */}
             <div className="flex flex-1 flex-col overflow-hidden">
-                {/* Mobile topbar */}
-                <header className="flex h-14 items-center gap-3 border-b px-4 lg:hidden">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setSidebarOpen(prev => !prev)}
-                        aria-label="Toggle sidebar"
-                    >
-                        {sidebarOpen
-                            ? <X className="h-5 w-5" />
-                            : <MenuIcon className="h-5 w-5" />}
-                    </Button>
-                    <span className="text-base font-bold">MALAS</span>
-                </header>
-
                 <AnnouncementBanner />
 
                 {header && (
@@ -169,11 +298,13 @@ export default function AdminLayout({ children, header }: AdminLayoutProps) {
                     </div>
                 )}
 
-                <ScrollArea className="min-h-0 flex-1">
-                    <main className="p-6">
-                        {children}
-                    </main>
-                </ScrollArea>
+                <div ref={scrollWrapRef} className="min-h-0 flex-1">
+                    <ScrollArea className="h-full">
+                        <main className="p-6">
+                            {children}
+                        </main>
+                    </ScrollArea>
+                </div>
             </div>
         </div>
     );

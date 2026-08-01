@@ -1,4 +1,5 @@
 import { Head, router } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/Components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/Components/ui/card';
 
@@ -7,14 +8,16 @@ interface MaintenanceProps {
 }
 
 export default function Maintenance({ message }: MaintenanceProps) {
+    const { t } = useTranslation();
+
     return (
         <div className="flex min-h-screen items-center justify-center bg-background p-4">
-            <Head title="Pemeliharaan" />
+            <Head title={t('maintenancePage.title')} />
             <Card className="w-full max-w-md">
                 <CardHeader className="text-center">
-                    <CardTitle className="text-2xl">Sedang Dalam Pemeliharaan</CardTitle>
+                    <CardTitle className="text-2xl">{t('maintenancePage.heading')}</CardTitle>
                     <CardDescription>
-                        Halaman ini sedang tidak tersedia untuk sementara waktu.
+                        {t('maintenancePage.description')}
                     </CardDescription>
                 </CardHeader>
 
@@ -26,7 +29,7 @@ export default function Maintenance({ message }: MaintenanceProps) {
 
                 <CardFooter>
                     <Button variant="outline" className="w-full" onClick={() => router.visit('/')}>
-                        Kembali ke Beranda
+                        {t('maintenancePage.backHome')}
                     </Button>
                 </CardFooter>
             </Card>

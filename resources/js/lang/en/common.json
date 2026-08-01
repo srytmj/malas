@@ -1,0 +1,229 @@
+{
+    "nav": {
+        "search": "Search",
+        "quickSearch": "Quick search...",
+        "quickSearchHint": "Quick search (⌘K)",
+        "navigation": "Navigation",
+        "lightMode": "Light Mode",
+        "darkMode": "Dark Mode",
+        "logout": "Log Out",
+        "member": "Member",
+        "expandSidebar": "Expand sidebar",
+        "collapseSidebar": "Collapse sidebar",
+        "openMenu": "Open menu",
+        "searchPlaceholder": "Search manga, collection, or a page...",
+        "login": "Login"
+    },
+    "profile": {
+        "loginToFollow": "Login to follow"
+    },
+    "menu": {
+        "dashboard": "Dashboard",
+        "series": "Series",
+        "collections": "Collections",
+        "loans": "Loans",
+        "users": "Users",
+        "importData": "Import Data",
+        "searchAllSources": "Search All Sources",
+        "searchManga": "Search Manga",
+        "anilistStatus": "AniList Status",
+        "searchLightNovel": "Search Light Novel",
+        "others": "Others",
+        "menuManagement": "Menu",
+        "userSidebar": "User Sidebar",
+        "announcements": "Announcements",
+        "tickets": "Tickets",
+        "settings": "Settings",
+        "activityLog": "Activity Log",
+        "funfactQuota": "Funfact Quota",
+        "catalog": "Catalog",
+        "myCollection": "My Collection",
+        "wishlist": "Wishlist",
+        "myLoans": "My Loans",
+        "findUsers": "Find Users",
+        "profile": "Profile"
+    },
+    "common": {
+        "save": "Save",
+        "saving": "Saving...",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit",
+        "back": "Back",
+        "loading": "Loading...",
+        "search": "Search",
+        "filter": "Filter",
+        "chooseFile": "Choose File",
+        "searching": "Searching...",
+        "noResults": "No results.",
+        "generalError": "Failed to reach the server.",
+        "deleting": "Deleting...",
+        "creating": "Creating...",
+        "generate": "Generate",
+        "add": "Add",
+        "yes": "Yes",
+        "no": "No",
+        "close": "Close",
+        "confirm": "Confirm",
+        "actions": "Actions",
+        "status": "Status",
+        "type": "Type",
+        "required": "Required",
+        "optional": "optional",
+        "allTypes": "All Types",
+        "manga": "Manga",
+        "lightNovel": "Light Novel",
+        "oneShot": "One Shot",
+        "doujinshi": "Doujinshi",
+        "manhwa": "Manhwa",
+        "manhua": "Manhua"
+    },
+    "palette": {
+        "adminTitle": "Command Palette",
+        "adminDescription": "Quick navigation to admin pages",
+        "adminPlaceholder": "Search pages, series, users, or tickets...",
+        "userTitle": "Search",
+        "userDescription": "Search manga in the catalog or your collection, or quick-navigate to another page",
+        "userPlaceholder": "Search manga title, collection, or page...",
+        "noResults": "No results found.",
+        "navigation": "Navigation",
+        "series": "Series",
+        "users": "Users",
+        "tickets": "Tickets",
+        "myCollection": "My Collection",
+        "catalog": "Catalog"
+    },
+    "settings": {
+        "title": "Settings",
+        "description": "Your account info, managed via whitearchive.id.",
+        "profile": "Profile",
+        "profileDescription": "Name, username, and email are synced from your whitearchive.id account on every login.",
+        "email": "Email",
+        "role": "Role",
+        "manageAccount": "Manage Account on whitearchive.id",
+        "publicProfile": "Public Profile",
+        "publicProfileDescription": "When enabled, other people can see your collection and Genre Taste, and can follow you. 18+ content still stays blurred as usual.",
+        "showProfilePublicly": "Show my profile publicly",
+        "showProfilePublicHint": "Private by default — only you can see it until this is enabled.",
+        "viewMyProfile": "View My Profile",
+        "roles": {
+            "super_admin": "Super Admin",
+            "admin": "Admin",
+            "user": "User"
+        }
+    },
+    "pagination": {
+        "showing": "Showing {{from}}–{{to}} of {{total}}",
+        "total": "Total {{total}}",
+        "perPage": "per page"
+    },
+    "badge": {
+        "status": {
+            "publishing": "Publishing",
+            "finished": "Finished",
+            "on_hiatus": "On Hiatus",
+            "discontinued": "Discontinued",
+            "not_yet_published": "Not Yet Published"
+        },
+        "type": {
+            "manga": "Manga",
+            "manhwa": "Manhwa",
+            "manhua": "Manhua",
+            "novel": "Novel",
+            "one_shot": "One Shot",
+            "doujinshi": "Doujinshi"
+        },
+        "volumeType": {
+            "regular": "Regular",
+            "digital": "Digital",
+            "bind_up": "Bind-up"
+        },
+        "format": {
+            "physical": "Physical",
+            "ebook": "Ebook",
+            "online": "Online",
+            "webtoon": "Webtoon"
+        },
+        "ticketStatus": {
+            "open": "Open",
+            "in_progress": "In Progress",
+            "resolved": "Resolved",
+            "closed": "Closed"
+        },
+        "ticketType": {
+            "catalog_request": "Catalog Request",
+            "title_revision": "Title Revision",
+            "other": "Other"
+        }
+    },
+    "components": {
+        "seriesMediaGallery": {
+            "title": "Media Gallery ({{count}})",
+            "uploading": "Uploading...",
+            "addImage": "Add Image",
+            "empty": "No additional media yet. Upload artwork, banners, or screenshots to enrich this series' catalog page."
+        },
+        "sortableMenuList": {
+            "dragToReorder": "Drag to reorder",
+            "shared": "Shared",
+            "visible": "Visible",
+            "maintenance": "Maintenance"
+        },
+        "adultBlurOverlay": {
+            "clickToView": "18+ · Click to view"
+        },
+        "announcementBanner": {
+            "close": "Dismiss announcement"
+        },
+        "seriesCard": {
+            "inCollection": "In collection"
+        },
+        "volumeGrid": {
+            "volumePrefix": "Vol. {{number}}",
+            "empty": "No volumes yet."
+        }
+    },
+    "errorPage": {
+        "400": { "title": "Invalid Request", "description": "The request is incomplete or invalid." },
+        "403": { "title": "Access Denied", "description": "You don't have permission to access this page." },
+        "404": { "title": "Page Not Found", "description": "The page you're looking for doesn't exist or has been moved." },
+        "500": { "title": "An Error Occurred", "description": "The server encountered a problem. Please try again later." },
+        "502": { "title": "SSO Not Responding", "description": "Could not reach the whitearchive.id server. Please try again shortly." },
+        "503": { "title": "Server Unavailable", "description": "The service is under maintenance. Please try again shortly." },
+        "back": "Back",
+        "home": "Home"
+    },
+    "bannedPage": {
+        "title": "Account Banned",
+        "description": "Your account has been banned and cannot access this application.",
+        "reasonLabel": "Ban reason:",
+        "logout": "Log out",
+        "contactAdmin": "Contact an administrator if you believe this is a mistake."
+    },
+    "maintenancePage": {
+        "title": "Maintenance",
+        "heading": "Under Maintenance",
+        "description": "This page is temporarily unavailable.",
+        "backHome": "Back to Home"
+    },
+    "landing": {
+        "pageTitle": "Welcome",
+        "heading": "Manga & Light Novel Collection Management",
+        "subheading": "Manage your catalog, personal collection, and manga and light novel loans all in one place.",
+        "loginButton": "Log in with whitearchive.id",
+        "features": {
+            "catalog": { "title": "Catalog", "description": "Browse and search manga, manhwa, manhua, and novels complete with metadata from AniList." },
+            "collection": { "title": "Personal Collection", "description": "Mark the volumes you already own and manage your own collection." },
+            "loans": { "title": "Loans", "description": "Track the volumes you've lent to others along with their due dates." },
+            "announcements": { "title": "Announcements", "description": "Get the latest news about the collection and service directly from admins." }
+        }
+    },
+    "locale": {
+        "id": "Bahasa Indonesia",
+        "en": "English",
+        "ja": "日本語",
+        "label": "Language",
+        "cardTitle": "Language",
+        "cardDescription": "Choose the app's display language. Changes apply immediately."
+    }
+}

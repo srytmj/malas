@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import { RefreshCw } from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -8,9 +9,11 @@ import { Pagination } from '@/Components/app/Pagination';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import {
-    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+    Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue,
 } from '@/Components/ui/select';
+import { ToggleGroup, ToggleGroupItem } from '@/Components/ui/toggle-group';
 import { cn } from '@/lib/utils';
+import { useTypeFilterOptions } from '@/lib/typeFilters';
 import { PageProps } from '@/types';
 import { type PaginatedData, type SeriesStatus, type SeriesType } from '@/lib/types';
 
@@ -30,35 +33,26 @@ interface SeriesRow {
 interface Props extends PageProps {
     series: PaginatedData<SeriesRow>;
     collectionSeriesIds: string[];
-    filters: { search?: string | null; status?: string | null; type?: string | null; ownership?: string | null };
+    genreOptions: { manga: string[]; novel: string[] };
+    filters: { search?: string | null; status?: string | null; type?: string | null; genre?: string | null; ownership?: string | null };
 }
 
-const STATUS_LABELS: Record<string, string> = {
-    '': 'Semua status',
-    publishing: 'Publishing',
-    finished: 'Selesai',
-    on_hiatus: 'Hiatus',
-    discontinued: 'Discontinued',
-    not_yet_published: 'Belum Terbit',
-};
-
-const TYPE_LABELS: Record<string, string> = {
-    '': 'Semua tipe',
-    manga: 'Manga',
-    manhwa: 'Manhwa',
-    manhua: 'Manhua',
-    novel: 'Novel',
-    one_shot: 'One Shot',
-    doujinshi: 'Doujinshi',
-};
-
-const OWNERSHIP_LABELS: Record<string, string> = {
-    '': 'Semua koleksi',
-    owned: 'Sudah di koleksi',
-    not_owned: 'Belum di koleksi',
-};
-
-export default function CatalogIndex({ series, collectionSeriesIds, filters }: Props) {
+export default function CatalogIndex({ series, collectionSeriesIds, genreOptions, filters }: Props) {
+    const { t } = useTranslation('catalog');
+    const typeFilterOptions = useTypeFilterOptions();
+    const statusLabels: Record<string, string> = {
+        '': t('allStatus'),
+        publishing: t('common:badge.status.publishing'),
+        finished: t('common:badge.status.finished'),
+        on_hiatus: t('common:badge.status.on_hiatus'),
+        discontinued: t('common:badge.status.discontinued'),
+        not_yet_published: t('common:badge.status.not_yet_published'),
+    };
+    const ownershipFilters = [
+        { value: 'all', label: t('ownership.all') },
+        { value: 'owned', label: t('ownership.owned') },
+        { value: 'not_owned', label: t('ownership.notOwned') },
+    ];
     const [search, setSearch]         = useState(filters.search ?? '');
     const [refreshing, setRefreshing] = useState(false);
     const isFirstRender = useRef(true);
@@ -97,16 +91,33 @@ export default function CatalogIndex({ series, collectionSeriesIds, filters }: P
         <UserLayout
             header={
                 <PageHeader
-                    title="Katalog"
-                    description={`${series.total} series tersedia`}
+                    title={t('title')}
+                    description={t('seriesAvailable', { count: series.total })}
                 />
             }
         >
-            <Head title="Katalog" />
+            <Head title={t('title')} />
+
+            {/* Quick filter tipe — Segmented Control, terpisah dari filter lain */}
+            <div className="mb-3 overflow-x-auto">
+                <ToggleGroup
+                    value={[filters.type || 'all']}
+                    onValueChange={(vals) => handleFilter('type', vals[0] === 'all' ? '' : (vals[0] ?? ''))}
+                    variant="outline"
+                    size="sm"
+                >
+                    {typeFilterOptions.map((opt) => (
+                        <ToggleGroupItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                        </ToggleGroupItem>
+                    ))}
+                </ToggleGroup>
+            </div>
+
             {/* Filters */}
             <div className="mb-5 flex flex-wrap items-center gap-2">
                 <Input
-                    placeholder="Cari judul..."
+                    placeholder={t('searchPlaceholder')}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="w-56"
@@ -117,7 +128,7 @@ export default function CatalogIndex({ series, collectionSeriesIds, filters }: P
                     size="icon"
                     onClick={handleRefresh}
                     disabled={refreshing}
-                    aria-label="Segarkan"
+                    aria-label={t('refresh')}
                 >
                     <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} />
                 </Button>
@@ -126,69 +137,77 @@ export default function CatalogIndex({ series, collectionSeriesIds, filters }: P
                     onValueChange={(v) => handleFilter('status', v ?? '')}
                 >
                     <SelectTrigger className="w-36">
-                        <SelectValue placeholder="Semua status">
-                            {(value: string) => STATUS_LABELS[value] ?? STATUS_LABELS['']}
+                        <SelectValue placeholder={t('allStatus')}>
+                            {(value: string) => statusLabels[value] ?? statusLabels['']}
                         </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="">Semua status</SelectItem>
-                        <SelectItem value="publishing">Publishing</SelectItem>
-                        <SelectItem value="finished">Selesai</SelectItem>
-                        <SelectItem value="on_hiatus">Hiatus</SelectItem>
-                        <SelectItem value="discontinued">Discontinued</SelectItem>
-                        <SelectItem value="not_yet_published">Belum Terbit</SelectItem>
+                        <SelectItem value="">{t('allStatus')}</SelectItem>
+                        <SelectItem value="publishing">{t('common:badge.status.publishing')}</SelectItem>
+                        <SelectItem value="finished">{t('common:badge.status.finished')}</SelectItem>
+                        <SelectItem value="on_hiatus">{t('common:badge.status.on_hiatus')}</SelectItem>
+                        <SelectItem value="discontinued">{t('common:badge.status.discontinued')}</SelectItem>
+                        <SelectItem value="not_yet_published">{t('common:badge.status.not_yet_published')}</SelectItem>
                     </SelectContent>
                 </Select>
                 <Select
-                    value={filters.type ?? ''}
-                    onValueChange={(v) => handleFilter('type', v ?? '')}
+                    value={filters.genre ?? ''}
+                    onValueChange={(v) => handleFilter('genre', v ?? '')}
                 >
-                    <SelectTrigger className="w-36">
-                        <SelectValue placeholder="Semua tipe">
-                            {(value: string) => TYPE_LABELS[value] ?? TYPE_LABELS['']}
+                    <SelectTrigger className="w-40">
+                        <SelectValue placeholder={t('allGenre')}>
+                            {(value: string) => value || t('allGenre')}
                         </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="">Semua tipe</SelectItem>
-                        <SelectItem value="manga">Manga</SelectItem>
-                        <SelectItem value="manhwa">Manhwa</SelectItem>
-                        <SelectItem value="manhua">Manhua</SelectItem>
-                        <SelectItem value="novel">Novel</SelectItem>
-                        <SelectItem value="one_shot">One Shot</SelectItem>
-                        <SelectItem value="doujinshi">Doujinshi</SelectItem>
+                        <SelectItem value="">{t('allGenre')}</SelectItem>
+                        {genreOptions.manga.length > 0 && (
+                            <SelectGroup>
+                                <SelectLabel>{t('common:common.manga')}</SelectLabel>
+                                {genreOptions.manga.map((g) => (
+                                    <SelectItem key={`manga-${g}`} value={g}>{g}</SelectItem>
+                                ))}
+                            </SelectGroup>
+                        )}
+                        {genreOptions.manga.length > 0 && genreOptions.novel.length > 0 && <SelectSeparator />}
+                        {genreOptions.novel.length > 0 && (
+                            <SelectGroup>
+                                <SelectLabel>{t('common:common.lightNovel')}</SelectLabel>
+                                {genreOptions.novel.map((g) => (
+                                    <SelectItem key={`novel-${g}`} value={g}>{g}</SelectItem>
+                                ))}
+                            </SelectGroup>
+                        )}
                     </SelectContent>
                 </Select>
-                <Select
-                    value={filters.ownership ?? ''}
-                    onValueChange={(v) => handleFilter('ownership', v ?? '')}
+                <ToggleGroup
+                    value={[filters.ownership || 'all']}
+                    onValueChange={(vals) => handleFilter('ownership', vals[0] === 'all' ? '' : (vals[0] ?? ''))}
+                    variant="outline"
+                    size="sm"
                 >
-                    <SelectTrigger className="w-44">
-                        <SelectValue placeholder="Semua koleksi">
-                            {(value: string) => OWNERSHIP_LABELS[value] ?? OWNERSHIP_LABELS['']}
-                        </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="">Semua koleksi</SelectItem>
-                        <SelectItem value="owned">Sudah di koleksi</SelectItem>
-                        <SelectItem value="not_owned">Belum di koleksi</SelectItem>
-                    </SelectContent>
-                </Select>
+                    {ownershipFilters.map((o) => (
+                        <ToggleGroupItem key={o.value} value={o.value}>
+                            {o.label}
+                        </ToggleGroupItem>
+                    ))}
+                </ToggleGroup>
             </div>
 
             {/* Grid */}
             {series.data.length === 0 ? (
                 <div className="py-20 text-center">
-                    <p className="text-muted-foreground">Tidak ada series ditemukan.</p>
+                    <p className="text-muted-foreground">{t('empty.title')}</p>
                     {filters.search && (
                         <p className="mt-2 text-sm text-muted-foreground">
-                            Judul yang kamu cari belum ada di katalog?{' '}
+                            {t('empty.requestPrompt')}{' '}
                             <Link
                                 href={route('tickets.create')}
                                 className="font-medium text-primary underline-offset-4 hover:underline"
                             >
-                                Buat tiket request
+                                {t('empty.createTicket')}
                             </Link>{' '}
-                            ke admin.
+                            {t('empty.toAdmin')}
                         </p>
                     )}
                 </div>

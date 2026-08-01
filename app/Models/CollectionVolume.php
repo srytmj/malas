@@ -15,6 +15,8 @@ class CollectionVolume extends Model
         'collection_id',
         'volume_number',
         'format',
+        'ebook_source',
+        'language',
         'read_at',
     ];
 

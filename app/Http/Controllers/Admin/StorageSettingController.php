@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\TestStorageConnectionRequest;
 use App\Http\Requests\Admin\UpdateStorageSettingRequest;
 use App\Jobs\MigrateStorageFilesJob;
 use App\Models\ActivityLog;
+use App\Models\AiSetting;
 use App\Models\StorageSetting;
 use App\Services\StorageSettingsService;
 use Illuminate\Http\JsonResponse;
@@ -24,6 +25,8 @@ class StorageSettingController extends Controller
 
         $this->authorize('view', $setting);
 
+        $aiSetting = AiSetting::first() ?? new AiSetting(['provider' => 'puter']);
+
         return Inertia::render('Admin/Settings/Index', [
             'setting' => [
                 'driver' => $setting->driver,
@@ -36,6 +39,11 @@ class StorageSettingController extends Controller
                 'has_secret' => filled($setting->secret_access_key),
                 'migration_status' => $setting->migration_status,
                 'migration_message' => $setting->migration_message,
+            ],
+            'aiSetting' => [
+                'provider' => $aiSetting->provider,
+                // api_key is never sent to the frontend
+                'has_key' => filled($aiSetting->api_key),
             ],
         ]);
     }

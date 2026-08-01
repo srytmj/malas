@@ -1,0 +1,51 @@
+{
+    "title": "Dashboard",
+    "welcome": "Selamat datang, {{name}}.",
+    "stats": {
+        "seriesInCollection": "Series Koleksi",
+        "seriesInCollectionHint": "series di koleksimu",
+        "volumesOwned": "Volume Dimiliki",
+        "volumesOwnedHint": "volume sudah dimiliki",
+        "onLoan": "Dipinjamkan",
+        "onLoanHint": "pinjaman aktif",
+        "overdue": "Terlambat",
+        "overdueHint": "pinjaman melewati jatuh tempo"
+    },
+    "continueReading": "Lanjutkan Baca",
+    "volumeUnread": "Vol. {{number}} belum dibaca",
+    "collectionsByStatus": "Koleksi per Status",
+    "status": {
+        "publishing": "Publishing",
+        "finished": "Selesai",
+        "on_hiatus": "Hiatus",
+        "discontinued": "Discontinued",
+        "not_yet_published": "Belum Terbit"
+    },
+    "funfact": {
+        "title": "Selera Genre",
+        "generate": "Generate Ulang",
+        "generating": "Generate...",
+        "notEligible": "Tambahkan minimal 15 series ke koleksimu supaya kami bisa kasih funfact tentang selera genremu.",
+        "noGenreData": "Belum ada data genre.",
+        "clickGenreHint": "Klik salah satu genre untuk lihat koleksi & rekomendasi terkait",
+        "quotaRemaining": "Sisa generate ulang minggu ini: {{remaining}}/{{max}}",
+        "loadingDetail": "Memuat...",
+        "noSeriesForGenre": "Tidak ada series dengan genre \"{{genre}}\".",
+        "ownedWithGenre": "Koleksimu dengan genre \"{{genre}}\"",
+        "recommendedWithGenre": "Rekomendasi genre \"{{genre}}\"",
+        "generateFailed": "Gagal generate funfact. Coba lagi nanti."
+    },
+    "recommendations": {
+        "title": "Rekomendasi untukmu",
+        "surpriseMe": "Surprise Me",
+        "empty": "Tambahkan beberapa series ke koleksimu dulu supaya kami bisa kasih rekomendasi berdasarkan genre favoritmu."
+    },
+    "latestTicket": "Tiket Terakhir",
+    "surprise": {
+        "title": "Coba nih, kemungkinan kamu bakal suka!",
+        "description": "Dipilih secara acak dari series yang belum ada di koleksimu.",
+        "empty": "Belum ada series lain yang bisa direkomendasikan.",
+        "tryAgain": "Coba Lagi",
+        "viewSeries": "Lihat Series"
+    }
+}

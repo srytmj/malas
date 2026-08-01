@@ -2,9 +2,10 @@ import { useRef, useState } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import {
-    AlertTriangle, CheckCircle2, Database, Download, Eye, HardDrive, Loader2, Save, Shield, Upload, XCircle, Zap,
+    AlertTriangle, Bot, CheckCircle2, Database, Download, Eye, HardDrive, Loader2, Save, Shield, Upload, XCircle, Zap,
 } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -34,8 +35,14 @@ interface StorageSettingData {
     migration_message: string | null;
 }
 
+interface AiSettingData {
+    provider: 'puter' | 'gemini' | 'openai' | 'claude';
+    has_key: boolean;
+}
+
 interface Props extends PageProps {
     setting: StorageSettingData;
+    aiSetting: AiSettingData;
 }
 
 const storageSchema = z.object({
@@ -49,12 +56,125 @@ const storageSchema = z.object({
 });
 type StorageFormValues = z.infer<typeof storageSchema>;
 
+const aiSchema = z.object({
+    provider: z.enum(['puter', 'gemini', 'openai', 'claude']),
+    api_key: z.string().optional(),
+});
+type AiFormValues = z.infer<typeof aiSchema>;
+
 function FieldError({ message }: { message?: string }) {
     if (!message) return null;
     return <p className="text-xs text-destructive">{message}</p>;
 }
 
+function AiTab({ aiSetting }: { aiSetting: AiSettingData }) {
+    const { t } = useTranslation('admin');
+    const [submitting, setSubmitting] = useState(false);
+
+    const AI_PROVIDER_LABELS: Record<AiFormValues['provider'], string> = {
+        puter: t('settings.ai.providers.puter'),
+        gemini: t('settings.ai.providers.gemini'),
+        openai: t('settings.ai.providers.openai'),
+        claude: t('settings.ai.providers.claude'),
+    };
+
+    const {
+        register, control, handleSubmit, setError, watch,
+        formState: { errors },
+    } = useForm<AiFormValues>({
+        resolver: zodResolver(aiSchema),
+        defaultValues: {
+            provider: aiSetting.provider,
+            api_key: '',
+        },
+    });
+
+    const provider = watch('provider');
+    const usesPuter = provider === 'puter';
+
+    function onSubmit(values: AiFormValues) {
+        setSubmitting(true);
+        router.put(route('admin.settings.ai.update'), values, {
+            onError: (errs) => {
+                Object.entries(errs).forEach(([k, msg]) => {
+                    setError(k as keyof AiFormValues, { message: msg as string });
+                });
+            },
+            onFinish: () => setSubmitting(false),
+        });
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                    <Bot className="h-4 w-4" />
+                    {t('settings.ai.cardTitle')}
+                </CardTitle>
+                <CardDescription>
+                    {t('settings.ai.cardDescription')}
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                    <div className="space-y-1.5">
+                        <Label>{t('settings.ai.provider')}</Label>
+                        <Controller<AiFormValues, 'provider'>
+                            control={control}
+                            name="provider"
+                            render={({ field }) => (
+                                <Select value={field.value} onValueChange={field.onChange}>
+                                    <SelectTrigger>
+                                        <SelectValue>
+                                            {(value: string) => AI_PROVIDER_LABELS[value as AiFormValues['provider']] ?? value}
+                                        </SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="puter">{AI_PROVIDER_LABELS.puter}</SelectItem>
+                                        <SelectItem value="gemini">{AI_PROVIDER_LABELS.gemini}</SelectItem>
+                                        <SelectItem value="openai">{AI_PROVIDER_LABELS.openai}</SelectItem>
+                                        <SelectItem value="claude">{AI_PROVIDER_LABELS.claude}</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                        {usesPuter && (
+                            <p className="text-xs text-muted-foreground">
+                                {t('settings.ai.puterHint')}
+                            </p>
+                        )}
+                    </div>
+
+                    {!usesPuter && (
+                        <div className="space-y-1.5">
+                            <Label htmlFor="api_key">
+                                {t('settings.ai.apiKey')} {!aiSetting.has_key && <span className="text-destructive">*</span>}
+                            </Label>
+                            <Input
+                                id="api_key"
+                                type="password"
+                                placeholder={aiSetting.has_key ? t('settings.ai.apiKeyPlaceholder') : ''}
+                                {...register('api_key')}
+                            />
+                            <FieldError message={errors.api_key?.message} />
+                            {aiSetting.has_key && (
+                                <p className="text-xs text-muted-foreground">{t('settings.ai.apiKeySaved')}</p>
+                            )}
+                        </div>
+                    )}
+
+                    <Button type="submit" disabled={submitting}>
+                        <Save className="mr-1.5 h-3.5 w-3.5" />
+                        {submitting ? t('common:common.saving') : t('common:common.save')}
+                    </Button>
+                </form>
+            </CardContent>
+        </Card>
+    );
+}
+
 function StorageTab({ setting }: { setting: StorageSettingData }) {
+    const { t } = useTranslation('admin');
     const [submitting, setSubmitting] = useState(false);
     const [testing, setTesting]       = useState(false);
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -107,7 +227,7 @@ function StorageTab({ setting }: { setting: StorageSettingData }) {
             );
             setTestResult(res.data);
         } catch {
-            setTestResult({ success: false, message: 'Gagal menghubungi server.' });
+            setTestResult({ success: false, message: t('common:common.generalError') });
         } finally {
             setTesting(false);
         }
@@ -118,11 +238,10 @@ function StorageTab({ setting }: { setting: StorageSettingData }) {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                     <HardDrive className="h-4 w-4" />
-                    Konfigurasi Storage
+                    {t('settings.storage.cardTitle')}
                 </CardTitle>
                 <CardDescription>
-                    Atur lokasi penyimpanan file cover — lokal atau S3-compatible (misal Cloudflare R2).
-                    Saat driver diganti, file yang sudah ada otomatis dipindahkan ke lokasi baru di latar belakang.
+                    {t('settings.storage.cardDescription')}
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -141,14 +260,14 @@ function StorageTab({ setting }: { setting: StorageSettingData }) {
                         {setting.migration_status === 'failed' && <XCircle className="mt-0.5 h-4 w-4 shrink-0" />}
                         <span>
                             {setting.migration_status === 'running'
-                                ? 'Sedang memindahkan file ke lokasi storage baru...'
+                                ? t('settings.storage.migrationRunning')
                                 : setting.migration_message}
                         </span>
                     </div>
                 )}
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <div className="space-y-1.5">
-                        <Label>Driver</Label>
+                        <Label>{t('settings.storage.driver')}</Label>
                         <Controller<StorageFormValues, 'driver'>
                             control={control}
                             name="driver"
@@ -156,12 +275,12 @@ function StorageTab({ setting }: { setting: StorageSettingData }) {
                                 <Select value={field.value} onValueChange={field.onChange}>
                                     <SelectTrigger>
                                         <SelectValue>
-                                            {(value: string) => (value === 's3' ? 'S3-compatible (R2, AWS S3, dll)' : 'Local (disk server)')}
+                                            {(value: string) => (value === 's3' ? t('settings.storage.driverS3') : t('settings.storage.driverLocal'))}
                                         </SelectValue>
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="local">Local (disk server)</SelectItem>
-                                        <SelectItem value="s3">S3-compatible (R2, AWS S3, dll)</SelectItem>
+                                        <SelectItem value="local">{t('settings.storage.driverLocal')}</SelectItem>
+                                        <SelectItem value="s3">{t('settings.storage.driverS3')}</SelectItem>
                                     </SelectContent>
                                 </Select>
                             )}
@@ -171,19 +290,19 @@ function StorageTab({ setting }: { setting: StorageSettingData }) {
                     {driver === 's3' && (
                         <div className="space-y-4 rounded-lg border p-4">
                             <div className="space-y-1.5">
-                                <Label htmlFor="access_key_id">Access Key ID <span className="text-destructive">*</span></Label>
+                                <Label htmlFor="access_key_id">{t('settings.storage.accessKeyId')} <span className="text-destructive">*</span></Label>
                                 <Input id="access_key_id" {...register('access_key_id')} />
                                 <FieldError message={errors.access_key_id?.message} />
                             </div>
 
                             <div className="space-y-1.5">
                                 <Label htmlFor="secret_access_key">
-                                    Secret Access Key {!setting.has_secret && <span className="text-destructive">*</span>}
+                                    {t('settings.storage.secretAccessKey')} {!setting.has_secret && <span className="text-destructive">*</span>}
                                 </Label>
                                 <Input
                                     id="secret_access_key"
                                     type="password"
-                                    placeholder={setting.has_secret ? 'Biarkan kosong untuk tetap pakai yang lama' : ''}
+                                    placeholder={setting.has_secret ? t('settings.storage.secretAccessKeyPlaceholder') : ''}
                                     {...register('secret_access_key')}
                                 />
                                 <FieldError message={errors.secret_access_key?.message} />
@@ -191,24 +310,24 @@ function StorageTab({ setting }: { setting: StorageSettingData }) {
 
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="bucket">Bucket <span className="text-destructive">*</span></Label>
+                                    <Label htmlFor="bucket">{t('settings.storage.bucket')} <span className="text-destructive">*</span></Label>
                                     <Input id="bucket" {...register('bucket')} />
                                     <FieldError message={errors.bucket?.message} />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="region">Region</Label>
+                                    <Label htmlFor="region">{t('settings.storage.region')}</Label>
                                     <Input id="region" placeholder="auto" {...register('region')} />
                                 </div>
                             </div>
 
                             <div className="space-y-1.5">
-                                <Label htmlFor="endpoint">Endpoint <span className="text-destructive">*</span></Label>
+                                <Label htmlFor="endpoint">{t('settings.storage.endpoint')} <span className="text-destructive">*</span></Label>
                                 <Input id="endpoint" placeholder="https://xxxx.r2.cloudflarestorage.com" {...register('endpoint')} />
                                 <FieldError message={errors.endpoint?.message} />
                             </div>
 
                             <div className="space-y-1.5">
-                                <Label htmlFor="url">URL Publik <span className="text-destructive">*</span></Label>
+                                <Label htmlFor="url">{t('settings.storage.publicUrl')} <span className="text-destructive">*</span></Label>
                                 <Input id="url" placeholder="https://pub-xxxx.r2.dev" {...register('url')} />
                                 <FieldError message={errors.url?.message} />
                             </div>
@@ -222,14 +341,14 @@ function StorageTab({ setting }: { setting: StorageSettingData }) {
 
                             <Button type="button" variant="outline" size="sm" disabled={testing} onClick={testConnection}>
                                 <Zap className="mr-1.5 h-3.5 w-3.5" />
-                                {testing ? 'Menguji...' : 'Tes Koneksi'}
+                                {testing ? t('settings.storage.testing') : t('settings.storage.testConnection')}
                             </Button>
                         </div>
                     )}
 
                     <Button type="submit" disabled={submitting}>
                         <Save className="mr-1.5 h-3.5 w-3.5" />
-                        {submitting ? 'Menyimpan...' : 'Simpan'}
+                        {submitting ? t('common:common.saving') : t('common:common.save')}
                     </Button>
                 </form>
             </CardContent>
@@ -238,6 +357,8 @@ function StorageTab({ setting }: { setting: StorageSettingData }) {
 }
 
 function DatabaseTab() {
+    const { t } = useTranslation('admin');
+    const warningItems = t('settings.database.warningItems', { returnObjects: true }) as string[];
     const fileRef                         = useRef<HTMLInputElement>(null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [confirmOpen, setConfirmOpen]   = useState(false);
@@ -271,12 +392,10 @@ function DatabaseTab() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base">
                         <Download className="h-4 w-4" />
-                        Download Backup
+                        {t('settings.database.downloadTitle')}
                     </CardTitle>
                     <CardDescription>
-                        Download semua data (series, volume, koleksi, pinjaman, tiket, pengumuman, dll)
-                        sebagai file <code className="text-xs">.sql</code>.
-                        Data user tidak ikut di-backup karena dikelola via SSO.
+                        {t('settings.database.downloadDescription')}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -285,10 +404,10 @@ function DatabaseTab() {
                         className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90"
                     >
                         <Database className="h-4 w-4" />
-                        Download Backup Sekarang
+                        {t('settings.database.downloadNow')}
                     </a>
                     <p className="mt-2 text-xs text-muted-foreground">
-                        File akan bernama <code>malas-backup-YYYY-MM-DD-HHmmss.sql</code>
+                        {t('settings.database.downloadFilenameHint')}
                     </p>
                 </CardContent>
             </Card>
@@ -298,29 +417,28 @@ function DatabaseTab() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base">
                         <Upload className="h-4 w-4" />
-                        Import dari Backup
+                        {t('settings.database.importTitle')}
                     </CardTitle>
                     <CardDescription>
-                        Pulihkan data dari file backup yang diunduh sebelumnya.
-                        <strong className="text-destructive"> Semua data yang ada akan diganti.</strong>
+                        {t('settings.database.importDescriptionPrefix')}
+                        <strong className="text-destructive"> {t('settings.database.importDescriptionSuffix')}</strong>
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-start gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
                         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                         <div>
-                            <p className="font-medium">Perhatian sebelum import:</p>
+                            <p className="font-medium">{t('settings.database.warningTitle')}</p>
                             <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs">
-                                <li>Semua data series, koleksi, pinjaman, tiket akan <strong>dihapus dan diganti</strong> dengan data dari file backup.</li>
-                                <li>Data user tidak terpengaruh (dikelola via SSO).</li>
-                                <li>Proses ini tidak bisa dibatalkan — pastikan sudah download backup terbaru sebelum import.</li>
-                                <li>Hanya file backup yang dihasilkan dari halaman ini yang diterima.</li>
+                                {warningItems.map((item) => (
+                                    <li key={item}>{item}</li>
+                                ))}
                             </ul>
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">File Backup (.sql)</label>
+                        <label className="text-sm font-medium">{t('settings.database.backupFileLabel')}</label>
                         <input
                             ref={fileRef}
                             type="file"
@@ -336,7 +454,7 @@ function DatabaseTab() {
                         onClick={() => setConfirmOpen(true)}
                     >
                         <Upload className="mr-1.5 h-3.5 w-3.5" />
-                        {importing ? 'Mengimpor...' : 'Import'}
+                        {importing ? t('settings.database.importing') : t('settings.database.import')}
                         {selectedFile && !importing ? ` — ${selectedFile.name}` : ''}
                     </Button>
                 </CardContent>
@@ -346,22 +464,21 @@ function DatabaseTab() {
             <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Konfirmasi Import Database</DialogTitle>
+                        <DialogTitle>{t('settings.database.confirmTitle')}</DialogTitle>
                         <DialogDescription>
-                            Kamu akan mengimpor <strong>{selectedFile?.name}</strong>.
-                            Semua data yang ada akan dihapus dan digantikan dengan data dari file ini.
-                            Tindakan ini tidak bisa dibatalkan.
+                            {t('settings.database.confirmDescriptionPrefix')} <strong>{selectedFile?.name}</strong>.
+                            {' '}{t('settings.database.confirmDescriptionSuffix')}
                         </DialogDescription>
                     </DialogHeader>
                     <p className="text-sm text-muted-foreground">
-                        Sudah yakin? Data user tidak akan terpengaruh.
+                        {t('settings.database.confirmQuestion')}
                     </p>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setConfirmOpen(false)}>
-                            Batal
+                            {t('common:common.cancel')}
                         </Button>
                         <Button variant="destructive" disabled={importing} onClick={handleImport}>
-                            {importing ? 'Mengimpor...' : 'Ya, Import Sekarang'}
+                            {importing ? t('settings.database.importing') : t('settings.database.confirmImportNow')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -371,6 +488,7 @@ function DatabaseTab() {
 }
 
 function ContentTab() {
+    const { t } = useTranslation('admin');
     const { site_settings } = usePage<PageProps>().props;
     const [blurAdult, setBlurAdult] = useState(site_settings.blur_adult_content);
     const [saving, setSaving] = useState(false);
@@ -390,11 +508,10 @@ function ContentTab() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                     <Shield className="h-4 w-4" />
-                    Konten 18+
+                    {t('settings.content.cardTitle')}
                 </CardTitle>
                 <CardDescription>
-                    Series yang ditandai 18+ saat import dari AniList akan otomatis di-blur di halaman katalog dan koleksi
-                    sampai pengguna klik untuk melihatnya — mirip Reddit/Instagram.
+                    {t('settings.content.cardDescription')}
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -402,9 +519,9 @@ function ContentTab() {
                     <div className="flex items-start gap-3">
                         <Eye className="mt-0.5 h-4 w-4 text-muted-foreground" />
                         <div>
-                            <p className="text-sm font-medium">Blur konten 18+ secara default</p>
+                            <p className="text-sm font-medium">{t('settings.content.blurTitle')}</p>
                             <p className="text-xs text-muted-foreground">
-                                Berlaku untuk semua pengguna. Cover akan diblur, klik untuk mengungkap sementara.
+                                {t('settings.content.blurDescription')}
                             </p>
                         </div>
                     </div>
@@ -415,24 +532,26 @@ function ContentTab() {
     );
 }
 
-export default function SettingsIndex({ setting }: Props) {
+export default function SettingsIndex({ setting, aiSetting }: Props) {
+    const { t } = useTranslation('admin');
     return (
         <AdminLayout
             header={
                 <PageHeader
-                    title="Pengaturan"
-                    description="Konfigurasi penyimpanan file, backup database, dan konten."
+                    title={t('settings.title')}
+                    description={t('settings.description')}
                 />
             }
         >
-            <Head title="Pengaturan" />
+            <Head title={t('settings.title')} />
 
             <div className="max-w-2xl">
                 <Tabs defaultValue="storage">
                     <TabsList className="mb-4">
-                        <TabsTrigger value="storage">Penyimpanan</TabsTrigger>
-                        <TabsTrigger value="database">Database</TabsTrigger>
-                        <TabsTrigger value="content">Konten</TabsTrigger>
+                        <TabsTrigger value="storage">{t('settings.tabs.storage')}</TabsTrigger>
+                        <TabsTrigger value="database">{t('settings.tabs.database')}</TabsTrigger>
+                        <TabsTrigger value="content">{t('settings.tabs.content')}</TabsTrigger>
+                        <TabsTrigger value="ai">{t('settings.tabs.ai')}</TabsTrigger>
                     </TabsList>
                     <TabsContent value="storage">
                         <StorageTab setting={setting} />
@@ -442,6 +561,9 @@ export default function SettingsIndex({ setting }: Props) {
                     </TabsContent>
                     <TabsContent value="content">
                         <ContentTab />
+                    </TabsContent>
+                    <TabsContent value="ai">
+                        <AiTab aiSetting={aiSetting} />
                     </TabsContent>
                 </Tabs>
             </div>

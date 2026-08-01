@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Ticket as TicketIcon } from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -27,31 +28,32 @@ interface Props extends PageProps {
 }
 
 export default function TicketsIndex({ tickets }: Props) {
+    const { t } = useTranslation('user');
     return (
         <UserLayout
             header={
                 <PageHeader
-                    title="Tiket"
-                    description={`${tickets.total} tiket dikirim`}
+                    title={t('tickets.title')}
+                    description={t('tickets.count', { count: tickets.total })}
                     actions={
                         <Link href={route('tickets.create')} className={cn(buttonVariants({ size: 'sm' }))}>
                             <Plus className="mr-1.5 h-3.5 w-3.5" />
-                            Buat Tiket
+                            {t('tickets.newTicket')}
                         </Link>
                     }
                 />
             }
         >
-            <Head title="Tiket" />
+            <Head title={t('tickets.title')} />
             {tickets.data.length === 0 ? (
                 <EmptyState
-                    title="Belum ada tiket"
-                    description="Punya request katalog atau laporan lain? Buat tiket untuk kirim ke admin."
+                    title={t('tickets.emptyTitle')}
+                    description={t('tickets.emptyDescription')}
                     icon={TicketIcon}
                     action={
                         <Link href={route('tickets.create')} className={cn(buttonVariants())}>
                             <Plus className="mr-1.5 h-4 w-4" />
-                            Buat Tiket
+                            {t('tickets.newTicket')}
                         </Link>
                     }
                 />
@@ -61,28 +63,28 @@ export default function TicketsIndex({ tickets }: Props) {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Subjek</TableHead>
-                                    <TableHead className="w-40">Tipe</TableHead>
-                                    <TableHead className="w-32">Status</TableHead>
-                                    <TableHead className="w-28">Dibuat</TableHead>
+                                    <TableHead>{t('tickets.subject')}</TableHead>
+                                    <TableHead className="w-40">{t('tickets.type')}</TableHead>
+                                    <TableHead className="w-32">{t('tickets.status')}</TableHead>
+                                    <TableHead className="w-28">{t('tickets.createdColumn')}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {tickets.data.map((t) => (
+                                {tickets.data.map((ticket) => (
                                     <TableRow
-                                        key={t.id}
+                                        key={ticket.id}
                                         className="cursor-pointer"
-                                        onClick={() => router.visit(route('tickets.show', t.id))}
+                                        onClick={() => router.visit(route('tickets.show', ticket.id))}
                                     >
                                         <TableCell>
-                                            <p className="font-medium">{t.subject}</p>
-                                            {t.series && (
-                                                <p className="text-xs text-muted-foreground">Terkait: {t.series.title_romaji}</p>
+                                            <p className="font-medium">{ticket.subject}</p>
+                                            {ticket.series && (
+                                                <p className="text-xs text-muted-foreground">{t('tickets.related', { title: ticket.series.title_romaji })}</p>
                                             )}
                                         </TableCell>
-                                        <TableCell><TicketTypeBadge type={t.type} /></TableCell>
-                                        <TableCell><TicketStatusBadge status={t.status} /></TableCell>
-                                        <TableCell className="text-sm text-muted-foreground">{t.created_at}</TableCell>
+                                        <TableCell><TicketTypeBadge type={ticket.type} /></TableCell>
+                                        <TableCell><TicketStatusBadge status={ticket.status} /></TableCell>
+                                        <TableCell className="text-sm text-muted-foreground">{ticket.created_at}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>

@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import { BookOpen } from 'lucide-react';
 import { SeriesStatusBadge, SeriesTypeBadge } from '@/Components/app/StatusBadge';
 import { AdultBlurOverlay } from '@/Components/app/AdultBlurOverlay';
@@ -31,6 +32,7 @@ export function SeriesCard({
     inCollection,
     is_adult,
 }: SeriesCardProps) {
+    const { t } = useTranslation();
     return (
         <Link href={href} className="group flex flex-col overflow-hidden rounded-lg border bg-card text-card-foreground transition-shadow hover:shadow-md">
             {/* Cover */}
@@ -48,7 +50,7 @@ export function SeriesCard({
                 )}
                 {inCollection && (
                     <div className="absolute top-2 right-2">
-                        <Badge variant="secondary" className="text-xs px-1.5 py-0.5">Di koleksi</Badge>
+                        <Badge variant="secondary" className="text-xs px-1.5 py-0.5">{t('components.seriesCard.inCollection')}</Badge>
                     </div>
                 )}
                 {score !== null && (

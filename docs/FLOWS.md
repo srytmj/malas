@@ -1,7 +1,7 @@
 # FLOWS — MALAS v2
 
-**Versi:** 2.1
-**Tanggal:** 2026-06-26, diperbarui 2026-07-26
+**Versi:** 2.2
+**Tanggal:** 2026-06-26, diperbarui 2026-08-01
 
 ---
 
@@ -17,26 +17,33 @@ Dashboard             /admin/dashboard      (stat cards + chart)
 ├── Peminjaman        /admin/loans
 ├── Pengguna          /admin/users
 ├── Tiket             /admin/tickets
+├── Kuota AI Funfact  /admin/funfact-quota  (kuota generate-ulang Selera Genre per user)
 ├── Log Aktivitas     /admin/activity-logs
 ├── Sistem
-│   ├── Menu          /admin/menus
+│   ├── Menu          /admin/menus          (drag-drop reorder, preview /admin/menus/user)
 │   └── Pengumuman    /admin/announcements
 ├── AniList Search    /admin/anilist
-└── Pengaturan        /admin/settings       (tab Storage/Database/Konten, super_admin only)
+├── RanobeDB Search   /admin/ranobedb       (light novel, paralel dengan AniList)
+├── Search Gabungan   /admin/search-external (AniList + RanobeDB sekaligus)
+└── Pengaturan        /admin/settings       (tab Storage/Database/Konten/AI, super_admin only)
 ```
 
-Catatan: tidak ada `/admin/roles` terpisah. Role management bagian dari halaman detail user (`/admin/users/{id}`). Command Palette (⌘K/Ctrl+K) tersedia di semua halaman admin lewat tombol di sidebar.
+Catatan: tidak ada `/admin/roles` terpisah. Role management bagian dari halaman detail user (`/admin/users/{id}`). Command Palette (⌘K/Ctrl+K) tersedia di semua halaman admin lewat tombol di sidebar. Tombol ganti bahasa (id/en/ja) ada di sidebar footer, di sebelah toggle dark/light mode.
 
 ### User Sidebar
 ```
-Dashboard             /dashboard            (stat cards, chart, Carousel rekomendasi)
+Dashboard             /dashboard            (stat cards, chart, Carousel rekomendasi, Selera Genre)
 Katalog               /catalog              (browse series, read-only, avatar kolektor)
 Koleksiku             /my-collection        (koleksi milik sendiri, grid poster/table)
+Wishlist              /wishlist             (series yang ingin dibaca, belum dikoleksi)
 Pinjaman Saya         /my-loans
+Direktori             /directory            (cari & follow user lain dengan profil publik)
 Tiket                 /tickets
 ```
 
-Global Search (⌘K/Ctrl+K, atau search bar di header desktop / icon di mobile) tersedia di semua halaman user — cari judul di Katalog/Koleksiku atau navigasi cepat.
+Global Search (⌘K/Ctrl+K, atau search bar di header desktop / icon di mobile) tersedia di semua halaman user — cari judul di Katalog/Koleksiku atau navigasi cepat. Tombol ganti bahasa (id/en/ja) ada di sidebar footer, di sebelah toggle dark/light mode.
+
+Profil publik (`/u/{username-atau-id}`) **tidak ada di sidebar** — diakses lewat Direktori, link share, atau langsung dari URL. Bisa diakses tanpa login (lihat §2 Guest Flow).
 
 ---
 
@@ -57,6 +64,22 @@ GET /auth/redirect
 ```
 
 Tidak ada form register/login lokal — semua akun (termasuk admin) dikelola lewat SSO.
+
+### Guest Access — Profil Publik
+```
+GET /u/{username-atau-id}  (di luar grup middleware 'auth', jadi diakses tanpa login)
+  └─ ProfileController@show
+        ├─ Viewer null (guest) → is_guest = true, is_owner = false, is_following = false
+        └─ Viewer login → is_owner cek $viewer->id === $user->id, is_following cek relasi Follow
+
+Frontend (Profile/Show.tsx):
+  ├─ is_guest = true  → render PublicShell (header minimal "MALAS" + tombol Login, tanpa sidebar)
+  │                      Grid koleksi user: cover + judul saja, TIDAK bisa diklik ke /catalog/{slug}
+  │                      (karena katalog butuh login). Tombol Follow diganti link "Login untuk follow".
+  └─ is_guest = false → render UserLayout normal, koleksi bisa diklik, tombol Follow aktif
+```
+
+Route `follow`/`unfollow`/`/directory` tetap di dalam grup middleware `auth` — guest bisa lihat profil tapi tidak bisa follow atau akses direktori tanpa login.
 
 ### Akses Route Terproteksi
 ```
@@ -138,6 +161,36 @@ Sync ulang metadata AniList ke series yang sudah ada tersedia dari Popover "Sync
   └─ Form: title, body (markdown editor), type, tanggal mulai-selesai
         └─ Submit → AnnouncementController@store
               └─ Langsung tampil di dashboard semua user yang aktif
+```
+
+### F-A7: Import Series dari RanobeDB (Light Novel)
+```
+/admin/ranobedb → ketik judul di search
+  └─ Debounce → GET /admin/ranobedb/search?q=...
+        ├─ RanobeDB timeout/error → tampil pesan error
+        └─ Hasil muncul sebagai card overlay (cover, judul, tahun)
+              └─ Klik hasil → GET /admin/ranobedb/detail (preview lengkap: authors, illustrators
+              │                terpisah, genres/themes/demographics dari tags[].ttype)
+                    └─ Klik "Import"
+                          ├─ ranobedb_id sudah ada → toast info "Sudah ada di katalog" + tombol lihat
+                          └─ Belum ada → import (authors/illustrators/genres/themes/demographics
+                                tersimpan terpisah; tanggal sentinel 99999999 di-treat sebagai "ongoing")
+                                tetap di halaman search, tidak pindah halaman
+
+Halaman /admin/search-external menggabungkan hasil AniList + RanobeDB dalam satu pencarian.
+Sync ulang metadata RanobeDB ke series yang sudah ada tersedia dari Popover "Sync RanobeDB" di
+halaman Edit Series (sama pola dengan "Sync AniList").
+```
+
+### F-A8: Reorder Menu Sidebar (Drag & Drop)
+```
+/admin/menus → drag salah satu baris menu (handle drag, @dnd-kit)
+  └─ Drop di posisi baru
+        └─ PATCH /admin/menus/reorder { ordered_ids: [...] }
+              └─ menus.sort_order di-update sesuai urutan baru
+                    └─ Sidebar user (dan admin) langsung ikut urutan baru di request berikutnya
+  └─ Tombol "Preview Sidebar User" → /admin/menus/user
+        └─ Render ulang sidebar persis seperti yang dilihat user, tanpa harus login sebagai user biasa
 ```
 
 ---
@@ -248,6 +301,65 @@ Klik search bar di header (atau ⌘K / Ctrl+K dari halaman manapun)
                     └─ Klik salah satu → router.visit ke halaman terkait, dialog tertutup
 ```
 
+### F-U11: Wishlist
+```
+/catalog/{slug} atau /catalog → klik "Tambah ke Wishlist"
+  └─ POST WishlistController@store { series_id }
+        └─ Toast sukses / info jika sudah ada di wishlist
+
+/wishlist → grid series yang di-wishlist
+  └─ Klik "Hapus" → WishlistController@destroy
+        └─ Toast + tombol "Undo" → PATCH WishlistController@restore
+  └─ Klik "Tambah ke Koleksiku" langsung dari card wishlist → sama alur dengan F-U2
+```
+
+### F-U12: Profil Publik & Follow
+```
+Opt-in tampilkan profil (di Settings):
+/settings → toggle "Profil Publik"
+  └─ PATCH SettingsController@updateProfileVisibility
+        └─ is_profile_public tersimpan → profil bisa diakses di /u/{username-atau-id}
+
+Follow user lain:
+/directory (butuh login) atau /u/{user} → klik "Follow"
+  └─ POST ProfileController@follow { user }
+        └─ Tombol berubah "Unfollow", follower_count bertambah
+  └─ Klik "Unfollow" → DELETE ProfileController@unfollow
+
+Lihat profil orang lain (guest atau login) → lihat §2 Guest Access — Profil Publik untuk
+perbedaan tampilan guest vs user login.
+```
+
+### F-U13: Selera Genre (AI Funfact)
+```
+Dashboard → card "Selera Genre"
+  ├─ Word cloud genre dihitung dari distribusi genre koleksi user
+  └─ Funfact text:
+        ├─ Provider = puter (default)
+        │     └─ Auto-generate saat halaman load pertama kali / koleksi bertambah signifikan:
+        │           needs_auto_generate = true dari backend → frontend panggil window.puter.ai.chat()
+        │                 └─ Hasil dikirim balik → POST dashboard.funfact.auto-save → tersimpan
+        │     └─ Klik "Generate Ulang" (manual, dibatasi kuota mingguan)
+        │           └─ Sama alur client-side → POST dashboard.funfact.regenerate
+        │                 ├─ Kuota habis → toast info, tombol disabled sampai window reset
+        │                 └─ Berhasil → funfact baru tersimpan & tampil
+        │     └─ Client-side generate gagal → POST dashboard.funfact.report-error (log ke ActivityLog)
+        └─ Provider = gemini/openai/claude (dikonfigurasi admin)
+              └─ Generate terjadi server-side di AiFunfactService
+                    ├─ HTTP 429 dari provider → AiRateLimitException → fallback text, kuota TIDAK terpotong
+                    └─ Sukses → funfact tersimpan seperti biasa
+```
+
+### F-U14: Ganti Bahasa
+```
+Klik tombol bahasa di sidebar footer (sebelah toggle dark/light mode) — atau kartu "Bahasa" di Settings
+  └─ Popover: pilih id / en / ja
+        └─ i18n.changeLanguage(value) — UI berubah instan tanpa reload
+        └─ PATCH settings.locale.update { locale } → users.locale tersimpan
+              └─ Request berikutnya, App::setLocale() server-side ikut bahasa baru
+                    (pesan validasi, paginator Laravel bawaan ikut berubah juga)
+```
+
 ---
 
 ## 5. Maintenance Mode Flow
@@ -278,5 +390,7 @@ Admin yang akses /catalog:
 | 404 Not Found | Halaman error: "Halaman tidak ditemukan" |
 | Maintenance | Halaman maintenance dengan pesan custom |
 | User di-ban | Halaman: "Akunmu dinonaktifkan. Hubungi admin." |
-| AniList API error | Toast/pesan error (tidak crash halaman) |
+| AniList/RanobeDB API error | Toast/pesan error (tidak crash halaman) |
 | Upload gagal | Error inline di field upload |
+| AI Funfact rate limit (429) | Fallback ke teks default, kuota generate-ulang manual tidak terpotong |
+| AI Funfact generate gagal (client-side) | Toast error + dilaporkan ke ActivityLog (kategori `ai`), tidak crash dashboard |

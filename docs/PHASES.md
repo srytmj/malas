@@ -1,8 +1,8 @@
 # PHASES — MALAS v2 Implementation Plan
 
-**Versi:** 2.2
-**Tanggal:** 2026-06-26 (Phase 0–10), diperbarui 2026-07-26 (Phase 11–12)
-**Status:** ✅ Semua fase selesai (QA pass 2026-07-03) + Phase 11–12 post-launch enhancements
+**Versi:** 2.3
+**Tanggal:** 2026-06-26 (Phase 0–10), diperbarui 2026-08-01 (Phase 11–14)
+**Status:** ✅ Semua fase selesai (QA pass 2026-07-03) + Phase 11–14 post-launch enhancements
 
 > Setelah setiap fase selesai: buka QA chat baru dengan instruksi dari `QA.md`.
 > Jangan mulai fase berikutnya sebelum QA pass.
@@ -368,6 +368,48 @@ Dikerjakan iteratif setelah Phase 11, dalam dua batch:
 
 ---
 
+## Phase 13 — Light Novel Metadata Import (RanobeDB) ✅
+
+**Goal:** Import series/volume metadata untuk light novel dari [RanobeDB](https://ranobedb.org), paralel dengan integrasi AniList yang sudah ada (tidak menggantikan, sisi manga/manhwa/manhua tetap AniList).
+
+Rencana lengkap ada di [`docs/RANOBEDB_INTEGRATION.md`](RANOBEDB_INTEGRATION.md). REST API tanpa auth, model tiga level (Series → Books → Releases), staff ter-split author/illustrator secara native. Migration `series.ranobedb_id` + `series.illustrators` (json) ditambahkan.
+
+Implementasi: `RanobeDbService` (REST client) + `RanobeDbController` (`/admin/ranobedb`, search/detail/import) + `Admin/RanobeDb/Index.tsx` (card overlay, sama pola dengan AniList). Popover "Sync RanobeDB" di Edit Series untuk sync ulang metadata ke series yang sudah ada. `ExternalSearchController` + `Admin/Search/Index.tsx` menggabungkan hasil AniList+RanobeDB dalam satu pencarian (`/admin/search-external`).
+
+### Done Criteria
+- [x] Search & import series light novel dari RanobeDB berfungsi
+- [x] Genre/demographic/theme/author/illustrator ter-split benar dari `tags[]`/`staff[]`
+- [x] Tanggal terbit menangani sentinel `99999999` (ongoing) dengan benar
+- [x] Import duplikat (`ranobedb_id` sama) update, bukan bikin series baru
+- [x] `npx tsc --noEmit` → 0 errors, `php artisan test` → pass
+
+---
+
+## Phase 14 — Multi-Bahasa, Profil Publik & Follow, Wishlist, Selera Genre AI, Menu Reorder ✅
+
+**Goal:** Batch besar post-launch enhancement: dukungan multi-bahasa penuh, komunitas dasar (profil publik + follow), wishlist, fitur AI ringan tanpa biaya server (Puter.js), dan polish admin (reorder menu drag-drop).
+
+Dikerjakan iteratif setelah Phase 13, tidak dalam urutan fase formal:
+
+1. **Multi-bahasa (id/en/ja)** — `react-i18next` + resource JSON per-namespace (`common`, `dashboard`, `user`, `catalog`, `collection`, `admin`) di `resources/js/lang/{id,en,ja}/`. Middleware `SetLocale` set `App::setLocale()` server-side dari `users.locale` (kolom baru, default `id`), di-share ke frontend lewat `HandleInertiaRequests`. `lang/{id,en,ja}/validation.php` + `pagination.php` dipublish supaya pesan bawaan Laravel ikut bahasa aktif. `LanguageSwitcher.tsx` di sidebar footer (Admin & User Layout) untuk ganti bahasa tanpa buka Settings. `useTypeFilterOptions()` dan `menuTranslationKey()` sebagai hook/helper terpusat untuk menghindari duplikasi terjemahan. Cakupan: seluruh `User/**`, `Settings/Index.tsx`, `Admin/Dashboard.tsx`+`ActivityLog/Index.tsx`, semua Layouts/shared components — sisa halaman `Admin/**` masih backlog, lihat [`CLAUDE.md`](../CLAUDE.md) bagian "Sistem Multi-Bahasa".
+2. **Profil publik & follow** — kolom `users.is_profile_public` (opt-in, default false) + tabel `follows`. Route `/u/{user}` sengaja dipindah keluar dari grup middleware `auth` supaya guest bisa lihat profil (koleksi tampil read-only, tidak bisa klik ke detail katalog karena itu tetap butuh login). `ProfileController` dibikin null-safe untuk viewer tamu. `PublicShell` (layout minimal khusus guest, bukan `UserLayout` yang non-null-assert `auth.user`) dipakai saat `is_guest = true`. Direktori Pengguna (`/directory`, butuh login) untuk cari & follow user lain.
+3. **Wishlist** — tabel `wishlist_items` (unique per user+series), `WishlistController` + `User/Wishlist/Index.tsx`, terpisah dari Koleksi (tidak ada tracking volume/format, murni penanda minat).
+4. **Selera Genre (AI Funfact)** — word cloud genre + funfact text AI di dashboard user. Tabel `genre_funfacts` (kuota generate-ulang manual, default 5×/minggu, bisa di-override admin) + `ai_settings` (provider aktif, single-row). Default provider **Puter.js** — client-side, gratis, tanpa API key server (`resources/js/lib/puter.ts`, script di-load global via `app.blade.php`). Provider alternatif (Gemini/OpenAI/Claude) generate server-side lewat `AiFunfactService`, dengan `AiRateLimitException` khusus untuk HTTP 429 supaya fallback ke teks default tanpa memotong kuota manual user. Admin kelola kuota per user di `/admin/funfact-quota` (`GenreFunfactController`).
+5. **Reorder menu sidebar (drag & drop)** — `SortableMenuList.tsx` (`@dnd-kit/core` + `sortable` + `utilities`) di `Admin/Menus/Index.tsx`, `PATCH /admin/menus/reorder` update `sort_order` sesuai urutan drag. Preview sidebar user tanpa login sebagai user biasa di `/admin/menus/user`.
+6. **Ebook detail per volume koleksi** — kolom `collection_volumes.ebook_source` dan `language`, relevan untuk format `ebook`/`online`.
+7. **Blur konten 18+ diperluas** — kolom `series.is_adult` dipakai konsisten di search AniList/RanobeDB dan tampilan katalog, terhubung ke toggle blur di `/admin/settings` tab Konten.
+
+### Done Criteria
+- [x] `npx tsc --noEmit` → 0 errors
+- [x] `php artisan test` → pass, Pint clean
+- [x] Guest bisa akses `/u/{user}` tanpa error, tidak bisa follow atau ke katalog
+- [x] Ganti bahasa langsung update UI tanpa reload, tersimpan per-user
+- [x] Funfact AI (provider Puter) generate & tersimpan tanpa API key server
+- [x] Reorder menu drag-drop langsung update urutan sidebar
+- [ ] Sisa halaman `Admin/**` diterjemahkan penuh — backlog aktif, lihat CLAUDE.md
+
+---
+
 ## Summary Tabel
 
 | Phase | Nama | Status |
@@ -385,5 +427,7 @@ Dikerjakan iteratif setelah Phase 11, dalam dua batch:
 | 10 | Polish & Hardening | ✅ |
 | 11 | Post-Launch Enhancements | ✅ |
 | 12 | Library UI, Dashboard, Baca Tracking & Review | ✅ |
+| 13 | Light Novel Metadata Import (RanobeDB) | ✅ |
+| 14 | Multi-Bahasa, Profil Publik & Follow, Wishlist, Selera Genre AI, Menu Reorder | ✅ (i18n admin pages backlog) |
 
-**QA pass: 2026-07-03** — Phase 11–12 dikerjakan iteratif sesudahnya, lihat [`CHANGELOG.md`](../CHANGELOG.md) untuk detail per-perubahan.
+**QA pass: 2026-07-03** — Phase 11–14 dikerjakan iteratif sesudahnya, lihat [`CHANGELOG.md`](../CHANGELOG.md) untuk detail per-perubahan. Phase 14's cakupan multi-bahasa untuk halaman `Admin/**` masih berjalan — lihat [`CLAUDE.md`](../CLAUDE.md) untuk daftar backlog terkini.

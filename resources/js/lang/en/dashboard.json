@@ -1,0 +1,51 @@
+{
+    "title": "Dashboard",
+    "welcome": "Welcome, {{name}}.",
+    "stats": {
+        "seriesInCollection": "Series in Collection",
+        "seriesInCollectionHint": "series in your collection",
+        "volumesOwned": "Volumes Owned",
+        "volumesOwnedHint": "volumes you own",
+        "onLoan": "On Loan",
+        "onLoanHint": "active loans",
+        "overdue": "Overdue",
+        "overdueHint": "loans past due date"
+    },
+    "continueReading": "Continue Reading",
+    "volumeUnread": "Vol. {{number}} unread",
+    "collectionsByStatus": "Collection by Status",
+    "status": {
+        "publishing": "Publishing",
+        "finished": "Finished",
+        "on_hiatus": "On Hiatus",
+        "discontinued": "Discontinued",
+        "not_yet_published": "Not Yet Published"
+    },
+    "funfact": {
+        "title": "Genre Taste",
+        "generate": "Regenerate",
+        "generating": "Generating...",
+        "notEligible": "Add at least 15 series to your collection so we can give you a funfact about your genre taste.",
+        "noGenreData": "No genre data yet.",
+        "clickGenreHint": "Click a genre to see related collection items & recommendations",
+        "quotaRemaining": "Regenerations left this week: {{remaining}}/{{max}}",
+        "loadingDetail": "Loading...",
+        "noSeriesForGenre": "No series with genre \"{{genre}}\".",
+        "ownedWithGenre": "Your collection with genre \"{{genre}}\"",
+        "recommendedWithGenre": "Recommendations for genre \"{{genre}}\"",
+        "generateFailed": "Failed to generate funfact. Try again later."
+    },
+    "recommendations": {
+        "title": "Recommended for You",
+        "surpriseMe": "Surprise Me",
+        "empty": "Add a few series to your collection first so we can recommend based on your favorite genres."
+    },
+    "latestTicket": "Latest Ticket",
+    "surprise": {
+        "title": "Try this, you might like it!",
+        "description": "Randomly picked from series not yet in your collection.",
+        "empty": "No other series available to recommend yet.",
+        "tryAgain": "Try Again",
+        "viewSeries": "View Series"
+    }
+}

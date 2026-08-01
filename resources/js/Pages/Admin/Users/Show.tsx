@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { ArrowLeft, Ban, ShieldCheck, UserCog } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
@@ -37,14 +38,8 @@ interface Props extends PageProps {
     can: { ban: boolean; changeRole: boolean };
 }
 
-const ROLE_LABELS: Record<string, string> = {
-    super_admin: 'Super Admin',
-    admin:       'Admin',
-    user:        'User',
-};
-
 const banSchema = z.object({
-    ban_reason: z.string().min(1, 'Wajib diisi').max(500),
+    ban_reason: z.string().min(1).max(500),
 });
 type BanFormValues = z.infer<typeof banSchema>;
 
@@ -54,6 +49,14 @@ function FieldError({ message }: { message?: string }) {
 }
 
 export default function UserShow({ user, collections_count, can }: Props) {
+    const { t } = useTranslation('admin');
+
+    const ROLE_LABELS: Record<string, string> = {
+        super_admin: t('common:settings.roles.super_admin'),
+        admin:       t('common:settings.roles.admin'),
+        user:        t('common:settings.roles.user'),
+    };
+
     const [banOpen, setBanOpen]           = useState(false);
     const [unbanOpen, setUnbanOpen]       = useState(false);
     const [roleOpen, setRoleOpen]         = useState(false);
@@ -99,7 +102,7 @@ export default function UserShow({ user, collections_count, can }: Props) {
                 <PageHeader
                     title={user.name}
                     breadcrumbs={[
-                        { label: 'Pengguna', href: route('admin.users.index') },
+                        { label: t('users.show.breadcrumb'), href: route('admin.users.index') },
                         { label: user.name },
                     ]}
                     actions={
@@ -108,7 +111,7 @@ export default function UserShow({ user, collections_count, can }: Props) {
                             className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
                         >
                             <ArrowLeft className="mr-1.5 h-4 w-4" />
-                            Kembali
+                            {t('users.show.back')}
                         </Link>
                     }
                 />
@@ -120,45 +123,45 @@ export default function UserShow({ user, collections_count, can }: Props) {
                 <div className="lg:col-span-2 space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-base">Informasi Akun</CardTitle>
+                            <CardTitle className="text-base">{t('users.show.accountInfoTitle')}</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3 text-sm">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <p className="text-xs text-muted-foreground">Nama</p>
+                                    <p className="text-xs text-muted-foreground">{t('users.show.name')}</p>
                                     <p className="font-medium">{user.name}</p>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-muted-foreground">Email</p>
+                                    <p className="text-xs text-muted-foreground">{t('users.show.email')}</p>
                                     <p className="font-medium">{user.email}</p>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-muted-foreground">Role</p>
+                                    <p className="text-xs text-muted-foreground">{t('users.show.role')}</p>
                                     <p className="font-medium">{ROLE_LABELS[user.role] ?? user.role}</p>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-muted-foreground">Bergabung</p>
+                                    <p className="text-xs text-muted-foreground">{t('users.show.joined')}</p>
                                     <p className="font-medium">{user.created_at}</p>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-muted-foreground">Status</p>
+                                    <p className="text-xs text-muted-foreground">{t('users.show.status')}</p>
                                     {user.is_banned
-                                        ? <Badge variant="destructive">Di-ban</Badge>
-                                        : <Badge variant="outline">Aktif</Badge>}
+                                        ? <Badge variant="destructive">{t('users.statusBanned')}</Badge>
+                                        : <Badge variant="outline">{t('users.statusActive')}</Badge>}
                                 </div>
                                 <div>
-                                    <p className="text-xs text-muted-foreground">Koleksi</p>
-                                    <p className="font-medium">{collections_count} series</p>
+                                    <p className="text-xs text-muted-foreground">{t('users.show.collections')}</p>
+                                    <p className="font-medium">{t('users.show.collectionsCount', { count: collections_count })}</p>
                                 </div>
                             </div>
 
                             {user.is_banned && user.ban_reason && (
                                 <div className="rounded-md bg-destructive/10 px-3 py-2">
-                                    <p className="text-xs font-medium text-destructive">Alasan ban</p>
+                                    <p className="text-xs font-medium text-destructive">{t('users.show.banReasonTitle')}</p>
                                     <p className="mt-0.5 text-sm">{user.ban_reason}</p>
                                     {user.banned_at && (
                                         <p className="mt-0.5 text-xs text-muted-foreground">
-                                            Di-ban pada {user.banned_at}
+                                            {t('users.show.bannedAt', { date: user.banned_at })}
                                         </p>
                                     )}
                                 </div>
@@ -176,7 +179,7 @@ export default function UserShow({ user, collections_count, can }: Props) {
                             onClick={() => setBanOpen(true)}
                         >
                             <Ban className="mr-2 h-4 w-4" />
-                            Ban Pengguna
+                            {t('users.show.banUser')}
                         </Button>
                     )}
 
@@ -187,7 +190,7 @@ export default function UserShow({ user, collections_count, can }: Props) {
                             onClick={() => setUnbanOpen(true)}
                         >
                             <ShieldCheck className="mr-2 h-4 w-4" />
-                            Cabut Ban
+                            {t('users.show.unbanUser')}
                         </Button>
                     )}
 
@@ -198,7 +201,7 @@ export default function UserShow({ user, collections_count, can }: Props) {
                             onClick={() => setRoleOpen(true)}
                         >
                             <UserCog className="mr-2 h-4 w-4" />
-                            Ganti Role
+                            {t('users.show.changeRole')}
                         </Button>
                     )}
                 </div>
@@ -207,22 +210,22 @@ export default function UserShow({ user, collections_count, can }: Props) {
             {/* Ban Dialog */}
             <Dialog open={banOpen} onOpenChange={(open) => { setBanOpen(open); if (!open) reset(); }}>
                 <DialogContent>
-                    <DialogHeader><DialogTitle>Ban {user.name}</DialogTitle></DialogHeader>
+                    <DialogHeader><DialogTitle>{t('users.show.banDialogTitle', { name: user.name })}</DialogTitle></DialogHeader>
                     <form onSubmit={handleSubmit(handleBan)} className="space-y-4">
                         <div className="space-y-1.5">
-                            <Label htmlFor="ban_reason">Alasan ban <span className="text-destructive">*</span></Label>
+                            <Label htmlFor="ban_reason">{t('users.show.banReasonLabel')} <span className="text-destructive">*</span></Label>
                             <Textarea
                                 id="ban_reason"
                                 rows={3}
-                                placeholder="Jelaskan alasan pemblokiran akun ini..."
+                                placeholder={t('users.show.banReasonPlaceholder')}
                                 {...register('ban_reason')}
                             />
-                            <FieldError message={errors.ban_reason?.message} />
+                            <FieldError message={errors.ban_reason ? t('common:common.required') : undefined} />
                         </div>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setBanOpen(false)}>Batal</Button>
+                            <Button type="button" variant="outline" onClick={() => setBanOpen(false)}>{t('common:common.cancel')}</Button>
                             <Button type="submit" variant="destructive" disabled={banning}>
-                                {banning ? 'Memproses...' : 'Ban'}
+                                {banning ? t('users.show.processing') : t('users.show.banAction')}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -232,14 +235,14 @@ export default function UserShow({ user, collections_count, can }: Props) {
             {/* Unban Dialog */}
             <Dialog open={unbanOpen} onOpenChange={setUnbanOpen}>
                 <DialogContent>
-                    <DialogHeader><DialogTitle>Cabut ban {user.name}?</DialogTitle></DialogHeader>
+                    <DialogHeader><DialogTitle>{t('users.show.unbanDialogTitle', { name: user.name })}</DialogTitle></DialogHeader>
                     <p className="text-sm text-muted-foreground">
-                        Pengguna ini akan bisa login kembali setelah ban dicabut.
+                        {t('users.show.unbanDialogDescription')}
                     </p>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setUnbanOpen(false)}>Batal</Button>
+                        <Button variant="outline" onClick={() => setUnbanOpen(false)}>{t('common:common.cancel')}</Button>
                         <Button disabled={unbanning} onClick={handleUnban}>
-                            {unbanning ? 'Memproses...' : 'Cabut Ban'}
+                            {unbanning ? t('users.show.processing') : t('users.show.unbanUser')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -248,13 +251,13 @@ export default function UserShow({ user, collections_count, can }: Props) {
             {/* Change Role Dialog */}
             <Dialog open={roleOpen} onOpenChange={setRoleOpen}>
                 <DialogContent>
-                    <DialogHeader><DialogTitle>Ganti role {user.name}</DialogTitle></DialogHeader>
+                    <DialogHeader><DialogTitle>{t('users.show.changeRoleDialogTitle', { name: user.name })}</DialogTitle></DialogHeader>
                     <div className="space-y-3">
                         <p className="text-sm text-muted-foreground">
-                            Role saat ini: <strong>{ROLE_LABELS[user.role]}</strong>
+                            {t('users.show.currentRole')} <strong>{ROLE_LABELS[user.role]}</strong>
                         </p>
                         <div className="space-y-1.5">
-                            <Label>Role baru</Label>
+                            <Label>{t('users.show.newRole')}</Label>
                             <Select value={selectedRole} onValueChange={(v) => v !== null && setSelectedRole(v)}>
                                 <SelectTrigger>
                                     <SelectValue>
@@ -262,20 +265,20 @@ export default function UserShow({ user, collections_count, can }: Props) {
                                     </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="user">User</SelectItem>
-                                    <SelectItem value="admin">Admin</SelectItem>
-                                    <SelectItem value="super_admin">Super Admin</SelectItem>
+                                    <SelectItem value="user">{ROLE_LABELS.user}</SelectItem>
+                                    <SelectItem value="admin">{ROLE_LABELS.admin}</SelectItem>
+                                    <SelectItem value="super_admin">{ROLE_LABELS.super_admin}</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setRoleOpen(false)}>Batal</Button>
+                        <Button variant="outline" onClick={() => setRoleOpen(false)}>{t('common:common.cancel')}</Button>
                         <Button
                             disabled={changingRole || selectedRole === user.role}
                             onClick={handleChangeRole}
                         >
-                            {changingRole ? 'Menyimpan...' : 'Simpan'}
+                            {changingRole ? t('common:common.saving') : t('common:common.save')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

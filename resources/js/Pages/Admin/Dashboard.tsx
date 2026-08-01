@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, XAxis } from 'recharts';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -34,51 +35,30 @@ interface Props extends PageProps {
     loans_by_status: LoansByStatus;
 }
 
-const STATUS_LABELS: Record<string, string> = {
-    publishing:        'Publishing',
-    finished:          'Selesai',
-    on_hiatus:         'Hiatus',
-    discontinued:      'Discontinued',
-    not_yet_published: 'Belum Terbit',
-};
-
-const TYPE_LABELS: Record<string, string> = {
-    manga:     'Manga',
-    manhwa:    'Manhwa',
-    manhua:    'Manhua',
-    novel:     'Novel',
-    one_shot:  'One Shot',
-    doujinshi: 'Doujinshi',
-};
-
-const LOAN_STATUS_LABELS: Record<keyof LoansByStatus, string> = {
-    active:   'Dipinjam',
-    overdue:  'Terlambat',
-    returned: 'Dikembalikan',
-};
-
-const seriesChartConfig = {
-    total: { label: 'Series', color: 'var(--chart-1)' },
-} satisfies ChartConfig;
-
-const collectionsChartConfig = {
-    total: { label: 'Koleksi', color: 'var(--chart-2)' },
-} satisfies ChartConfig;
-
-const loanChartConfig = {
-    active:   { label: 'Dipinjam', color: 'var(--chart-1)' },
-    overdue:  { label: 'Terlambat', color: 'var(--destructive)' },
-    returned: { label: 'Dikembalikan', color: 'var(--chart-3)' },
-} satisfies ChartConfig;
-
 export default function AdminDashboard({ auth, stats, series_by_status, collections_by_type, loans_by_status }: Props) {
+    const { t } = useTranslation('admin');
+
+    const seriesChartConfig = {
+        total: { label: t('activityLog.categories.series'), color: 'var(--chart-1)' },
+    } satisfies ChartConfig;
+
+    const collectionsChartConfig = {
+        total: { label: t('common:profile.collection'), color: 'var(--chart-2)' },
+    } satisfies ChartConfig;
+
+    const loanChartConfig = {
+        active:   { label: t('dashboard.loan.active'), color: 'var(--chart-1)' },
+        overdue:  { label: t('dashboard.loan.overdue'), color: 'var(--destructive)' },
+        returned: { label: t('dashboard.loan.returned'), color: 'var(--chart-3)' },
+    } satisfies ChartConfig;
+
     const seriesChartData = Object.entries(series_by_status).map(([status, total]) => ({
-        status: STATUS_LABELS[status] ?? status,
+        status: t(`common:badge.status.${status}`, { defaultValue: status }),
         total,
     }));
 
     const collectionsChartData = Object.entries(collections_by_type).map(([type, total]) => ({
-        type: TYPE_LABELS[type] ?? type,
+        type: t(`common:badge.type.${type}`, { defaultValue: type }),
         total,
     }));
 
@@ -86,17 +66,17 @@ export default function AdminDashboard({ auth, stats, series_by_status, collecti
         .filter((key) => loans_by_status[key] > 0)
         .map((key) => ({
             status: key,
-            label: LOAN_STATUS_LABELS[key],
+            label: t(`dashboard.loan.${key}`),
             total: loans_by_status[key],
             fill: `var(--color-${key})`,
         }));
     return (
-        <AdminLayout header={<PageHeader title="Dashboard" description="Ringkasan sistem MALAS." />}>
-            <Head title="Dashboard" />
+        <AdminLayout header={<PageHeader title={t('dashboard.title')} description={t('dashboard.subtitle')} />}>
+            <Head title={t('dashboard.title')} />
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Series</CardTitle>
+                        <CardTitle className="text-sm font-medium text-muted-foreground">{t('dashboard.totalSeries')}</CardTitle>
                         <BookOpen className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -106,7 +86,7 @@ export default function AdminDashboard({ auth, stats, series_by_status, collecti
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Volume</CardTitle>
+                        <CardTitle className="text-sm font-medium text-muted-foreground">{t('dashboard.totalVolume')}</CardTitle>
                         <Library className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -116,7 +96,7 @@ export default function AdminDashboard({ auth, stats, series_by_status, collecti
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Koleksi</CardTitle>
+                        <CardTitle className="text-sm font-medium text-muted-foreground">{t('dashboard.totalCollection')}</CardTitle>
                         <Library className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -126,7 +106,7 @@ export default function AdminDashboard({ auth, stats, series_by_status, collecti
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">Pengguna</CardTitle>
+                        <CardTitle className="text-sm font-medium text-muted-foreground">{t('dashboard.users')}</CardTitle>
                         <Users className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -136,7 +116,7 @@ export default function AdminDashboard({ auth, stats, series_by_status, collecti
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">Pinjaman Aktif</CardTitle>
+                        <CardTitle className="text-sm font-medium text-muted-foreground">{t('dashboard.activeLoans')}</CardTitle>
                         <HandCoins className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -147,7 +127,7 @@ export default function AdminDashboard({ auth, stats, series_by_status, collecti
                 <Link href={route('admin.tickets.index')} className="block">
                     <Card className="transition-shadow hover:shadow-sm">
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">Tiket Terbuka</CardTitle>
+                            <CardTitle className="text-sm font-medium text-muted-foreground">{t('dashboard.openTickets')}</CardTitle>
                             <Ticket className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
@@ -155,7 +135,7 @@ export default function AdminDashboard({ auth, stats, series_by_status, collecti
                                 {stats.open_tickets_count}
                             </p>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                                {stats.in_progress_tickets_count} sedang diproses
+                                {t('dashboard.inProgress', { count: stats.in_progress_tickets_count })}
                             </p>
                         </CardContent>
                     </Card>
@@ -168,7 +148,7 @@ export default function AdminDashboard({ auth, stats, series_by_status, collecti
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-base">
                                 <TrendingUp className="h-4 w-4" />
-                                Series per Status
+                                {t('dashboard.seriesByStatus')}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -196,7 +176,7 @@ export default function AdminDashboard({ auth, stats, series_by_status, collecti
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-base">
                                 <Library className="h-4 w-4" />
-                                Koleksi per Tipe
+                                {t('dashboard.collectionByType')}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -224,7 +204,7 @@ export default function AdminDashboard({ auth, stats, series_by_status, collecti
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-base">
                                 <HandCoins className="h-4 w-4" />
-                                Status Pinjaman
+                                {t('dashboard.loanStatus')}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -252,7 +232,7 @@ export default function AdminDashboard({ auth, stats, series_by_status, collecti
             </div>
 
             <p className="mt-6 text-xs text-muted-foreground">
-                Selamat datang, {auth.user?.name}.
+                {t('dashboard.welcome', { name: auth.user?.name })}
             </p>
         </AdminLayout>
     );

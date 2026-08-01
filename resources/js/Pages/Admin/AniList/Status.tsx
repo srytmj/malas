@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import { Activity, CheckCircle2, Clock, ExternalLink, XCircle } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -26,6 +27,7 @@ interface PingResult {
 }
 
 export default function AniListStatus({ recentImports }: Props) {
+    const { t } = useTranslation('admin');
     const [checking, setChecking] = useState(false);
     const [result, setResult]     = useState<PingResult | null>(null);
     const [checkedAt, setCheckedAt] = useState<string | null>(null);
@@ -50,19 +52,19 @@ export default function AniListStatus({ recentImports }: Props) {
         <AdminLayout
             header={
                 <PageHeader
-                    title="Status AniList"
-                    description="Cek konektivitas AniList API dan riwayat import terbaru."
+                    title={t('anilist.status.title')}
+                    description={t('anilist.status.description')}
                 />
             }
         >
-            <Head title="Status AniList" />
+            <Head title={t('anilist.status.title')} />
 
             <div className="grid gap-4 lg:grid-cols-2">
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-base">
                             <Activity className="h-4 w-4" />
-                            Live Check
+                            {t('anilist.status.liveCheck')}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -75,17 +77,17 @@ export default function AniListStatus({ recentImports }: Props) {
                                 )}
                                 <div>
                                     <p className="font-semibold">
-                                        {result.online ? 'Online' : 'Offline'}
+                                        {result.online ? t('anilist.status.online') : t('anilist.status.offline')}
                                     </p>
                                     <p className="text-xs text-muted-foreground">
                                         {result.online
-                                            ? `Response time: ${result.duration_ms}ms`
-                                            : 'Tidak dapat menghubungi graphql.anilist.co'}
+                                            ? t('anilist.status.responseTime', { ms: result.duration_ms })
+                                            : t('anilist.status.cannotReach')}
                                     </p>
                                     {checkedAt && (
                                         <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
                                             <Clock className="h-3 w-3" />
-                                            Dicek {checkedAt}
+                                            {t('anilist.status.checkedAt', { date: checkedAt })}
                                         </p>
                                     )}
                                 </div>
@@ -93,7 +95,7 @@ export default function AniListStatus({ recentImports }: Props) {
                         )}
 
                         <Button onClick={checkStatus} disabled={checking} className="w-full">
-                            {checking ? 'Mengecek...' : 'Cek Status'}
+                            {checking ? t('anilist.status.checking') : t('anilist.status.checkStatus')}
                         </Button>
 
                         <a
@@ -102,7 +104,7 @@ export default function AniListStatus({ recentImports }: Props) {
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
                         >
-                            Lihat status page resmi AniList
+                            {t('anilist.status.viewOfficialStatus')}
                             <ExternalLink className="h-3 w-3" />
                         </a>
                     </CardContent>
@@ -110,13 +112,13 @@ export default function AniListStatus({ recentImports }: Props) {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Riwayat Import Terbaru</CardTitle>
+                        <CardTitle className="text-base">{t('anilist.status.recentImports')}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         {recentImports.length === 0 ? (
                             <EmptyState
-                                title="Belum ada import"
-                                description="Series yang di-import/update via AniList akan muncul di sini."
+                                title={t('anilist.status.emptyTitle')}
+                                description={t('anilist.status.emptyDescription')}
                                 icon={Activity}
                             />
                         ) : (

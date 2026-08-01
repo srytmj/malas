@@ -1,5 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import { Eye, Search } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -40,18 +41,6 @@ interface Props extends PageProps {
     filters: Filters;
 }
 
-const ROLE_LABELS: Record<string, string> = {
-    super_admin: 'Super Admin',
-    admin:       'Admin',
-    user:        'User',
-};
-
-const STATUS_FILTER_LABELS: Record<string, string> = {
-    all: 'Semua status',
-    active: 'Aktif',
-    banned: 'Di-ban',
-};
-
 const ROLE_VARIANTS: Record<string, 'default' | 'secondary' | 'outline'> = {
     super_admin: 'default',
     admin:       'secondary',
@@ -59,7 +48,20 @@ const ROLE_VARIANTS: Record<string, 'default' | 'secondary' | 'outline'> = {
 };
 
 export default function UsersIndex({ users, filters }: Props) {
+    const { t } = useTranslation('admin');
     const [search, setSearch] = useState(filters.search ?? '');
+
+    const ROLE_LABELS: Record<string, string> = {
+        super_admin: t('common:settings.roles.super_admin'),
+        admin:       t('common:settings.roles.admin'),
+        user:        t('common:settings.roles.user'),
+    };
+
+    const STATUS_FILTER_LABELS: Record<string, string> = {
+        all: t('users.allStatuses'),
+        active: t('users.statusActive'),
+        banned: t('users.statusBanned'),
+    };
 
     function applyFilter(overrides: Partial<Filters>) {
         router.get(route('admin.users.index'), {
@@ -79,25 +81,25 @@ export default function UsersIndex({ users, filters }: Props) {
         <AdminLayout
             header={
                 <PageHeader
-                    title="Pengguna"
-                    description="Kelola akun pengguna dan akses mereka."
+                    title={t('users.title')}
+                    description={t('users.description')}
                 />
             }
         >
-            <Head title="Pengguna" />
+            <Head title={t('users.title')} />
             {/* Filters */}
             <div className="mb-4 flex flex-wrap gap-2">
                 <form onSubmit={handleSearch} className="flex gap-2">
                     <div className="relative">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Cari nama atau email..."
+                            placeholder={t('users.searchPlaceholder')}
                             className="pl-8 w-64"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
-                    <Button type="submit" variant="outline" size="sm">Cari</Button>
+                    <Button type="submit" variant="outline" size="sm">{t('users.search')}</Button>
                 </form>
 
                 <Select
@@ -105,15 +107,15 @@ export default function UsersIndex({ users, filters }: Props) {
                     onValueChange={(v) => applyFilter({ role: v === 'all' || !v ? '' : v })}
                 >
                     <SelectTrigger className="w-36">
-                        <SelectValue placeholder="Semua role">
-                            {(value: string) => (value === 'all' ? 'Semua role' : ROLE_LABELS[value] ?? value)}
+                        <SelectValue placeholder={t('users.allRoles')}>
+                            {(value: string) => (value === 'all' ? t('users.allRoles') : ROLE_LABELS[value] ?? value)}
                         </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">Semua role</SelectItem>
-                        <SelectItem value="super_admin">Super Admin</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="user">User</SelectItem>
+                        <SelectItem value="all">{t('users.allRoles')}</SelectItem>
+                        <SelectItem value="super_admin">{ROLE_LABELS.super_admin}</SelectItem>
+                        <SelectItem value="admin">{ROLE_LABELS.admin}</SelectItem>
+                        <SelectItem value="user">{ROLE_LABELS.user}</SelectItem>
                     </SelectContent>
                 </Select>
 
@@ -122,22 +124,22 @@ export default function UsersIndex({ users, filters }: Props) {
                     onValueChange={(v) => applyFilter({ status: v === 'all' || !v ? '' : v })}
                 >
                     <SelectTrigger className="w-36">
-                        <SelectValue placeholder="Semua status">
-                            {(value: string) => STATUS_FILTER_LABELS[value] ?? 'Semua status'}
+                        <SelectValue placeholder={t('users.allStatuses')}>
+                            {(value: string) => STATUS_FILTER_LABELS[value] ?? t('users.allStatuses')}
                         </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">Semua status</SelectItem>
-                        <SelectItem value="active">Aktif</SelectItem>
-                        <SelectItem value="banned">Di-ban</SelectItem>
+                        <SelectItem value="all">{t('users.allStatuses')}</SelectItem>
+                        <SelectItem value="active">{t('users.statusActive')}</SelectItem>
+                        <SelectItem value="banned">{t('users.statusBanned')}</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
 
             {users.data.length === 0 ? (
                 <EmptyState
-                    title="Tidak ada pengguna"
-                    description="Tidak ada pengguna yang sesuai dengan filter."
+                    title={t('users.emptyTitle')}
+                    description={t('users.emptyDescription')}
                     icon={Search}
                 />
             ) : (
@@ -147,11 +149,11 @@ export default function UsersIndex({ users, filters }: Props) {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead className="w-10" />
-                                    <TableHead>Nama</TableHead>
-                                    <TableHead>Email</TableHead>
-                                    <TableHead className="w-28">Role</TableHead>
-                                    <TableHead className="w-28">Status</TableHead>
-                                    <TableHead className="w-32">Bergabung</TableHead>
+                                    <TableHead>{t('users.table.name')}</TableHead>
+                                    <TableHead>{t('users.table.email')}</TableHead>
+                                    <TableHead className="w-28">{t('users.table.role')}</TableHead>
+                                    <TableHead className="w-28">{t('users.table.status')}</TableHead>
+                                    <TableHead className="w-32">{t('users.table.joined')}</TableHead>
                                     <TableHead className="w-16" />
                                 </TableRow>
                             </TableHeader>
@@ -173,8 +175,8 @@ export default function UsersIndex({ users, filters }: Props) {
                                         </TableCell>
                                         <TableCell>
                                             {u.is_banned
-                                                ? <Badge variant="destructive">Di-ban</Badge>
-                                                : <Badge variant="outline">Aktif</Badge>}
+                                                ? <Badge variant="destructive">{t('users.statusBanned')}</Badge>
+                                                : <Badge variant="outline">{t('users.statusActive')}</Badge>}
                                         </TableCell>
                                         <TableCell className="text-sm text-muted-foreground">{u.created_at}</TableCell>
                                         <TableCell>

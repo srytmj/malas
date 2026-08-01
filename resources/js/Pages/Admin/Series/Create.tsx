@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -14,8 +15,8 @@ import {
 } from '@/Components/ui/select';
 import { cn } from '@/lib/utils';
 
-const schema = z.object({
-    title_romaji:   z.string().min(1, 'Wajib diisi'),
+const baseSchema = z.object({
+    title_romaji:   z.string().min(1),
     title_english:  z.string().optional(),
     title_japanese: z.string().optional(),
     synopsis:       z.string().optional(),
@@ -26,29 +27,9 @@ const schema = z.object({
     total_volumes:  z.string().optional(),
     score:          z.string().optional(),
     rank:           z.string().optional(),
-}).refine(
-    (data) => !data.published_from || !data.published_to || data.published_to >= data.published_from,
-    { message: 'Tanggal akhir tidak boleh sebelum tanggal mulai', path: ['published_to'] },
-);
+});
 
-type FormValues = z.infer<typeof schema>;
-
-const STATUS_LABELS: Record<string, string> = {
-    publishing: 'Publishing',
-    finished: 'Selesai',
-    on_hiatus: 'Hiatus',
-    discontinued: 'Discontinued',
-    not_yet_published: 'Belum Terbit',
-};
-
-const TYPE_LABELS: Record<string, string> = {
-    manga: 'Manga',
-    manhwa: 'Manhwa',
-    manhua: 'Manhua',
-    novel: 'Novel',
-    one_shot: 'One Shot',
-    doujinshi: 'Doujinshi',
-};
+type FormValues = z.infer<typeof baseSchema>;
 
 function FieldError({ message }: { message?: string }) {
     if (!message) return null;
@@ -56,9 +37,32 @@ function FieldError({ message }: { message?: string }) {
 }
 
 export default function SeriesCreate() {
+    const { t } = useTranslation('admin');
     const [coverFile, setCoverFile] = useState<File | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const fileRef = useRef<HTMLInputElement>(null);
+
+    const STATUS_LABELS: Record<string, string> = {
+        publishing: t('common:badge.status.publishing'),
+        finished: t('common:badge.status.finished'),
+        on_hiatus: t('common:badge.status.on_hiatus'),
+        discontinued: t('common:badge.status.discontinued'),
+        not_yet_published: t('common:badge.status.not_yet_published'),
+    };
+
+    const TYPE_LABELS: Record<string, string> = {
+        manga: t('common:badge.type.manga'),
+        manhwa: t('common:badge.type.manhwa'),
+        manhua: t('common:badge.type.manhua'),
+        novel: t('common:badge.type.novel'),
+        one_shot: t('common:badge.type.one_shot'),
+        doujinshi: t('common:badge.type.doujinshi'),
+    };
+
+    const schema = useMemo(() => baseSchema.refine(
+        (data) => !data.published_from || !data.published_to || data.published_to >= data.published_from,
+        { message: t('series.create.endDateBeforeStart'), path: ['published_to'] },
+    ), [t]);
 
     const {
         register,
@@ -95,35 +99,35 @@ export default function SeriesCreate() {
         <AdminLayout
             header={
                 <PageHeader
-                    title="Tambah Series"
+                    title={t('series.create.title')}
                     breadcrumbs={[
-                        { label: 'Series', href: route('admin.series.index') },
-                        { label: 'Tambah' },
+                        { label: t('series.breadcrumb'), href: route('admin.series.index') },
+                        { label: t('series.create.breadcrumbAdd') },
                     ]}
                 />
             }
         >
-            <Head title="Tambah Series" />
+            <Head title={t('series.create.title')} />
             <form onSubmit={handleSubmit(onSubmit)} className="max-w-2xl space-y-5">
                 <div className="space-y-1.5">
-                    <Label htmlFor="title_romaji">Judul Romaji <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="title_romaji">{t('series.create.titleRomajiLabel')} <span className="text-destructive">*</span></Label>
                     <Input id="title_romaji" {...register('title_romaji')} />
-                    <FieldError message={errors.title_romaji?.message} />
+                    <FieldError message={errors.title_romaji ? t('common:common.required') : undefined} />
                 </div>
 
                 <div className="space-y-1.5">
-                    <Label htmlFor="title_english">Judul Inggris</Label>
+                    <Label htmlFor="title_english">{t('series.create.titleEnglishLabel')}</Label>
                     <Input id="title_english" {...register('title_english')} />
                 </div>
 
                 <div className="space-y-1.5">
-                    <Label htmlFor="title_japanese">Judul Jepang</Label>
+                    <Label htmlFor="title_japanese">{t('series.create.titleJapaneseLabel')}</Label>
                     <Input id="title_japanese" {...register('title_japanese')} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                        <Label>Status <span className="text-destructive">*</span></Label>
+                        <Label>{t('common:common.status')} <span className="text-destructive">*</span></Label>
                         <Controller<FormValues, 'status'>
                             control={control}
                             name="status"
@@ -131,11 +135,11 @@ export default function SeriesCreate() {
                                 <Select value={field.value} onValueChange={field.onChange}>
                                     <SelectTrigger><SelectValue>{(value: string) => STATUS_LABELS[value] ?? value}</SelectValue></SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="publishing">Publishing</SelectItem>
-                                        <SelectItem value="finished">Selesai</SelectItem>
-                                        <SelectItem value="on_hiatus">Hiatus</SelectItem>
-                                        <SelectItem value="discontinued">Discontinued</SelectItem>
-                                        <SelectItem value="not_yet_published">Belum Terbit</SelectItem>
+                                        <SelectItem value="publishing">{STATUS_LABELS.publishing}</SelectItem>
+                                        <SelectItem value="finished">{STATUS_LABELS.finished}</SelectItem>
+                                        <SelectItem value="on_hiatus">{STATUS_LABELS.on_hiatus}</SelectItem>
+                                        <SelectItem value="discontinued">{STATUS_LABELS.discontinued}</SelectItem>
+                                        <SelectItem value="not_yet_published">{STATUS_LABELS.not_yet_published}</SelectItem>
                                     </SelectContent>
                                 </Select>
                             )}
@@ -144,7 +148,7 @@ export default function SeriesCreate() {
                     </div>
 
                     <div className="space-y-1.5">
-                        <Label>Tipe <span className="text-destructive">*</span></Label>
+                        <Label>{t('common:common.type')} <span className="text-destructive">*</span></Label>
                         <Controller<FormValues, 'type'>
                             control={control}
                             name="type"
@@ -152,12 +156,12 @@ export default function SeriesCreate() {
                                 <Select value={field.value} onValueChange={field.onChange}>
                                     <SelectTrigger><SelectValue>{(value: string) => TYPE_LABELS[value] ?? value}</SelectValue></SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="manga">Manga</SelectItem>
-                                        <SelectItem value="manhwa">Manhwa</SelectItem>
-                                        <SelectItem value="manhua">Manhua</SelectItem>
-                                        <SelectItem value="novel">Novel</SelectItem>
-                                        <SelectItem value="one_shot">One Shot</SelectItem>
-                                        <SelectItem value="doujinshi">Doujinshi</SelectItem>
+                                        <SelectItem value="manga">{TYPE_LABELS.manga}</SelectItem>
+                                        <SelectItem value="manhwa">{TYPE_LABELS.manhwa}</SelectItem>
+                                        <SelectItem value="manhua">{TYPE_LABELS.manhua}</SelectItem>
+                                        <SelectItem value="novel">{TYPE_LABELS.novel}</SelectItem>
+                                        <SelectItem value="one_shot">{TYPE_LABELS.one_shot}</SelectItem>
+                                        <SelectItem value="doujinshi">{TYPE_LABELS.doujinshi}</SelectItem>
                                     </SelectContent>
                                 </Select>
                             )}
@@ -167,12 +171,12 @@ export default function SeriesCreate() {
                 </div>
 
                 <div className="space-y-1.5">
-                    <Label htmlFor="synopsis">Sinopsis</Label>
+                    <Label htmlFor="synopsis">{t('series.create.synopsisLabel')}</Label>
                     <Textarea id="synopsis" rows={4} className="resize-none" {...register('synopsis')} />
                 </div>
 
                 <div className="space-y-1.5">
-                    <Label>Cover</Label>
+                    <Label>{t('series.coverLabel')}</Label>
                     <Input
                         ref={fileRef}
                         type="file"
@@ -185,40 +189,40 @@ export default function SeriesCreate() {
 
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                        <Label htmlFor="published_from">Terbit Mulai</Label>
+                        <Label htmlFor="published_from">{t('series.create.publishedFrom')}</Label>
                         <Input id="published_from" type="date" {...register('published_from')} />
                     </div>
                     <div className="space-y-1.5">
-                        <Label htmlFor="published_to">Terbit Sampai</Label>
+                        <Label htmlFor="published_to">{t('series.create.publishedTo')}</Label>
                         <Input id="published_to" type="date" {...register('published_to')} />
                     </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-1.5">
-                        <Label htmlFor="total_volumes">Total Volume</Label>
+                        <Label htmlFor="total_volumes">{t('series.totalVolumes')}</Label>
                         <Input id="total_volumes" type="number" min={1} {...register('total_volumes')} />
                         <FieldError message={errors.total_volumes?.message} />
                     </div>
                     <div className="space-y-1.5">
-                        <Label htmlFor="score">Skor (0–10)</Label>
+                        <Label htmlFor="score">{t('series.score')}</Label>
                         <Input id="score" type="number" step="0.01" min={0} max={10} {...register('score')} />
                     </div>
                     <div className="space-y-1.5">
-                        <Label htmlFor="rank">Rank</Label>
+                        <Label htmlFor="rank">{t('series.rank')}</Label>
                         <Input id="rank" type="number" min={1} {...register('rank')} />
                     </div>
                 </div>
 
                 <div className="flex gap-3 pt-2">
                     <Button type="submit" disabled={submitting}>
-                        {submitting ? 'Menyimpan...' : 'Simpan'}
+                        {submitting ? t('common:common.saving') : t('common:common.save')}
                     </Button>
                     <Link
                         href={route('admin.series.index')}
                         className={cn(buttonVariants({ variant: 'outline' }))}
                     >
-                        Batal
+                        {t('common:common.cancel')}
                     </Link>
                 </div>
             </form>

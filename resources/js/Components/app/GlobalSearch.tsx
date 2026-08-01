@@ -1,31 +1,33 @@
 import { useEffect, useState } from 'react';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import {
-    BookOpen, HandCoins, LayoutDashboard, Library, Settings, Ticket,
+    BookOpen, HandCoins, Heart, LayoutDashboard, Library, Search, Settings, Ticket, User,
     type LucideIcon,
 } from 'lucide-react';
 import {
     Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from '@/Components/ui/command';
+import { flattenMenuItems, menuTranslationKey } from '@/lib/menu';
 
-interface NavItem {
-    label: string;
-    routeName: string;
-    icon: LucideIcon;
-}
-
-const NAV_ITEMS: NavItem[] = [
-    { label: 'Dashboard', routeName: 'dashboard', icon: LayoutDashboard },
-    { label: 'Katalog', routeName: 'catalog.index', icon: BookOpen },
-    { label: 'Koleksiku', routeName: 'collection.index', icon: Library },
-    { label: 'Pinjaman Saya', routeName: 'loans.index', icon: HandCoins },
-    { label: 'Tiket', routeName: 'tickets.index', icon: Ticket },
-    { label: 'Pengaturan', routeName: 'settings.index', icon: Settings },
-];
+const ICON_MAP: Record<string, LucideIcon> = {
+    'layout-dashboard': LayoutDashboard,
+    'book-open':        BookOpen,
+    'library':          Library,
+    'hand-coins':       HandCoins,
+    'settings':         Settings,
+    'ticket':           Ticket,
+    'user':             User,
+    'heart':            Heart,
+    'search':           Search,
+};
 
 interface SearchResult { id: string; title: string }
 
 export function GlobalSearch() {
+    const { menus } = usePage().props;
+    const { t } = useTranslation();
+    const navItems = flattenMenuItems(menus);
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
     const [catalogResults, setCatalogResults] = useState<SearchResult[]>([]);
@@ -57,7 +59,7 @@ export function GlobalSearch() {
             setCollectionResults([]);
             return;
         }
-        const t = setTimeout(async () => {
+        const timer = setTimeout(async () => {
             try {
                 const url = new URL(route('search'), window.location.origin);
                 url.searchParams.set('q', q);
@@ -70,7 +72,7 @@ export function GlobalSearch() {
                 setCollectionResults([]);
             }
         }, 300);
-        return () => clearTimeout(t);
+        return () => clearTimeout(timer);
     }, [query, open]);
 
     function go(routeName: string, param?: string) {
@@ -83,28 +85,33 @@ export function GlobalSearch() {
         <CommandDialog
             open={open}
             onOpenChange={setOpen}
-            title="Cari"
-            description="Cari manga di katalog atau koleksimu, atau navigasi cepat ke halaman lain"
+            title={t('palette.userTitle')}
+            description={t('palette.userDescription')}
         >
             <Command>
                 <CommandInput
-                    placeholder="Cari judul manga, koleksi, atau halaman..."
+                    placeholder={t('palette.userPlaceholder')}
                     value={query}
                     onValueChange={setQuery}
                 />
                 <CommandList>
-                    <CommandEmpty>Tidak ada hasil.</CommandEmpty>
-                    <CommandGroup heading="Navigasi">
-                        {NAV_ITEMS.map((item) => (
-                            <CommandItem key={item.routeName} value={item.label} onSelect={() => go(item.routeName)}>
-                                <item.icon />
-                                {item.label}
-                            </CommandItem>
-                        ))}
+                    <CommandEmpty>{t('palette.noResults')}</CommandEmpty>
+                    <CommandGroup heading={t('palette.navigation')}>
+                        {navItems.map((item) => {
+                            const Icon = item.icon ? (ICON_MAP[item.icon] ?? null) : null;
+                            const labelKey = menuTranslationKey(item.key);
+                            const label = labelKey ? t(labelKey) : item.label;
+                            return (
+                                <CommandItem key={item.key} value={label} onSelect={() => go(item.route_name!)}>
+                                    {Icon && <Icon />}
+                                    {label}
+                                </CommandItem>
+                            );
+                        })}
                     </CommandGroup>
 
                     {collectionResults.length > 0 && (
-                        <CommandGroup heading="Koleksiku">
+                        <CommandGroup heading={t('palette.myCollection')}>
                             {collectionResults.map((r) => (
                                 <CommandItem
                                     key={`collection-${r.id}`}
@@ -119,7 +126,7 @@ export function GlobalSearch() {
                     )}
 
                     {catalogResults.length > 0 && (
-                        <CommandGroup heading="Katalog">
+                        <CommandGroup heading={t('palette.catalog')}>
                             {catalogResults.map((r) => (
                                 <CommandItem
                                     key={`series-${r.id}`}

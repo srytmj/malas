@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Menu;
+use Closure;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -15,22 +18,73 @@ class MenuController extends Controller
     {
         $this->authorize('viewAny', Menu::class);
 
-        $menus = Menu::orderBy('sort_order')->get()->map(fn ($m) => [
-            'id' => $m->id,
-            'key' => $m->key,
-            'label' => $m->label,
-            'icon' => $m->icon,
-            'route_name' => $m->route_name,
-            'sort_order' => $m->sort_order,
-            'is_visible' => $m->is_visible,
-            'is_maintenance' => $m->is_maintenance,
-            'maintenance_message' => $m->maintenance_message,
-            'role_access' => $m->role_access,
+        return $this->renderSidebar('Admin/Menus/Index', fn (Builder $q) => $q
+            ->whereJsonContains('role_access', 'admin')
+            ->orWhereJsonContains('role_access', 'super_admin'));
+    }
+
+    public function userSidebar(Request $request): Response
+    {
+        $this->authorize('viewAny', Menu::class);
+
+        return $this->renderSidebar('Admin/Menus/UserSidebar', fn (Builder $q) => $q
+            ->whereJsonContains('role_access', 'user'));
+    }
+
+    private function renderSidebar(string $component, Closure $scope): Response
+    {
+        $menus = Menu::where($scope)
+            ->orderBy('sort_order')
+            ->get()
+            ->map(fn ($m) => [
+                'id' => $m->id,
+                'key' => $m->key,
+                'label' => $m->label,
+                'icon' => $m->icon,
+                'route_name' => $m->route_name,
+                'parent_key' => $m->parent_key,
+                'sort_order' => $m->sort_order,
+                'is_visible' => $m->is_visible,
+                'is_maintenance' => $m->is_maintenance,
+                'maintenance_message' => $m->maintenance_message,
+                'role_access' => $m->role_access,
+                'is_shared' => count($m->role_access ?? []) > 1,
+            ]);
+
+        $topLevel = $menus->filter(fn ($m) => ! $m['parent_key'])->values();
+        $groups = $menus
+            ->filter(fn ($m) => $m['parent_key'])
+            ->groupBy('parent_key')
+            ->map(fn ($items, $parentKey) => [
+                'parent_key' => $parentKey,
+                'label' => Menu::where('key', $parentKey)->value('label') ?? $parentKey,
+                'items' => $items->values(),
+            ])
+            ->values();
+
+        return Inertia::render($component, [
+            'topLevel' => $topLevel,
+            'groups' => $groups,
+        ]);
+    }
+
+    public function reorder(Request $request): RedirectResponse
+    {
+        $this->authorize('viewAny', Menu::class);
+
+        $validated = $request->validate([
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.id' => ['required', 'uuid', 'exists:menus,id'],
+            'items.*.sort_order' => ['required', 'integer', 'min:0'],
         ]);
 
-        return Inertia::render('Admin/Menus/Index', [
-            'rows' => $menus,
-        ]);
+        DB::transaction(function () use ($validated) {
+            foreach ($validated['items'] as $item) {
+                Menu::whereKey($item['id'])->update(['sort_order' => $item['sort_order']]);
+            }
+        });
+
+        return redirect()->back()->with('success', 'Urutan menu berhasil diperbarui.');
     }
 
     public function edit(Request $request, Menu $menu): Response

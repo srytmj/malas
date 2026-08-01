@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import { BookMarked } from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -29,35 +30,37 @@ interface Props extends PageProps {
 }
 
 function LoanBadge({ loan }: { loan: LoanRow }) {
+    const { t } = useTranslation('user');
     if (loan.returned_at) {
-        return <Badge variant="secondary" className="text-xs">Dikembalikan</Badge>;
+        return <Badge variant="secondary" className="text-xs">{t('loans.statusReturned')}</Badge>;
     }
     if (loan.is_overdue) {
-        return <Badge variant="destructive" className="text-xs">Terlambat</Badge>;
+        return <Badge variant="destructive" className="text-xs">{t('loans.statusOverdue')}</Badge>;
     }
-    return <Badge variant="outline" className="text-xs border-yellow-500 text-yellow-600 dark:text-yellow-400">Dipinjam</Badge>;
+    return <Badge variant="outline" className="text-xs border-yellow-500 text-yellow-600 dark:text-yellow-400">{t('loans.statusOnLoan')}</Badge>;
 }
 
 export default function LoansIndex({ loans }: Props) {
+    const { t } = useTranslation('user');
     return (
         <UserLayout
             header={
                 <PageHeader
-                    title="Riwayat Pinjaman"
-                    description={`${loans.total} pinjaman tercatat`}
+                    title={t('loans.title')}
+                    description={t('loans.count', { count: loans.total })}
                 />
             }
         >
-            <Head title="Pinjaman Saya" />
+            <Head title={t('loans.title')} />
             {loans.data.length === 0 ? (
                 <Empty>
                     <EmptyHeader>
                         <EmptyMedia variant="icon">
                             <BookMarked />
                         </EmptyMedia>
-                        <EmptyTitle>Belum ada pinjaman</EmptyTitle>
+                        <EmptyTitle>{t('loans.emptyTitle')}</EmptyTitle>
                         <EmptyDescription>
-                            Pinjamkan volume dari halaman koleksi untuk mulai mencatat.
+                            {t('loans.emptyDescription')}
                         </EmptyDescription>
                     </EmptyHeader>
                 </Empty>
@@ -67,40 +70,40 @@ export default function LoansIndex({ loans }: Props) {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Series / Volume</TableHead>
-                                    <TableHead>Peminjam</TableHead>
-                                    <TableHead className="w-36">Status</TableHead>
-                                    <TableHead className="w-28">Dipinjam</TableHead>
-                                    <TableHead className="w-28">Jatuh Tempo</TableHead>
-                                    <TableHead className="w-28">Dikembalikan</TableHead>
+                                    <TableHead>{t('loans.seriesVolume')}</TableHead>
+                                    <TableHead>{t('loans.borrower')}</TableHead>
+                                    <TableHead className="w-36">{t('loans.status')}</TableHead>
+                                    <TableHead className="w-28">{t('loans.loanedAt')}</TableHead>
+                                    <TableHead className="w-28">{t('loans.dueAt')}</TableHead>
+                                    <TableHead className="w-28">{t('loans.returnedAt')}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {loans.data.map((l) => (
-                                    <TableRow key={l.id} className={l.is_overdue ? 'bg-destructive/5' : ''}>
+                                {loans.data.map((loan) => (
+                                    <TableRow key={loan.id} className={loan.is_overdue ? 'bg-destructive/5' : ''}>
                                         <TableCell>
                                             <Link
-                                                href={route('collection.show', l.collection_id)}
+                                                href={route('collection.show', loan.collection_id)}
                                                 className="font-medium hover:underline"
                                             >
-                                                {l.series_title}
+                                                {loan.series_title}
                                             </Link>
-                                            <p className="text-xs text-muted-foreground">Vol. {l.volume_number ?? '-'}</p>
+                                            <p className="text-xs text-muted-foreground">{t('loans.volumeShort', { number: loan.volume_number ?? '-' })}</p>
                                         </TableCell>
                                         <TableCell>
-                                            {l.borrower_name}
-                                            {l.notes && (
-                                                <p className="text-xs text-muted-foreground italic truncate max-w-[160px]">{l.notes}</p>
+                                            {loan.borrower_name}
+                                            {loan.notes && (
+                                                <p className="text-xs text-muted-foreground italic truncate max-w-[160px]">{loan.notes}</p>
                                             )}
                                         </TableCell>
-                                        <TableCell><LoanBadge loan={l} /></TableCell>
-                                        <TableCell className="text-sm text-muted-foreground">{l.loaned_at ?? '—'}</TableCell>
+                                        <TableCell><LoanBadge loan={loan} /></TableCell>
+                                        <TableCell className="text-sm text-muted-foreground">{loan.loaned_at ?? '—'}</TableCell>
                                         <TableCell className="text-sm text-muted-foreground">
-                                            {l.due_at
-                                                ? <span className={l.is_overdue ? 'text-destructive font-medium' : ''}>{l.due_at}</span>
+                                            {loan.due_at
+                                                ? <span className={loan.is_overdue ? 'text-destructive font-medium' : ''}>{loan.due_at}</span>
                                                 : '—'}
                                         </TableCell>
-                                        <TableCell className="text-sm text-muted-foreground">{l.returned_at ?? '—'}</TableCell>
+                                        <TableCell className="text-sm text-muted-foreground">{loan.returned_at ?? '—'}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>

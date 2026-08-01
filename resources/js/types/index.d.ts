@@ -7,6 +7,7 @@ export interface User {
     role: 'super_admin' | 'admin' | 'user';
     is_banned: boolean;
     ban_reason: string | null;
+    is_profile_public: boolean;
 }
 
 export interface MenuItem {
@@ -33,6 +34,7 @@ export type PageProps<
         user: User | null;
     };
     menus: MenuItem[];
+    locale: 'id' | 'en' | 'ja';
     site_settings: {
         blur_adult_content: boolean;
     };

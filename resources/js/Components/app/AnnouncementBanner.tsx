@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { router, usePage } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { type SharedAnnouncement } from '@/types';
@@ -15,6 +16,7 @@ function SingleBanner({ announcement, onDismiss }: {
     announcement: SharedAnnouncement;
     onDismiss: (id: string) => void;
 }) {
+    const { t } = useTranslation();
     return (
         <div
             className={cn(
@@ -32,7 +34,7 @@ function SingleBanner({ announcement, onDismiss }: {
                 type="button"
                 className="shrink-0 rounded-sm opacity-70 hover:opacity-100 transition-opacity"
                 onClick={() => onDismiss(announcement.id)}
-                aria-label="Tutup pengumuman"
+                aria-label={t('components.announcementBanner.close')}
             >
                 <X className="h-4 w-4" />
             </button>

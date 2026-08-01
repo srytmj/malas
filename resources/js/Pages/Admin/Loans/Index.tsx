@@ -1,4 +1,5 @@
 import { Head } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import { Pagination } from '@/Components/app/Pagination';
@@ -26,44 +27,46 @@ interface Props extends PageProps {
 }
 
 function LoanBadge({ loan }: { loan: LoanRow }) {
+    const { t } = useTranslation('admin');
     if (loan.returned_at) {
-        return <Badge variant="secondary" className="text-xs">Dikembalikan</Badge>;
+        return <Badge variant="secondary" className="text-xs">{t('dashboard.loan.returned')}</Badge>;
     }
     if (loan.is_overdue) {
-        return <Badge variant="destructive" className="text-xs">Terlambat</Badge>;
+        return <Badge variant="destructive" className="text-xs">{t('dashboard.loan.overdue')}</Badge>;
     }
-    return <Badge variant="outline" className="text-xs border-yellow-500 text-yellow-600 dark:text-yellow-400">Dipinjam</Badge>;
+    return <Badge variant="outline" className="text-xs border-yellow-500 text-yellow-600 dark:text-yellow-400">{t('dashboard.loan.active')}</Badge>;
 }
 
 export default function AdminLoansIndex({ loans }: Props) {
+    const { t } = useTranslation('admin');
     return (
         <AdminLayout
             header={
                 <PageHeader
-                    title="Semua Pinjaman"
-                    description={`${loans.total} pinjaman tercatat`}
+                    title={t('loans.title')}
+                    description={t('loans.description', { count: loans.total })}
                 />
             }
         >
-            <Head title="Semua Pinjaman" />
+            <Head title={t('loans.title')} />
             <div className="rounded-lg border">
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>User</TableHead>
-                            <TableHead>Series / Volume</TableHead>
-                            <TableHead>Peminjam</TableHead>
-                            <TableHead className="w-36">Status</TableHead>
-                            <TableHead className="w-28">Dipinjam</TableHead>
-                            <TableHead className="w-28">Jatuh Tempo</TableHead>
-                            <TableHead className="w-28">Dikembalikan</TableHead>
+                            <TableHead>{t('loans.table.user')}</TableHead>
+                            <TableHead>{t('loans.table.seriesVolume')}</TableHead>
+                            <TableHead>{t('loans.table.borrower')}</TableHead>
+                            <TableHead className="w-36">{t('loans.table.status')}</TableHead>
+                            <TableHead className="w-28">{t('loans.table.loanedAt')}</TableHead>
+                            <TableHead className="w-28">{t('loans.table.dueAt')}</TableHead>
+                            <TableHead className="w-28">{t('loans.table.returnedAt')}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {loans.data.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
-                                    Belum ada pinjaman.
+                                    {t('loans.empty')}
                                 </TableCell>
                             </TableRow>
                         ) : loans.data.map((l) => (
@@ -71,7 +74,7 @@ export default function AdminLoansIndex({ loans }: Props) {
                                 <TableCell className="text-sm font-medium">{l.user_name}</TableCell>
                                 <TableCell>
                                     <p className="font-medium">{l.series_title}</p>
-                                    <p className="text-xs text-muted-foreground">Vol. {l.volume_number ?? '-'}</p>
+                                    <p className="text-xs text-muted-foreground">{t('loans.volumePrefix', { number: l.volume_number ?? '-' })}</p>
                                 </TableCell>
                                 <TableCell>{l.borrower_name}</TableCell>
                                 <TableCell><LoanBadge loan={l} /></TableCell>

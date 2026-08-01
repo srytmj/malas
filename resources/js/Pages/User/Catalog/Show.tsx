@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { BookOpen, ExternalLink, Library, Ticket, Users } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { BookOpen, ExternalLink, Heart, Library, Ticket, Users } from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import { VolumeGrid } from '@/Components/app/VolumeGrid';
@@ -54,7 +55,12 @@ interface MediaItem {
 
 interface CollectorAvatar {
     id: string;
+    username: string | null;
     avatar: string | null;
+}
+
+interface WishlistItemRef {
+    id: string;
 }
 
 interface Props extends PageProps {
@@ -62,11 +68,14 @@ interface Props extends PageProps {
     volumes: VolumeRow[];
     media: MediaItem[];
     collection: { id: string } | null;
+    wishlist_item: WishlistItemRef | null;
     collectors: { avatars: CollectorAvatar[]; count: number };
 }
 
-export default function CatalogShow({ series, volumes, media, collection, collectors }: Props) {
+export default function CatalogShow({ series, volumes, media, collection, wishlist_item, collectors }: Props) {
+    const { t } = useTranslation('catalog');
     const [adding, setAdding] = useState(false);
+    const [wishlisting, setWishlisting] = useState(false);
 
     function handleAddToCollection() {
         setAdding(true);
@@ -79,13 +88,28 @@ export default function CatalogShow({ series, volumes, media, collection, collec
         );
     }
 
+    function handleToggleWishlist() {
+        setWishlisting(true);
+        if (wishlist_item) {
+            router.delete(route('wishlist.destroy', wishlist_item.id), {
+                preserveScroll: true,
+                onFinish: () => setWishlisting(false),
+            });
+        } else {
+            router.post(route('wishlist.store'), { series_id: series.id }, {
+                preserveScroll: true,
+                onFinish: () => setWishlisting(false),
+            });
+        }
+    }
+
     return (
         <UserLayout
             header={
                 <PageHeader
                     title={series.title_romaji}
                     breadcrumbs={[
-                        { label: 'Katalog', href: route('catalog.index') },
+                        { label: t('title'), href: route('catalog.index') },
                         { label: series.title_romaji },
                     ]}
                     actions={
@@ -95,7 +119,7 @@ export default function CatalogShow({ series, volumes, media, collection, collec
                                 className={cn(buttonVariants({ variant: 'outline' }))}
                             >
                                 <Ticket className="mr-1.5 h-4 w-4" />
-                                Buat Tiket
+                                {t('show.createTicket')}
                             </Link>
                             {collection ? (
                                 <Link
@@ -103,12 +127,24 @@ export default function CatalogShow({ series, volumes, media, collection, collec
                                     className={cn(buttonVariants({ variant: 'outline' }))}
                                 >
                                     <Library className="mr-1.5 h-4 w-4" />
-                                    Lihat di Koleksi
+                                    {t('show.viewInCollection')}
                                 </Link>
                             ) : (
                                 <Button onClick={handleAddToCollection} disabled={adding}>
                                     <Library className="mr-1.5 h-4 w-4" />
-                                    {adding ? 'Menambahkan...' : 'Tambah ke Koleksi'}
+                                    {adding ? t('show.adding') : t('show.addToCollection')}
+                                </Button>
+                            )}
+                            {!collection && (
+                                <Button
+                                    variant="outline"
+                                    onClick={handleToggleWishlist}
+                                    disabled={wishlisting}
+                                >
+                                    <Heart className={cn('mr-1.5 h-4 w-4', wishlist_item && 'fill-current')} />
+                                    {wishlisting
+                                        ? t('show.processing')
+                                        : wishlist_item ? t('show.removeFromWishlist') : t('show.addToWishlist')}
                                 </Button>
                             )}
                         </div>
@@ -136,7 +172,7 @@ export default function CatalogShow({ series, volumes, media, collection, collec
                     {series.title_japanese && <p className="text-sm text-muted-foreground">{series.title_japanese}</p>}
                     {series.authors && series.authors.length > 0 && (
                         <p className="text-sm text-muted-foreground">
-                            <span className="text-xs">Author:</span> {series.authors.join(', ')}
+                            <span className="text-xs">{t('show.author')}</span> {series.authors.join(', ')}
                         </p>
                     )}
 
@@ -161,21 +197,21 @@ export default function CatalogShow({ series, volumes, media, collection, collec
 
                     <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm sm:grid-cols-4">
                         <div>
-                            <p className="text-xs text-muted-foreground">Total Volume</p>
+                            <p className="text-xs text-muted-foreground">{t('show.totalVolume')}</p>
                             <p className="font-medium">{series.total_volumes ?? '—'}</p>
                         </div>
                         <div>
-                            <p className="text-xs text-muted-foreground">Skor</p>
+                            <p className="text-xs text-muted-foreground">{t('show.score')}</p>
                             <p className="font-medium">
                                 {series.score !== null ? Number(series.score).toFixed(2) : '—'}
                             </p>
                         </div>
                         <div>
-                            <p className="text-xs text-muted-foreground">Rank</p>
+                            <p className="text-xs text-muted-foreground">{t('show.rank')}</p>
                             <p className="font-medium">{series.rank ?? '—'}</p>
                         </div>
                         <div>
-                            <p className="text-xs text-muted-foreground">Terbit</p>
+                            <p className="text-xs text-muted-foreground">{t('show.published')}</p>
                             <p className="font-medium">
                                 {series.published_from ?? '—'}
                                 {series.published_to ? ` – ${series.published_to}` : ''}
@@ -187,7 +223,12 @@ export default function CatalogShow({ series, volumes, media, collection, collec
                         <div className="flex items-center gap-2.5">
                             <AvatarGroup>
                                 {collectors.avatars.map((c) => (
-                                    <Avatar key={c.id} size="sm">
+                                    <Avatar
+                                        key={c.id}
+                                        size="sm"
+                                        className="cursor-pointer"
+                                        onClick={() => router.visit(route('profile.show', c.username ?? c.id))}
+                                    >
                                         <AvatarImage src={c.avatar || undefined} alt="" />
                                         <AvatarFallback>
                                             <Users className="h-3 w-3" />
@@ -201,7 +242,7 @@ export default function CatalogShow({ series, volumes, media, collection, collec
                                 )}
                             </AvatarGroup>
                             <p className="text-sm text-muted-foreground">
-                                {collectors.count} orang mengoleksi manga ini
+                                {t('show.collectorsCount', { count: collectors.count })}
                             </p>
                         </div>
                     )}
@@ -217,7 +258,7 @@ export default function CatalogShow({ series, volumes, media, collection, collec
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
                         >
-                            Lihat di AniList
+                            {t('show.viewOnAnilist')}
                             <ExternalLink className="h-3 w-3" />
                         </a>
                     )}
@@ -227,7 +268,7 @@ export default function CatalogShow({ series, volumes, media, collection, collec
             {/* Galeri media */}
             {media.length > 0 && (
                 <div className="mt-8">
-                    <h2 className="mb-3 text-base font-semibold">Galeri</h2>
+                    <h2 className="mb-3 text-base font-semibold">{t('show.gallery')}</h2>
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                         {media.map((m) => (
                             <div key={m.id} className="aspect-video overflow-hidden rounded-lg border bg-muted">
@@ -242,7 +283,7 @@ export default function CatalogShow({ series, volumes, media, collection, collec
 
             {/* Volume list */}
             <div className="mt-8">
-                <h2 className="mb-3 text-base font-semibold">Volume ({volumes.length})</h2>
+                <h2 className="mb-3 text-base font-semibold">{t('show.volumes', { count: volumes.length })}</h2>
                 <VolumeGrid volumes={volumes} />
             </div>
         </UserLayout>

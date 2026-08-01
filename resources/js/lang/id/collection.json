@@ -1,0 +1,170 @@
+{
+    "index": {
+        "title": "Koleksiku",
+        "count": "{{count}} series dalam koleksi",
+        "addSeries": "Tambah Series",
+        "empty": {
+            "title": "Koleksi masih kosong",
+            "description": "Tambahkan series untuk mulai melacak volume yang kamu miliki.",
+            "notInCatalog": "Koleksimu belum ada di katalog?",
+            "requestViaTicket": "Request lewat tiket"
+        },
+        "searchPlaceholder": "Cari di koleksimu...",
+        "refresh": "Segarkan",
+        "allStatus": "Semua status",
+        "allGenre": "Semua genre",
+        "sort": {
+            "label": "Urutkan",
+            "added_desc": "Baru ditambahkan",
+            "added_asc": "Lama ditambahkan",
+            "name_asc": "Nama A-Z",
+            "name_desc": "Nama Z-A",
+            "volumes_desc": "Volume terbanyak",
+            "volumes_asc": "Volume tersedikit"
+        },
+        "gridView": "Tampilan grid",
+        "tableView": "Tampilan tabel",
+        "noneMatchFilter": "Tidak ada koleksi yang cocok dengan filter saat ini.",
+        "volumeShort": "vol.",
+        "columnTitle": "Judul",
+        "columnGenre": "Genre",
+        "columnVolume": "Volume",
+        "readCount": "{{read}}/{{total}} dibaca",
+        "view": "Lihat",
+        "removeFromCollection": "Hapus dari Koleksi",
+        "addDialog": {
+            "title": "Tambah Series ke Koleksi",
+            "description": "Pilih satu atau lebih series. Klik gambar untuk memilih.",
+            "searchPlaceholder": "Cari judul series...",
+            "searching": "Mencari...",
+            "noResults": "Tidak ada hasil.",
+            "typeToSearch": "Ketik untuk mencari series.",
+            "notFound": "Judul tidak ditemukan?",
+            "requestViaTicket": "Request lewat tiket",
+            "selectedCount": "{{count}} dipilih",
+            "cancel": "Batal",
+            "adding": "Menambahkan...",
+            "add": "Tambah",
+            "addWithCount": "Tambah ({{count}})"
+        },
+        "deleteDialog": {
+            "title": "Hapus dari Koleksi",
+            "confirmPrefix": "Yakin ingin menghapus",
+            "confirmSuffix": "dari koleksimu? Semua data volume dan pinjaman aktif akan hilang.",
+            "cancel": "Batal",
+            "deleting": "Menghapus...",
+            "delete": "Hapus"
+        }
+    },
+    "show": {
+        "viewCatalog": "Lihat Katalog",
+        "deleteCollection": "Hapus Koleksi",
+        "progress": "Progress",
+        "volumesOwned": "volume dimiliki",
+        "lastRead": "Terakhir dibaca: Vol. {{number}}",
+        "conditionOptional": "Kondisi (opsional)",
+        "condition": { "mint": "Mint", "good": "Bagus", "fair": "Cukup", "poor": "Buruk" },
+        "markAllRead": "Tandai semua volume sudah dibaca",
+        "volumesOwnedHeading": "Volume yang Dimiliki ({{count}})",
+        "changeFormat": "Ubah Format ({{count}})",
+        "deleteCount": "Hapus ({{count}})",
+        "allFormat": "Semua format",
+        "done": "Selesai",
+        "delete": "Hapus",
+        "gridView": "Tampilan grid",
+        "tableView": "Tampilan tabel",
+        "addVolume": "Tambah Volume",
+        "empty": { "title": "Belum ada volume", "description": "Tambahkan volume yang kamu miliki, misalnya: 1,2,3,5" },
+        "noneForFormat": "Tidak ada volume dengan format ini.",
+        "selectVolume": "Pilih volume {{number}}",
+        "markUnread": "Tandai volume {{number}} belum dibaca",
+        "markRead": "Tandai volume {{number}} sudah dibaca",
+        "volumeShort": "Vol.",
+        "volumeLabel": "Vol. {{number}}",
+        "loanStatus": { "overdue": "Terlambat", "onLoan": "Dipinjam" },
+        "markReturned": "Tandai kembali",
+        "returning": "Menyimpan...",
+        "returnShort": "Kembali",
+        "lendOut": "Pinjamkan",
+        "columnVolume": "Volume",
+        "columnFormat": "Format",
+        "columnLoanStatus": "Status Pinjaman",
+        "review": {
+            "title": "Review & Rating Pribadi",
+            "rating": "Rating",
+            "notRecommended": "Tidak Direkomendasikan",
+            "recommended": "Direkomendasikan",
+            "comment": "Komentar",
+            "commentPlaceholder": "Menurutmu gimana series ini?",
+            "save": "Simpan Review",
+            "saving": "Menyimpan...",
+            "labels": {
+                "recommended": "Direkomendasikan",
+                "prettyGood": "Cukup Bagus",
+                "neutral": "Netral",
+                "lacking": "Kurang",
+                "notRecommended": "Tidak Direkomendasikan"
+            }
+        },
+        "addVolumeDialog": {
+            "title": "Tambah Volume",
+            "descriptionPrefix": "Pisahkan dengan koma. Gunakan tanda hubung untuk range. Contoh:",
+            "volumeNumber": "Nomor Volume",
+            "format": "Format",
+            "ebookSource": "Sumber Ebook",
+            "selectSource": "Pilih sumber",
+            "language": "Bahasa",
+            "selectLanguageOptional": "Pilih bahasa (opsional)",
+            "cancel": "Batal",
+            "saving": "Menyimpan...",
+            "add": "Tambah"
+        },
+        "deleteVolumeDialog": {
+            "title": "Hapus Volume #{{number}}",
+            "confirm": "Yakin ingin menghapus volume ini dari koleksimu? Riwayat pinjaman terkait juga akan hilang.",
+            "cancel": "Batal",
+            "deleting": "Menghapus...",
+            "delete": "Hapus"
+        },
+        "bulkDeleteDialog": {
+            "title": "Hapus {{count}} Volume",
+            "confirm": "Yakin ingin menghapus {{count}} volume terpilih dari koleksimu? Riwayat pinjaman terkait juga akan hilang.",
+            "cancel": "Batal",
+            "deleting": "Menghapus...",
+            "delete": "Hapus"
+        },
+        "bulkFormatDialog": {
+            "title": "Ubah Format {{count}} Volume",
+            "description": "Format, sumber ebook, dan bahasa akan diterapkan ke semua volume terpilih.",
+            "cancel": "Batal",
+            "saving": "Menyimpan...",
+            "apply": "Terapkan"
+        },
+        "loanDialog": {
+            "title": "Pinjamkan Vol. #{{number}}",
+            "description": "Catat siapa yang meminjam volume ini.",
+            "borrowerName": "Nama Peminjam",
+            "loanDate": "Tanggal Pinjam",
+            "dueDate": "Jatuh Tempo",
+            "notes": "Catatan",
+            "cancel": "Batal",
+            "saving": "Menyimpan...",
+            "submit": "Catat Pinjaman"
+        },
+        "deleteCollectionDialog": {
+            "title": "Hapus dari Koleksi",
+            "confirmPrefix": "Yakin ingin menghapus",
+            "confirmSuffix": "dari koleksimu? Semua data volume dan pinjaman aktif akan hilang.",
+            "cancel": "Batal",
+            "deleting": "Menghapus...",
+            "delete": "Hapus"
+        },
+        "formatSwitcher": {
+            "title": "Ubah Format Vol. {{number}}",
+            "save": "Simpan",
+            "saving": "Menyimpan..."
+        },
+        "ebookSource": { "bookwalker": "BookWalker", "amazon": "Amazon", "local_epub": "Epub Lokal" },
+        "language": { "id": "Indonesia", "en": "English", "ja": "日本語", "other": "Lainnya" }
+    }
+}

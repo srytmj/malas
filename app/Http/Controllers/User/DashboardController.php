@@ -3,13 +3,19 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
+use App\Models\AiSetting;
 use App\Models\Collection;
+use App\Models\GenreFunfact;
 use App\Models\Loan;
 use App\Models\Series;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Services\AiFunfactService;
+use App\Services\AiRateLimitException;
 use App\Services\StorageSettingsService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +25,16 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function __construct(private StorageSettingsService $storage) {}
+    // Funfact AI baru mulai di-generate begitu koleksi user cukup banyak untuk
+    // disimpulkan pola genre-nya secara bermakna.
+    private const FUNFACT_ELIGIBLE_THRESHOLD = 15;
+
+    private const FUNFACT_COOLDOWN_DAYS = 7;
+
+    public function __construct(
+        private StorageSettingsService $storage,
+        private AiFunfactService $aiFunfact,
+    ) {}
 
     public function index(Request $request): Response
     {
@@ -58,6 +73,24 @@ class DashboardController extends Controller
         }
         $recommendations = $recommendations->map(fn ($s) => $this->presentSeries($s));
 
+        $ownedGenreCounts = $this->ownedGenreCounts($user);
+        $collectionsCount = $collectionIds->count();
+        $eligible = $collectionsCount >= self::FUNFACT_ELIGIBLE_THRESHOLD;
+        $provider = AiSetting::first()?->provider ?? 'puter';
+
+        $funfact = GenreFunfact::where('user_id', $user->id)->first();
+        $needsAutoGenerate = false;
+
+        if ($eligible) {
+            if ($provider === 'puter') {
+                // Puter cuma bisa dipanggil dari browser — server nggak generate, cuma kasih tahu
+                // frontend kalau perlu auto-generate, plus prompt yang sudah jadi buat dipakai client.
+                $needsAutoGenerate = $this->needsAutoGenerate($funfact, $collectionsCount);
+            } else {
+                $funfact = $this->maybeAutoGenerateFunfact($user, $funfact, $ownedGenreCounts, $collectionsCount);
+            }
+        }
+
         return Inertia::render('User/Dashboard', [
             'stats' => [
                 'series_count' => $collectionIds->count(),
@@ -72,7 +105,132 @@ class DashboardController extends Controller
             ] : null,
             'collections_by_status' => $collectionsByStatus,
             'recommendations' => $recommendations->values(),
+            'continue_reading' => $this->continueReading($user),
+            'genre_distribution' => $this->presentDistribution($ownedGenreCounts),
+            'funfact' => [
+                'eligible' => $eligible,
+                'content' => $funfact?->content,
+                'generated_at' => $funfact?->generated_at?->toIso8601String(),
+                'quota_remaining' => $this->quotaRemaining($funfact),
+                'quota_max' => $funfact?->quota_override ?? GenreFunfact::DEFAULT_MANUAL_QUOTA,
+                'provider' => $provider,
+                'needs_auto_generate' => $needsAutoGenerate,
+                'prompt' => $provider === 'puter' && $eligible
+                    ? $this->aiFunfact->buildPrompt($this->buildFunfactContext($ownedGenreCounts))
+                    : null,
+            ],
         ]);
+    }
+
+    public function regenerateFunfact(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'content' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $funfact = GenreFunfact::firstOrNew(['user_id' => $user->id], ['manual_regenerate_count' => 0]);
+        $this->resetQuotaWindowIfExpired($funfact);
+        $quotaMax = $funfact->quota_override ?? GenreFunfact::DEFAULT_MANUAL_QUOTA;
+
+        if ($funfact->manual_regenerate_count >= $quotaMax) {
+            return redirect()->back()->with('error', 'Batas generate ulang '.$quotaMax.'x per minggu sudah tercapai. Coba lagi minggu depan.');
+        }
+
+        $usesPuter = AiSetting::first()?->provider === 'puter';
+
+        if ($usesPuter) {
+            // Puter sudah di-generate di browser — server tinggal validasi kuota & simpan.
+            if (blank($request->content)) {
+                return redirect()->back()->with('error', 'Gagal generate funfact. Coba lagi nanti.');
+            }
+            $content = $request->string('content')->toString();
+        } else {
+            $ownedGenreCounts = $this->ownedGenreCounts($user);
+
+            try {
+                $content = $this->aiFunfact->generate($this->buildFunfactContext($ownedGenreCounts));
+            } catch (AiRateLimitException $e) {
+                // Free-tier provider lagi kena limit — tetap tampilkan sesuatu (fallback), nggak motong kuota.
+                report($e);
+                ActivityLog::record(
+                    'ai.funfact.rate_limited',
+                    "Rate limit AI saat generate funfact untuk {$user->name}: {$e->getMessage()}",
+                    $user,
+                );
+
+                $content = $this->aiFunfact->fallbackText($this->buildFunfactContext($ownedGenreCounts));
+                $funfact->content = $content;
+                $funfact->generated_at = now();
+                $funfact->collections_count_at_generation = $user->collections()->count();
+                $funfact->save();
+
+                return redirect()->back()->with('info', 'Provider AI lagi kena limit — ditampilkan funfact sementara. Coba generate ulang nanti.');
+            } catch (\Throwable $e) {
+                // Percobaan gagal tidak memotong kuota — funfact lama (kalau ada) tetap dipertahankan.
+                report($e);
+                ActivityLog::record(
+                    'ai.funfact.error',
+                    "Generate funfact gagal untuk {$user->name}: {$e->getMessage()}",
+                    $user,
+                );
+
+                return redirect()->back()->with('error', 'Gagal generate funfact. Coba lagi nanti.');
+            }
+        }
+
+        $funfact->content = $content;
+        $funfact->generated_at = now();
+        $funfact->collections_count_at_generation = $user->collections()->count();
+        $funfact->manual_regenerate_count += 1;
+        $funfact->manual_regenerate_window_started_at ??= now();
+        $funfact->save();
+
+        ActivityLog::record('ai.funfact.generate', "Generate ulang funfact oleh {$user->name}.", $user);
+
+        return redirect()->back()->with('success', 'Funfact berhasil di-generate ulang.');
+    }
+
+    public function saveAutoGeneratedFunfact(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'content' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $collectionsCount = $user->collections()->count();
+        if ($collectionsCount < self::FUNFACT_ELIGIBLE_THRESHOLD) {
+            return redirect()->back();
+        }
+
+        $funfact = GenreFunfact::firstOrNew(['user_id' => $user->id]);
+        $funfact->content = $request->string('content')->toString();
+        $funfact->generated_at = now();
+        $funfact->collections_count_at_generation = $collectionsCount;
+        $funfact->save();
+
+        ActivityLog::record('ai.funfact.auto_generate', "Auto-generate funfact untuk {$user->name}.", $user);
+
+        return redirect()->back();
+    }
+
+    public function reportFunfactError(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'context' => ['required', 'in:manual,auto'],
+            'message' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $action = $data['context'] === 'auto' ? 'ai.funfact.auto_generate_error' : 'ai.funfact.error';
+        $prefix = $data['context'] === 'auto' ? 'Auto-generate' : 'Generate';
+
+        ActivityLog::record($action, "{$prefix} funfact gagal (Puter) untuk {$user->name}: {$data['message']}", $user);
+
+        return redirect()->back();
     }
 
     public function surpriseMe(Request $request): JsonResponse
@@ -90,6 +248,38 @@ class DashboardController extends Controller
         ]);
     }
 
+    public function genreDetail(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $genre = trim((string) $request->get('genre', ''));
+
+        if (! $genre) {
+            return response()->json(['genre' => null, 'owned' => [], 'recommended' => []]);
+        }
+
+        $ownedSeriesIds = $user->collections()->pluck('series_id');
+        $columns = ['id', 'title_romaji', 'cover_path', 'type', 'status', 'genres', 'authors', 'synopsis'];
+
+        $owned = Series::whereIn('id', $ownedSeriesIds)
+            ->whereJsonContains('genres', $genre)
+            ->limit(12)
+            ->get($columns)
+            ->map(fn ($s) => $this->presentSeries($s));
+
+        $recommended = Series::whereNotIn('id', $ownedSeriesIds)
+            ->whereJsonContains('genres', $genre)
+            ->orderByDesc('score')
+            ->limit(6)
+            ->get($columns)
+            ->map(fn ($s) => $this->presentSeries($s));
+
+        return response()->json([
+            'genre' => $genre,
+            'owned' => $owned->values(),
+            'recommended' => $recommended->values(),
+        ]);
+    }
+
     /**
      * Rank non-owned series by how many genres they share with the user's
      * existing collection. Computed in PHP (not raw JSON DB queries) so it
@@ -100,12 +290,7 @@ class DashboardController extends Controller
     private function genreRecommendations(User $user, int $limit): SupportCollection
     {
         $ownedSeriesIds = $user->collections()->pluck('series_id');
-
-        $ownedGenreCounts = Series::whereIn('id', $ownedSeriesIds)
-            ->pluck('genres')
-            ->flatten()
-            ->filter()
-            ->countBy();
+        $ownedGenreCounts = $this->ownedGenreCounts($user);
 
         if ($ownedGenreCounts->isEmpty()) {
             return collect();
@@ -154,5 +339,200 @@ class DashboardController extends Controller
             'genres' => $series->genres ?? [],
             'synopsis' => $synopsis ? Str::limit($synopsis, 160) : null,
         ];
+    }
+
+    /**
+     * Series the user has started reading (at least one read volume) but hasn't
+     * finished (there's an unread volume after the last one they read).
+     *
+     * @return array<int, array{collection_id: string, series_title: string, cover_url: string|null, next_volume: int}>
+     */
+    private function continueReading(User $user): array
+    {
+        return $user->collections()
+            ->with(['series:id,title_romaji,cover_path', 'collectionVolumes'])
+            ->get()
+            ->map(function (Collection $c) {
+                $readVolumes = $c->collectionVolumes->whereNotNull('read_at');
+
+                if ($readVolumes->isEmpty()) {
+                    return null;
+                }
+
+                $lastReadVolumeNumber = $readVolumes->max('volume_number');
+                $lastReadAt = $readVolumes->max('read_at');
+
+                $nextUnread = $c->collectionVolumes
+                    ->where('volume_number', '>', $lastReadVolumeNumber)
+                    ->whereNull('read_at')
+                    ->sortBy('volume_number')
+                    ->first();
+
+                if (! $nextUnread) {
+                    return null;
+                }
+
+                return [
+                    'collection_id' => $c->id,
+                    'series_title' => $c->series->title_romaji,
+                    'cover_url' => $this->storage->url($c->series->cover_path),
+                    'next_volume' => $nextUnread->volume_number,
+                    'last_read_at' => $lastReadAt,
+                ];
+            })
+            ->filter()
+            // Acak urutannya (bukan sortByDesc last_read_at) supaya widget-nya nggak
+            // nampilin series yang sama terus tiap kali dashboard dibuka.
+            ->shuffle()
+            ->take(5)
+            ->map(fn ($item) => collect($item)->except('last_read_at')->all())
+            ->values()
+            ->all();
+    }
+
+    /** @return SupportCollection<string, int> */
+    private function ownedGenreCounts(User $user): SupportCollection
+    {
+        $ownedSeriesIds = $user->collections()->pluck('series_id');
+
+        return Series::whereIn('id', $ownedSeriesIds)
+            ->pluck('genres')
+            ->flatten()
+            ->filter()
+            ->countBy();
+    }
+
+    /**
+     * Genre popularity across every user's collection (not de-duplicated by series),
+     * used as the "rata-rata pengguna lain" baseline for the funfact comparison line.
+     *
+     * @return SupportCollection<string, int>
+     */
+    private function globalGenreCounts(): SupportCollection
+    {
+        return DB::table('collections')
+            ->join('series', 'series.id', '=', 'collections.series_id')
+            ->pluck('series.genres')
+            ->map(fn ($json) => json_decode($json ?? '[]', true) ?? [])
+            ->flatten()
+            ->filter()
+            ->countBy();
+    }
+
+    /** @return array<int, array{genre: string, count: int, percent: float}> */
+    private function presentDistribution(SupportCollection $ownedGenreCounts): array
+    {
+        $total = $ownedGenreCounts->sum();
+
+        if ($total === 0) {
+            return [];
+        }
+
+        return $ownedGenreCounts->sortDesc()->take(20)
+            ->map(fn ($count, $genre) => [
+                'genre' => $genre,
+                'count' => $count,
+                'percent' => round($count / $total * 100, 1),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /** @return array{top_genres: array<int, array{genre: string, count: int, percent: float}>, comparison: array{genre: string, multiplier: float}|null} */
+    private function buildFunfactContext(SupportCollection $ownedGenreCounts): array
+    {
+        $topGenres = $this->presentDistribution($ownedGenreCounts);
+        $topGenres = array_slice($topGenres, 0, 5);
+
+        $comparison = null;
+
+        if (! empty($topGenres)) {
+            $topGenre = $topGenres[0]['genre'];
+            $total = $ownedGenreCounts->sum();
+            $globalCounts = $this->globalGenreCounts();
+            $globalTotal = $globalCounts->sum();
+            $globalShare = $globalTotal > 0 ? $globalCounts->get($topGenre, 0) / $globalTotal : 0;
+            $userShare = $total > 0 ? $ownedGenreCounts->get($topGenre, 0) / $total : 0;
+
+            if ($globalShare > 0) {
+                $comparison = [
+                    'genre' => $topGenre,
+                    'multiplier' => round($userShare / $globalShare, 1),
+                ];
+            }
+        }
+
+        return ['top_genres' => $topGenres, 'comparison' => $comparison];
+    }
+
+    private function needsAutoGenerate(?GenreFunfact $funfact, int $collectionsCount): bool
+    {
+        return ! $funfact || ! $funfact->content
+            || ($collectionsCount > ($funfact->collections_count_at_generation ?? 0)
+                && $funfact->generated_at
+                && $funfact->generated_at->diffInDays(now()) >= self::FUNFACT_COOLDOWN_DAYS);
+    }
+
+    private function maybeAutoGenerateFunfact(User $user, ?GenreFunfact $funfact, SupportCollection $ownedGenreCounts, int $collectionsCount): ?GenreFunfact
+    {
+        if (! $this->needsAutoGenerate($funfact, $collectionsCount)) {
+            return $funfact;
+        }
+
+        try {
+            $content = $this->aiFunfact->generate($this->buildFunfactContext($ownedGenreCounts));
+        } catch (AiRateLimitException $e) {
+            // Free-tier provider lagi kena limit — tetap simpan fallback biar dashboard nggak kosong.
+            report($e);
+            ActivityLog::record(
+                'ai.funfact.rate_limited',
+                "Rate limit AI saat auto-generate funfact untuk {$user->name}: {$e->getMessage()}",
+                $user,
+            );
+
+            $content = $this->aiFunfact->fallbackText($this->buildFunfactContext($ownedGenreCounts));
+        } catch (\Throwable $e) {
+            // Auto-generate gagal (mis. AI provider down) — biarkan funfact lama (atau kosong) apa adanya.
+            report($e);
+            ActivityLog::record(
+                'ai.funfact.auto_generate_error',
+                "Auto-generate funfact gagal untuk {$user->name}: {$e->getMessage()}",
+                $user,
+            );
+
+            return $funfact;
+        }
+
+        $funfact = $funfact ?? new GenreFunfact(['user_id' => $user->id]);
+        $funfact->content = $content;
+        $funfact->generated_at = now();
+        $funfact->collections_count_at_generation = $collectionsCount;
+        $funfact->save();
+
+        ActivityLog::record('ai.funfact.auto_generate', "Auto-generate funfact untuk {$user->name}.", $user);
+
+        return $funfact;
+    }
+
+    private function resetQuotaWindowIfExpired(GenreFunfact $funfact): void
+    {
+        if ($funfact->manual_regenerate_window_started_at
+            && $funfact->manual_regenerate_window_started_at->diffInDays(now()) >= self::FUNFACT_COOLDOWN_DAYS) {
+            $funfact->manual_regenerate_count = 0;
+            $funfact->manual_regenerate_window_started_at = null;
+        }
+    }
+
+    private function quotaRemaining(?GenreFunfact $funfact): int
+    {
+        if (! $funfact) {
+            return GenreFunfact::DEFAULT_MANUAL_QUOTA;
+        }
+
+        $this->resetQuotaWindowIfExpired($funfact);
+
+        $quotaMax = $funfact->quota_override ?? GenreFunfact::DEFAULT_MANUAL_QUOTA;
+
+        return max(0, $quotaMax - $funfact->manual_regenerate_count);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Collection;
 use App\Models\CollectionVolume;
 use App\Models\Loan;
@@ -63,10 +64,16 @@ class LoanController extends Controller
             return redirect()->back()->with('error', 'Volume ini masih dalam status dipinjam.');
         }
 
-        Loan::create([
+        $loan = Loan::create([
             ...$data,
             'collection_id' => $collection->id,
         ]);
+
+        ActivityLog::record(
+            'loan.create',
+            auth()->user()->name." mencatat pinjaman volume {$cv->volume_number} ke {$data['borrower_name']}.",
+            $loan,
+        );
 
         return redirect()->back()->with('success', 'Pinjaman berhasil dicatat.');
     }
@@ -76,6 +83,12 @@ class LoanController extends Controller
         $this->authorize('update', $loan);
 
         $loan->update(['returned_at' => now()->toDateString()]);
+
+        ActivityLog::record(
+            'loan.mark_returned',
+            auth()->user()->name." menandai pinjaman ke {$loan->borrower_name} sudah dikembalikan.",
+            $loan,
+        );
 
         return redirect()->back()->with('success', 'Volume berhasil ditandai sudah dikembalikan.');
     }

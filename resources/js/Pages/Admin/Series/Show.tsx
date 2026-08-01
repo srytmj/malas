@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { Pencil, Trash2, Plus, BookOpen, Users } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
@@ -70,7 +71,7 @@ interface Props extends PageProps {
 }
 
 const volumeSchema = z.object({
-    volume_number: z.string().min(1, 'Wajib diisi'),
+    volume_number: z.string().min(1),
     type:          z.enum(['regular', 'digital', 'bind_up']),
     isbn:          z.string().optional(),
     published_at:  z.string().optional(),
@@ -78,18 +79,20 @@ const volumeSchema = z.object({
 
 type VolumeFormValues = z.infer<typeof volumeSchema>;
 
-const VOLUME_TYPE_LABELS: Record<string, string> = {
-    regular: 'Regular',
-    digital: 'Digital',
-    bind_up: 'Bind-up',
-};
-
 function FieldError({ message }: { message?: string }) {
     if (!message) return null;
     return <p className="text-sm text-destructive">{message}</p>;
 }
 
 export default function SeriesShow({ series, volumes, can, ownerships }: Props) {
+    const { t } = useTranslation('admin');
+
+    const VOLUME_TYPE_LABELS: Record<string, string> = {
+        regular: t('common:badge.volumeType.regular'),
+        digital: t('common:badge.volumeType.digital'),
+        bind_up: t('common:badge.volumeType.bind_up'),
+    };
+
     const [addVolumeOpen, setAddVolumeOpen] = useState(false);
     const [deleteVolume, setDeleteVolume]   = useState<VolumeRow | null>(null);
     const [deleteSeries, setDeleteSeries]   = useState(false);
@@ -157,7 +160,7 @@ export default function SeriesShow({ series, volumes, can, ownerships }: Props) 
                 <PageHeader
                     title={series.title_romaji}
                     breadcrumbs={[
-                        { label: 'Series', href: route('admin.series.index') },
+                        { label: t('series.breadcrumb'), href: route('admin.series.index') },
                         { label: series.title_romaji },
                     ]}
                     actions={
@@ -168,12 +171,12 @@ export default function SeriesShow({ series, volumes, can, ownerships }: Props) 
                                     className={cn(buttonVariants({ variant: 'outline' }))}
                                 >
                                     <Pencil className="mr-1.5 h-4 w-4" />
-                                    Edit
+                                    {t('common:common.edit')}
                                 </Link>
                                 {can.delete && (
                                     <Button variant="destructive" onClick={() => setDeleteSeries(true)}>
                                         <Trash2 className="mr-1.5 h-4 w-4" />
-                                        Hapus
+                                        {t('common:common.delete')}
                                     </Button>
                                 )}
                             </div>
@@ -200,7 +203,7 @@ export default function SeriesShow({ series, volumes, can, ownerships }: Props) 
                     {series.title_japanese && <p className="text-sm text-muted-foreground">{series.title_japanese}</p>}
                     {series.authors && series.authors.length > 0 && (
                         <p className="text-sm text-muted-foreground">
-                            <span className="text-xs">Author:</span> {series.authors.join(', ')}
+                            <span className="text-xs">{t('series.show.author')}</span> {series.authors.join(', ')}
                         </p>
                     )}
 
@@ -217,27 +220,27 @@ export default function SeriesShow({ series, volumes, can, ownerships }: Props) 
                             {series.genres?.map((g) => (
                                 <Badge key={g} variant="outline">{g}</Badge>
                             ))}
-                            {series.themes?.map((t) => (
-                                <Badge key={t} variant="outline" className="text-muted-foreground">{t}</Badge>
+                            {series.themes?.map((theme) => (
+                                <Badge key={theme} variant="outline" className="text-muted-foreground">{theme}</Badge>
                             ))}
                         </div>
                     )}
 
                     <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm sm:grid-cols-4">
                         <div>
-                            <p className="text-xs text-muted-foreground">Total Volume</p>
+                            <p className="text-xs text-muted-foreground">{t('series.totalVolumes')}</p>
                             <p className="font-medium">{series.total_volumes ?? '—'}</p>
                         </div>
                         <div>
-                            <p className="text-xs text-muted-foreground">Skor</p>
+                            <p className="text-xs text-muted-foreground">{t('series.show.score')}</p>
                             <p className="font-medium">{series.score !== null ? Number(series.score).toFixed(2) : '—'}</p>
                         </div>
                         <div>
-                            <p className="text-xs text-muted-foreground">Rank</p>
+                            <p className="text-xs text-muted-foreground">{t('series.rank')}</p>
                             <p className="font-medium">{series.rank ?? '—'}</p>
                         </div>
                         <div>
-                            <p className="text-xs text-muted-foreground">Terbit</p>
+                            <p className="text-xs text-muted-foreground">{t('series.published')}</p>
                             <p className="font-medium">
                                 {series.published_from ?? '—'}
                                 {series.published_to ? ` – ${series.published_to}` : ''}
@@ -254,22 +257,22 @@ export default function SeriesShow({ series, volumes, can, ownerships }: Props) 
             {/* Volumes */}
             <div className="mt-8">
                 <div className="mb-3 flex items-center justify-between">
-                    <h2 className="text-base font-semibold">Volume ({volumes.length})</h2>
+                    <h2 className="text-base font-semibold">{t('series.volumeSection', { count: volumes.length })}</h2>
                     {can.createVolume && (
                         <Button size="sm" onClick={() => setAddVolumeOpen(true)}>
                             <Plus className="mr-1.5 h-4 w-4" />
-                            Tambah Volume
+                            {t('series.addVolume')}
                         </Button>
                     )}
                 </div>
 
                 {volumes.length === 0 ? (
                     <EmptyState
-                        title="Belum ada volume"
-                        description="Tambahkan volume pertama untuk series ini."
+                        title={t('series.emptyVolumesTitle')}
+                        description={t('series.emptyVolumesDescription')}
                         icon={BookOpen}
                         action={can.createVolume
-                            ? <Button size="sm" onClick={() => setAddVolumeOpen(true)}>Tambah Volume</Button>
+                            ? <Button size="sm" onClick={() => setAddVolumeOpen(true)}>{t('series.addVolume')}</Button>
                             : undefined}
                     />
                 ) : (
@@ -278,10 +281,10 @@ export default function SeriesShow({ series, volumes, can, ownerships }: Props) 
                             <TableHeader>
                                 <TableRow>
                                     <TableHead className="w-12" />
-                                    <TableHead className="w-24">Volume</TableHead>
-                                    <TableHead className="w-28">Tipe</TableHead>
-                                    <TableHead>ISBN</TableHead>
-                                    <TableHead className="w-32">Terbit</TableHead>
+                                    <TableHead className="w-24">{t('series.table.volume')}</TableHead>
+                                    <TableHead className="w-28">{t('series.table.type')}</TableHead>
+                                    <TableHead>{t('series.table.isbn')}</TableHead>
+                                    <TableHead className="w-32">{t('series.table.published')}</TableHead>
                                     <TableHead className="w-20" />
                                 </TableRow>
                             </TableHeader>
@@ -330,16 +333,16 @@ export default function SeriesShow({ series, volumes, can, ownerships }: Props) 
                 <div className="mt-8">
                     <div className="mb-3 flex items-center gap-2">
                         <Users className="h-4 w-4 text-muted-foreground" />
-                        <h2 className="text-base font-semibold">Kepemilikan Volume ({ownerships.length})</h2>
+                        <h2 className="text-base font-semibold">{t('series.show.ownershipSection', { count: ownerships.length })}</h2>
                     </div>
                     <div className="rounded-lg border">
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-20">Vol.</TableHead>
-                                    <TableHead>Pemilik</TableHead>
-                                    <TableHead className="w-28">Format</TableHead>
-                                    <TableHead className="w-40">Status</TableHead>
+                                    <TableHead className="w-20">{t('series.show.vol')}</TableHead>
+                                    <TableHead>{t('series.show.owner')}</TableHead>
+                                    <TableHead className="w-28">{t('common:common.type')}</TableHead>
+                                    <TableHead className="w-40">{t('common:common.status')}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -351,10 +354,10 @@ export default function SeriesShow({ series, volumes, can, ownerships }: Props) 
                                         <TableCell>
                                             {o.active_loan ? (
                                                 <span className="text-xs text-yellow-600 dark:text-yellow-400">
-                                                    Dipinjam → {o.active_loan.borrower_name}
+                                                    {t('series.show.onLoanTo', { name: o.active_loan.borrower_name })}
                                                 </span>
                                             ) : (
-                                                <span className="text-xs text-muted-foreground">Bebas</span>
+                                                <span className="text-xs text-muted-foreground">{t('series.show.available')}</span>
                                             )}
                                         </TableCell>
                                     </TableRow>
@@ -368,16 +371,16 @@ export default function SeriesShow({ series, volumes, can, ownerships }: Props) 
             {/* Add Volume Dialog */}
             <Dialog open={addVolumeOpen} onOpenChange={(open) => { setAddVolumeOpen(open); if (!open) reset({ type: 'regular' }); }}>
                 <DialogContent>
-                    <DialogHeader><DialogTitle>Tambah Volume</DialogTitle></DialogHeader>
+                    <DialogHeader><DialogTitle>{t('series.addVolume')}</DialogTitle></DialogHeader>
                     <form onSubmit={handleSubmit(onAddVolume)} className="space-y-4">
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1.5">
-                                <Label htmlFor="volume_number">Nomor Volume <span className="text-destructive">*</span></Label>
+                                <Label htmlFor="volume_number">{t('series.volumeNumberLabel')} <span className="text-destructive">*</span></Label>
                                 <Input id="volume_number" type="number" min={1} {...register('volume_number')} />
-                                <FieldError message={errors.volume_number?.message} />
+                                <FieldError message={errors.volume_number ? t('common:common.required') : undefined} />
                             </div>
                             <div className="space-y-1.5">
-                                <Label>Tipe <span className="text-destructive">*</span></Label>
+                                <Label>{t('series.typeLabel')} <span className="text-destructive">*</span></Label>
                                 <Controller<VolumeFormValues, 'type'>
                                     control={control}
                                     name="type"
@@ -385,9 +388,9 @@ export default function SeriesShow({ series, volumes, can, ownerships }: Props) 
                                         <Select value={field.value} onValueChange={field.onChange}>
                                             <SelectTrigger><SelectValue>{(value: string) => VOLUME_TYPE_LABELS[value] ?? value}</SelectValue></SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="regular">Regular</SelectItem>
-                                                <SelectItem value="digital">Digital</SelectItem>
-                                                <SelectItem value="bind_up">Bind-up</SelectItem>
+                                                <SelectItem value="regular">{VOLUME_TYPE_LABELS.regular}</SelectItem>
+                                                <SelectItem value="digital">{VOLUME_TYPE_LABELS.digital}</SelectItem>
+                                                <SelectItem value="bind_up">{VOLUME_TYPE_LABELS.bind_up}</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     )}
@@ -395,15 +398,15 @@ export default function SeriesShow({ series, volumes, can, ownerships }: Props) 
                             </div>
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor="isbn">ISBN</Label>
+                            <Label htmlFor="isbn">{t('series.isbnLabel')}</Label>
                             <Input id="isbn" {...register('isbn')} />
                         </div>
                         <div className="space-y-1.5">
-                            <Label htmlFor="published_at">Tanggal Terbit</Label>
+                            <Label htmlFor="published_at">{t('series.publishedAtLabel')}</Label>
                             <Input id="published_at" type="date" {...register('published_at')} />
                         </div>
                         <div className="space-y-1.5">
-                            <Label>Cover</Label>
+                            <Label>{t('series.coverLabel')}</Label>
                             <Input
                                 ref={fileRef}
                                 type="file"
@@ -413,9 +416,9 @@ export default function SeriesShow({ series, volumes, can, ownerships }: Props) 
                             />
                         </div>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setAddVolumeOpen(false)}>Batal</Button>
+                            <Button type="button" variant="outline" onClick={() => setAddVolumeOpen(false)}>{t('common:common.cancel')}</Button>
                             <Button type="submit" disabled={submitting}>
-                                {submitting ? 'Menyimpan...' : 'Simpan'}
+                                {submitting ? t('common:common.saving') : t('common:common.save')}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -425,14 +428,14 @@ export default function SeriesShow({ series, volumes, can, ownerships }: Props) 
             {/* Delete Volume Dialog */}
             <Dialog open={!!deleteVolume} onOpenChange={(open) => !open && setDeleteVolume(null)}>
                 <DialogContent>
-                    <DialogHeader><DialogTitle>Hapus Volume #{deleteVolume?.volume_number}</DialogTitle></DialogHeader>
+                    <DialogHeader><DialogTitle>{t('series.deleteVolumeTitle', { number: deleteVolume?.volume_number })}</DialogTitle></DialogHeader>
                     <p className="text-sm text-muted-foreground">
-                        Yakin ingin menghapus volume ini? Aksi ini tidak dapat dibatalkan.
+                        {t('series.deleteVolumeConfirm')}
                     </p>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setDeleteVolume(null)}>Batal</Button>
+                        <Button variant="outline" onClick={() => setDeleteVolume(null)}>{t('common:common.cancel')}</Button>
                         <Button variant="destructive" disabled={deletingVol} onClick={handleDeleteVolume}>
-                            {deletingVol ? 'Menghapus...' : 'Hapus'}
+                            {deletingVol ? t('common:common.deleting') : t('common:common.delete')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -441,14 +444,14 @@ export default function SeriesShow({ series, volumes, can, ownerships }: Props) 
             {/* Delete Series Dialog */}
             <Dialog open={deleteSeries} onOpenChange={setDeleteSeries}>
                 <DialogContent>
-                    <DialogHeader><DialogTitle>Hapus Series</DialogTitle></DialogHeader>
+                    <DialogHeader><DialogTitle>{t('series.show.deleteSeriesTitle')}</DialogTitle></DialogHeader>
                     <p className="text-sm text-muted-foreground">
-                        Yakin ingin menghapus <strong>{series.title_romaji}</strong>? Semua volume terkait juga akan dihapus.
+                        {t('series.show.deleteSeriesConfirmPrefix')} <strong>{series.title_romaji}</strong>{t('series.show.deleteSeriesConfirmSuffix')}
                     </p>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setDeleteSeries(false)}>Batal</Button>
+                        <Button variant="outline" onClick={() => setDeleteSeries(false)}>{t('common:common.cancel')}</Button>
                         <Button variant="destructive" disabled={deletingSeries} onClick={handleDeleteSeries}>
-                            {deletingSeries ? 'Menghapus...' : 'Hapus'}
+                            {deletingSeries ? t('common:common.deleting') : t('common:common.delete')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

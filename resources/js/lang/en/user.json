@@ -1,0 +1,87 @@
+{
+    "wishlist": {
+        "title": "Wishlist",
+        "description": "{{count}} series you want to read",
+        "empty": {
+            "title": "Wishlist is empty",
+            "description": "Add series from the Catalog that you don't own yet but want to read later.",
+            "browseCatalog": "Browse Catalog"
+        },
+        "noneForType": "No wishlist items of this type.",
+        "addToCollection": "Add to Collection",
+        "add": "Add",
+        "adding": "Adding..."
+    },
+    "tickets": {
+        "title": "Tickets",
+        "newTicket": "New Ticket",
+        "count": "{{count}} tickets sent",
+        "emptyTitle": "No tickets yet",
+        "emptyDescription": "Have a catalog request or another report? Create a ticket to send to the admin.",
+        "subject": "Subject",
+        "type": "Type",
+        "status": "Status",
+        "createdColumn": "Created",
+        "yourMessage": "Your Message",
+        "adminResponse": "Admin Response",
+        "waitingResponse": "Waiting for admin response.",
+        "related": "Related: {{title}}",
+        "createdAt": "Created {{date}}",
+        "repliedAt": "Replied {{date}}",
+        "form": {
+            "message": "Message",
+            "submit": "Send Ticket",
+            "submitting": "Sending...",
+            "relatedTo": "This ticket is related to",
+            "limitWarning": "You can only have {{max}} tickets open at the same time. To create a new one, make sure none of your existing tickets are still awaiting an admin response.",
+            "limitReached": "You currently have {{active}}/{{max}} active tickets — wait for a response or resolution first.",
+            "defaultSubject": "Related to: {{title}}"
+        }
+    },
+    "loans": {
+        "title": "Loan History",
+        "count": "{{count}} loans recorded",
+        "emptyTitle": "No loans yet",
+        "emptyDescription": "Loan out a volume from the collection page to start tracking.",
+        "seriesVolume": "Series / Volume",
+        "borrower": "Borrower",
+        "status": "Status",
+        "loanedAt": "Loaned",
+        "dueAt": "Due Date",
+        "returnedAt": "Returned",
+        "volumeShort": "Vol. {{number}}",
+        "statusReturned": "Returned",
+        "statusOverdue": "Overdue",
+        "statusOnLoan": "On Loan"
+    },
+    "profile": {
+        "seriesInCollection": "{{count}} series in collection",
+        "manageProfile": "Manage Profile",
+        "processing": "Processing...",
+        "unfollow": "Unfollow",
+        "follow": "Follow",
+        "followers": "Followers",
+        "following": "Following",
+        "collection": "Collection",
+        "genreTaste": "Genre Taste",
+        "collectionDetail": "Collection Detail",
+        "totalVolume": "Total Volumes",
+        "collectionHeading": "Collection ({{visible}}/{{total}})",
+        "noneForType": "No collection items of this type.",
+        "backToTop": "Back to top",
+        "show": {
+            "25": "Show 25",
+            "50": "Show 50",
+            "100": "Show 100",
+            "all": "Show All"
+        }
+    },
+    "directory": {
+        "title": "Find Users",
+        "description": "Find other users by username or name",
+        "searchPlaceholder": "Search username or name...",
+        "promptSearch": "Type a username or name to start searching.",
+        "noResults": "No users found.",
+        "privateProfile": "This profile is private"
+    }
+}

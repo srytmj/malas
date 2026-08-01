@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import {
     BookOpen, Eye, LayoutGrid, Library, List, Loader2, Plus, RefreshCw, Search, Trash2,
 } from 'lucide-react';
@@ -17,8 +18,9 @@ import {
     ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger,
 } from '@/Components/ui/context-menu';
 import {
-    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+    Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue,
 } from '@/Components/ui/select';
+import { ToggleGroup, ToggleGroupItem } from '@/Components/ui/toggle-group';
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/Components/ui/table';
@@ -26,6 +28,7 @@ import {
     Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/Components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { useTypeFilterOptions } from '@/lib/typeFilters';
 import { PageProps } from '@/types';
 import { type SeriesStatus, type SeriesType } from '@/lib/types';
 
@@ -59,25 +62,10 @@ interface Props extends PageProps {
     collections: CollectionRow[];
 }
 
-const STATUS_OPTIONS: { value: SeriesStatus; label: string }[] = [
-    { value: 'publishing',        label: 'Publishing' },
-    { value: 'finished',          label: 'Selesai' },
-    { value: 'on_hiatus',         label: 'Hiatus' },
-    { value: 'discontinued',      label: 'Discontinued' },
-    { value: 'not_yet_published', label: 'Belum Terbit' },
-];
-
-const SORT_OPTIONS = [
-    { value: 'added_desc',   label: 'Baru ditambahkan' },
-    { value: 'added_asc',    label: 'Lama ditambahkan' },
-    { value: 'name_asc',     label: 'Nama A-Z' },
-    { value: 'name_desc',    label: 'Nama Z-A' },
-    { value: 'volumes_desc', label: 'Volume terbanyak' },
-    { value: 'volumes_asc',  label: 'Volume tersedikit' },
-] as const;
+const SORT_VALUES = ['added_desc', 'added_asc', 'name_asc', 'name_desc', 'volumes_desc', 'volumes_asc'] as const;
 
 type ViewMode = 'grid' | 'table';
-type SortValue = typeof SORT_OPTIONS[number]['value'];
+type SortValue = typeof SORT_VALUES[number];
 
 const VIEW_KEY = 'malas.collection.view';
 const SORT_KEY = 'malas.collection.sort';
@@ -88,10 +76,22 @@ function readLocal<T extends string>(key: string, fallback: T): T {
 }
 
 export default function CollectionIndex({ collections }: Props) {
+    const { t } = useTranslation('collection');
+    const typeFilterOptions = useTypeFilterOptions();
+    const statusOptions: { value: SeriesStatus; label: string }[] = [
+        { value: 'publishing',        label: t('common:badge.status.publishing') },
+        { value: 'finished',          label: t('common:badge.status.finished') },
+        { value: 'on_hiatus',         label: t('common:badge.status.on_hiatus') },
+        { value: 'discontinued',      label: t('common:badge.status.discontinued') },
+        { value: 'not_yet_published', label: t('common:badge.status.not_yet_published') },
+    ];
+    const sortOptions = SORT_VALUES.map((value) => ({ value, label: t(`index.sort.${value}`) }));
     const [deleteTarget, setDeleteTarget]   = useState<CollectionRow | null>(null);
     const [deleting, setDeleting]           = useState(false);
     const [filterQuery, setFilterQuery]     = useState('');
     const [statusFilter, setStatusFilter]   = useState('');
+    const [genreFilter, setGenreFilter]     = useState('');
+    const [typeFilter, setTypeFilter]       = useState('all');
     const [view, setView]                   = useState<ViewMode>(() => readLocal<ViewMode>(VIEW_KEY, 'grid'));
     const [sort, setSort]                   = useState<SortValue>(() => readLocal<SortValue>(SORT_KEY, 'added_desc'));
     const [refreshing, setRefreshing]       = useState(false);
@@ -109,6 +109,19 @@ export default function CollectionIndex({ collections }: Props) {
         router.reload({ onFinish: () => setRefreshing(false) });
     }
 
+    const genreGroups = useMemo(() => {
+        const manga = new Set<string>();
+        const novel = new Set<string>();
+        collections.forEach((c) => {
+            const bucket = c.type === 'novel' ? novel : manga;
+            c.genres.forEach((g) => bucket.add(g));
+        });
+        return {
+            manga: Array.from(manga).sort(),
+            novel: Array.from(novel).sort(),
+        };
+    }, [collections]);
+
     const filteredCollections = collections
         .filter((c) => {
             const q = filterQuery.trim().toLowerCase();
@@ -116,7 +129,9 @@ export default function CollectionIndex({ collections }: Props) {
                 || c.title_romaji.toLowerCase().includes(q)
                 || (c.title_english?.toLowerCase().includes(q) ?? false);
             const matchesStatus = !statusFilter || c.status === statusFilter;
-            return matchesQuery && matchesStatus;
+            const matchesGenre = !genreFilter || c.genres.includes(genreFilter);
+            const matchesType = typeFilter === 'all' || c.type === typeFilter;
+            return matchesQuery && matchesStatus && matchesGenre && matchesType;
         })
         .sort((a, b) => {
             switch (sort) {
@@ -162,6 +177,8 @@ export default function CollectionIndex({ collections }: Props) {
         }, 350);
         return () => clearTimeout(t);
     }, [searchQuery, addOpen]);
+
+    const visibleResults = searchResults.filter((s) => !inCollectionIds.has(s.id));
 
     function toggleSelect(id: string) {
         setSelectedIds((prev) => {
@@ -216,53 +233,68 @@ export default function CollectionIndex({ collections }: Props) {
         <UserLayout
             header={
                 <PageHeader
-                    title="Koleksiku"
-                    description={`${collections.length} series dalam koleksi`}
+                    title={t('index.title')}
+                    description={t('index.count', { count: collections.length })}
                     actions={
                         <Button size="sm" onClick={() => { setAddOpen(true); setSearchQuery(''); setSelectedIds(new Set()); }}>
                             <Plus className="mr-1.5 h-3.5 w-3.5" />
-                            Tambah Series
+                            {t('index.addSeries')}
                         </Button>
                     }
                 />
             }
         >
-            <Head title="Koleksiku" />
+            <Head title={t('index.title')} />
             {collections.length === 0 ? (
                 <Empty>
                     <EmptyHeader>
                         <EmptyMedia variant="icon">
                             <Library />
                         </EmptyMedia>
-                        <EmptyTitle>Koleksi masih kosong</EmptyTitle>
+                        <EmptyTitle>{t('index.empty.title')}</EmptyTitle>
                         <EmptyDescription>
-                            Tambahkan series untuk mulai melacak volume yang kamu miliki.
+                            {t('index.empty.description')}
                         </EmptyDescription>
                     </EmptyHeader>
                     <EmptyContent>
                         <Button onClick={() => setAddOpen(true)}>
                             <Plus className="mr-1.5 h-4 w-4" />
-                            Tambah Series
+                            {t('index.addSeries')}
                         </Button>
                         <p className="text-sm text-muted-foreground">
-                            Koleksimu belum ada di katalog?{' '}
+                            {t('index.empty.notInCatalog')}{' '}
                             <Link
                                 href={route('tickets.create')}
                                 className="font-medium text-primary underline-offset-4 hover:underline"
                             >
-                                Request lewat tiket
+                                {t('index.empty.requestViaTicket')}
                             </Link>
                         </p>
                     </EmptyContent>
                 </Empty>
             ) : (
                 <>
+                    {/* Quick filter tipe — Segmented Control, terpisah dari filter lain */}
+                    <div className="mb-3 overflow-x-auto">
+                        <ToggleGroup
+                            value={[typeFilter]}
+                            onValueChange={(vals) => setTypeFilter(vals[0] ?? 'all')}
+                            variant="outline"
+                            size="sm"
+                        >
+                            {typeFilterOptions.map((opt) => (
+                                <ToggleGroupItem key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                </ToggleGroupItem>
+                            ))}
+                        </ToggleGroup>
+                    </div>
                     <div className="mb-4 flex flex-wrap items-center gap-2">
                         <div className="relative max-w-sm flex-1">
                             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 className="pl-9"
-                                placeholder="Cari di koleksimu..."
+                                placeholder={t('index.searchPlaceholder')}
                                 value={filterQuery}
                                 onChange={(e) => setFilterQuery(e.target.value)}
                             />
@@ -273,31 +305,58 @@ export default function CollectionIndex({ collections }: Props) {
                             size="icon"
                             onClick={handleRefresh}
                             disabled={refreshing}
-                            aria-label="Segarkan"
+                            aria-label={t('index.refresh')}
                         >
                             <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} />
                         </Button>
                         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? '')}>
                             <SelectTrigger className="w-40">
-                                <SelectValue placeholder="Semua status">
-                                    {(value: string) => STATUS_OPTIONS.find((s) => s.value === value)?.label ?? 'Semua status'}
+                                <SelectValue placeholder={t('index.allStatus')}>
+                                    {(value: string) => statusOptions.find((s) => s.value === value)?.label ?? t('index.allStatus')}
                                 </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">Semua status</SelectItem>
-                                {STATUS_OPTIONS.map((s) => (
+                                <SelectItem value="">{t('index.allStatus')}</SelectItem>
+                                {statusOptions.map((s) => (
                                     <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
-                        <Select value={sort} onValueChange={(v) => setSort((v ?? 'added_desc') as SortValue)}>
-                            <SelectTrigger className="w-44">
-                                <SelectValue placeholder="Urutkan">
-                                    {(value: string) => SORT_OPTIONS.find((s) => s.value === value)?.label ?? 'Urutkan'}
+                        <Select value={genreFilter} onValueChange={(v) => setGenreFilter(v ?? '')}>
+                            <SelectTrigger className="w-40">
+                                <SelectValue placeholder={t('index.allGenre')}>
+                                    {(value: string) => value || t('index.allGenre')}
                                 </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
-                                {SORT_OPTIONS.map((s) => (
+                                <SelectItem value="">{t('index.allGenre')}</SelectItem>
+                                {genreGroups.manga.length > 0 && (
+                                    <SelectGroup>
+                                        <SelectLabel>{t('common:common.manga')}</SelectLabel>
+                                        {genreGroups.manga.map((g) => (
+                                            <SelectItem key={`manga-${g}`} value={g}>{g}</SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                )}
+                                {genreGroups.manga.length > 0 && genreGroups.novel.length > 0 && <SelectSeparator />}
+                                {genreGroups.novel.length > 0 && (
+                                    <SelectGroup>
+                                        <SelectLabel>{t('common:common.lightNovel')}</SelectLabel>
+                                        {genreGroups.novel.map((g) => (
+                                            <SelectItem key={`novel-${g}`} value={g}>{g}</SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                )}
+                            </SelectContent>
+                        </Select>
+                        <Select value={sort} onValueChange={(v) => setSort((v ?? 'added_desc') as SortValue)}>
+                            <SelectTrigger className="w-44">
+                                <SelectValue placeholder={t('index.sort.label')}>
+                                    {(value: string) => sortOptions.find((s) => s.value === value)?.label ?? t('index.sort.label')}
+                                </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                                {sortOptions.map((s) => (
                                     <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                                 ))}
                             </SelectContent>
@@ -309,7 +368,7 @@ export default function CollectionIndex({ collections }: Props) {
                                 size="icon"
                                 className="h-7 w-7"
                                 onClick={() => setView('grid')}
-                                aria-label="Tampilan grid"
+                                aria-label={t('index.gridView')}
                             >
                                 <LayoutGrid className="h-3.5 w-3.5" />
                             </Button>
@@ -319,7 +378,7 @@ export default function CollectionIndex({ collections }: Props) {
                                 size="icon"
                                 className="h-7 w-7"
                                 onClick={() => setView('table')}
-                                aria-label="Tampilan tabel"
+                                aria-label={t('index.tableView')}
                             >
                                 <List className="h-3.5 w-3.5" />
                             </Button>
@@ -328,7 +387,7 @@ export default function CollectionIndex({ collections }: Props) {
 
                     {filteredCollections.length === 0 ? (
                         <p className="py-12 text-center text-sm text-muted-foreground">
-                            Tidak ada koleksi yang cocok dengan filter saat ini.
+                            {t('index.noneMatchFilter')}
                         </p>
                     ) : view === 'grid' ? (
                         <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(160px,1fr))]">
@@ -365,7 +424,7 @@ export default function CollectionIndex({ collections }: Props) {
                                         <div className="mt-auto flex items-center justify-between pt-1.5">
                                             <p className="text-xs text-muted-foreground">
                                                 <span className="font-medium text-foreground">{c.collection_volumes_count}</span>
-                                                {c.total_volumes ? `/${c.total_volumes}` : ''} vol.
+                                                {c.total_volumes ? `/${c.total_volumes}` : ''} {t('index.volumeShort')}
                                             </p>
                                             <Button
                                                 variant="ghost"
@@ -386,10 +445,10 @@ export default function CollectionIndex({ collections }: Props) {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead className="w-12" />
-                                        <TableHead>Judul</TableHead>
-                                        <TableHead className="w-36">Status</TableHead>
-                                        <TableHead>Genre</TableHead>
-                                        <TableHead className="w-24 text-right">Volume</TableHead>
+                                        <TableHead>{t('index.columnTitle')}</TableHead>
+                                        <TableHead className="w-36">{t('user:tickets.status')}</TableHead>
+                                        <TableHead>{t('index.columnGenre')}</TableHead>
+                                        <TableHead className="w-24 text-right">{t('index.columnVolume')}</TableHead>
                                         <TableHead className="w-12" />
                                     </TableRow>
                                 </TableHeader>
@@ -439,7 +498,7 @@ export default function CollectionIndex({ collections }: Props) {
                                                     <p>{c.collection_volumes_count}{c.total_volumes ? `/${c.total_volumes}` : ''}</p>
                                                     {c.collection_volumes_count > 0 && (
                                                         <p className="text-xs text-muted-foreground">
-                                                            {c.read_volumes_count}/{c.collection_volumes_count} dibaca
+                                                            {t('index.readCount', { read: c.read_volumes_count, total: c.collection_volumes_count })}
                                                         </p>
                                                     )}
                                                 </TableCell>
@@ -457,12 +516,12 @@ export default function CollectionIndex({ collections }: Props) {
                                             <ContextMenuContent>
                                                 <ContextMenuItem onClick={() => router.visit(route('collection.show', c.id))}>
                                                     <Eye className="mr-2 h-4 w-4" />
-                                                    Lihat
+                                                    {t('index.view')}
                                                 </ContextMenuItem>
                                                 <ContextMenuSeparator />
                                                 <ContextMenuItem variant="destructive" onClick={() => setDeleteTarget(c)}>
                                                     <Trash2 className="mr-2 h-4 w-4" />
-                                                    Hapus dari Koleksi
+                                                    {t('index.removeFromCollection')}
                                                 </ContextMenuItem>
                                             </ContextMenuContent>
                                         </ContextMenu>
@@ -478,15 +537,15 @@ export default function CollectionIndex({ collections }: Props) {
             <Dialog open={addOpen} onOpenChange={(open) => { setAddOpen(open); if (!open) { setSelectedIds(new Set()); setSearchQuery(''); } }}>
                 <DialogContent className="max-w-4xl">
                     <DialogHeader>
-                        <DialogTitle>Tambah Series ke Koleksi</DialogTitle>
-                        <DialogDescription>Pilih satu atau lebih series. Klik gambar untuk memilih.</DialogDescription>
+                        <DialogTitle>{t('index.addDialog.title')}</DialogTitle>
+                        <DialogDescription>{t('index.addDialog.description')}</DialogDescription>
                     </DialogHeader>
 
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             className="pl-9"
-                            placeholder="Cari judul series..."
+                            placeholder={t('index.addDialog.searchPlaceholder')}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             autoFocus
@@ -497,46 +556,43 @@ export default function CollectionIndex({ collections }: Props) {
                         {searchLoading && (
                             <div className="flex items-center justify-center py-10 text-muted-foreground">
                                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                Mencari...
+                                {t('index.addDialog.searching')}
                             </div>
                         )}
 
-                        {!searchLoading && searchResults.length === 0 && (
+                        {!searchLoading && visibleResults.length === 0 && (
                             <div className="py-8 text-center">
                                 <p className="text-sm text-muted-foreground">
-                                    {searchQuery.trim() ? 'Tidak ada hasil.' : 'Ketik untuk mencari series.'}
+                                    {searchQuery.trim() ? t('index.addDialog.noResults') : t('index.addDialog.typeToSearch')}
                                 </p>
                                 {searchQuery.trim() && (
                                     <p className="mt-2 text-sm text-muted-foreground">
-                                        Judul tidak ditemukan?{' '}
+                                        {t('index.addDialog.notFound')}{' '}
                                         <Link
                                             href={route('tickets.create')}
                                             className="font-medium text-primary underline-offset-4 hover:underline"
                                             onClick={() => setAddOpen(false)}
                                         >
-                                            Request lewat tiket
+                                            {t('index.addDialog.requestViaTicket')}
                                         </Link>
                                     </p>
                                 )}
                             </div>
                         )}
 
-                        {!searchLoading && searchResults.length > 0 && (
+                        {!searchLoading && visibleResults.length > 0 && (
                             <div className="grid grid-cols-3 gap-2 pb-1 sm:grid-cols-5 lg:grid-cols-6">
-                                {searchResults.map((s) => {
-                                    const isInCollection = inCollectionIds.has(s.id);
-                                    const isSelected     = selectedIds.has(s.id);
+                                {visibleResults.map((s) => {
+                                    const isSelected = selectedIds.has(s.id);
                                     return (
                                         <button
                                             key={s.id}
                                             type="button"
-                                            disabled={isInCollection}
-                                            onClick={() => !isInCollection && toggleSelect(s.id)}
+                                            onClick={() => toggleSelect(s.id)}
                                             className={cn(
                                                 'group relative flex flex-col overflow-hidden rounded-lg border text-left transition-all focus:outline-none focus:ring-2 focus:ring-ring',
-                                                isInCollection && 'opacity-40 cursor-not-allowed',
                                                 isSelected && 'ring-2 ring-primary border-primary',
-                                                !isInCollection && !isSelected && 'hover:ring-2 hover:ring-primary/50',
+                                                !isSelected && 'hover:ring-2 hover:ring-primary/50',
                                             )}
                                         >
                                             <div className="relative aspect-[2/3] overflow-hidden bg-muted">
@@ -556,11 +612,6 @@ export default function CollectionIndex({ collections }: Props) {
                                                         </div>
                                                     </div>
                                                 )}
-                                                {isInCollection && (
-                                                    <div className="absolute bottom-1 right-1">
-                                                        <span className="rounded bg-black/60 px-1 py-0.5 text-[10px] text-white">Dimiliki</span>
-                                                    </div>
-                                                )}
                                             </div>
                                             <div className="p-1.5">
                                                 <p className="line-clamp-2 text-xs font-medium leading-tight">{s.title_romaji}</p>
@@ -574,11 +625,11 @@ export default function CollectionIndex({ collections }: Props) {
 
                     <DialogFooter className="items-center gap-2">
                         {selectedIds.size > 0 && (
-                            <p className="mr-auto text-sm text-muted-foreground">{selectedIds.size} dipilih</p>
+                            <p className="mr-auto text-sm text-muted-foreground">{t('index.addDialog.selectedCount', { count: selectedIds.size })}</p>
                         )}
-                        <Button variant="outline" onClick={() => setAddOpen(false)}>Batal</Button>
+                        <Button variant="outline" onClick={() => setAddOpen(false)}>{t('index.addDialog.cancel')}</Button>
                         <Button disabled={selectedIds.size === 0 || adding} onClick={handleAdd}>
-                            {adding ? 'Menambahkan...' : `Tambah${selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}`}
+                            {adding ? t('index.addDialog.adding') : (selectedIds.size > 0 ? t('index.addDialog.addWithCount', { count: selectedIds.size }) : t('index.addDialog.add'))}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -588,16 +639,15 @@ export default function CollectionIndex({ collections }: Props) {
             <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Hapus dari Koleksi</DialogTitle>
+                        <DialogTitle>{t('index.deleteDialog.title')}</DialogTitle>
                         <DialogDescription>
-                            Yakin ingin menghapus <strong>{deleteTarget?.title_romaji}</strong> dari koleksimu?
-                            Semua data volume dan pinjaman aktif akan hilang.
+                            {t('index.deleteDialog.confirmPrefix')} <strong>{deleteTarget?.title_romaji}</strong> {t('index.deleteDialog.confirmSuffix')}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setDeleteTarget(null)}>Batal</Button>
+                        <Button variant="outline" onClick={() => setDeleteTarget(null)}>{t('index.deleteDialog.cancel')}</Button>
                         <Button variant="destructive" disabled={deleting} onClick={handleDelete}>
-                            {deleting ? 'Menghapus...' : 'Hapus'}
+                            {deleting ? t('index.deleteDialog.deleting') : t('index.deleteDialog.delete')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

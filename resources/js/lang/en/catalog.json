@@ -1,0 +1,37 @@
+{
+    "title": "Catalog",
+    "seriesAvailable": "{{count}} series available",
+    "searchPlaceholder": "Search title...",
+    "refresh": "Refresh",
+    "allStatus": "All statuses",
+    "allGenre": "All genres",
+    "ownership": {
+        "all": "All",
+        "owned": "In Collection",
+        "notOwned": "Not in Collection"
+    },
+    "empty": {
+        "title": "No series found.",
+        "requestPrompt": "Can't find the title you're looking for?",
+        "createTicket": "Create a request ticket",
+        "toAdmin": "to the admin."
+    },
+    "show": {
+        "createTicket": "Create Ticket",
+        "viewInCollection": "View in Collection",
+        "addToCollection": "Add to Collection",
+        "adding": "Adding...",
+        "removeFromWishlist": "Remove from Wishlist",
+        "addToWishlist": "Add to Wishlist",
+        "processing": "Processing...",
+        "author": "Author:",
+        "totalVolume": "Total Volumes",
+        "score": "Score",
+        "rank": "Rank",
+        "published": "Published",
+        "collectorsCount": "{{count}} people collect this manga",
+        "viewOnAnilist": "View on AniList",
+        "gallery": "Gallery",
+        "volumes": "Volumes ({{count}})"
+    }
+}

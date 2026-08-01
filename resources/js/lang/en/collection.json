@@ -1,0 +1,170 @@
+{
+    "index": {
+        "title": "My Collection",
+        "count": "{{count}} series in collection",
+        "addSeries": "Add Series",
+        "empty": {
+            "title": "Collection is empty",
+            "description": "Add series to start tracking the volumes you own.",
+            "notInCatalog": "Your item isn't in the catalog yet?",
+            "requestViaTicket": "Request via ticket"
+        },
+        "searchPlaceholder": "Search your collection...",
+        "refresh": "Refresh",
+        "allStatus": "All statuses",
+        "allGenre": "All genres",
+        "sort": {
+            "label": "Sort",
+            "added_desc": "Recently added",
+            "added_asc": "Oldest added",
+            "name_asc": "Name A-Z",
+            "name_desc": "Name Z-A",
+            "volumes_desc": "Most volumes",
+            "volumes_asc": "Fewest volumes"
+        },
+        "gridView": "Grid view",
+        "tableView": "Table view",
+        "noneMatchFilter": "No collection items match the current filters.",
+        "volumeShort": "vol.",
+        "columnTitle": "Title",
+        "columnGenre": "Genre",
+        "columnVolume": "Volume",
+        "readCount": "{{read}}/{{total}} read",
+        "view": "View",
+        "removeFromCollection": "Remove from Collection",
+        "addDialog": {
+            "title": "Add Series to Collection",
+            "description": "Select one or more series. Click an image to select it.",
+            "searchPlaceholder": "Search series title...",
+            "searching": "Searching...",
+            "noResults": "No results.",
+            "typeToSearch": "Type to search series.",
+            "notFound": "Title not found?",
+            "requestViaTicket": "Request via ticket",
+            "selectedCount": "{{count}} selected",
+            "cancel": "Cancel",
+            "adding": "Adding...",
+            "add": "Add",
+            "addWithCount": "Add ({{count}})"
+        },
+        "deleteDialog": {
+            "title": "Remove from Collection",
+            "confirmPrefix": "Are you sure you want to remove",
+            "confirmSuffix": "from your collection? All volume and active loan data will be lost.",
+            "cancel": "Cancel",
+            "deleting": "Removing...",
+            "delete": "Remove"
+        }
+    },
+    "show": {
+        "viewCatalog": "View in Catalog",
+        "deleteCollection": "Delete Collection",
+        "progress": "Progress",
+        "volumesOwned": "volumes owned",
+        "lastRead": "Last read: Vol. {{number}}",
+        "conditionOptional": "Condition (optional)",
+        "condition": { "mint": "Mint", "good": "Good", "fair": "Fair", "poor": "Poor" },
+        "markAllRead": "Mark all volumes as read",
+        "volumesOwnedHeading": "Volumes Owned ({{count}})",
+        "changeFormat": "Change Format ({{count}})",
+        "deleteCount": "Delete ({{count}})",
+        "allFormat": "All formats",
+        "done": "Done",
+        "delete": "Delete",
+        "gridView": "Grid view",
+        "tableView": "Table view",
+        "addVolume": "Add Volume",
+        "empty": { "title": "No volumes yet", "description": "Add the volumes you own, e.g.: 1,2,3,5" },
+        "noneForFormat": "No volumes with this format.",
+        "selectVolume": "Select volume {{number}}",
+        "markUnread": "Mark volume {{number}} as unread",
+        "markRead": "Mark volume {{number}} as read",
+        "volumeShort": "Vol.",
+        "volumeLabel": "Vol. {{number}}",
+        "loanStatus": { "overdue": "Overdue", "onLoan": "On Loan" },
+        "markReturned": "Mark returned",
+        "returning": "Saving...",
+        "returnShort": "Return",
+        "lendOut": "Lend out",
+        "columnVolume": "Volume",
+        "columnFormat": "Format",
+        "columnLoanStatus": "Loan Status",
+        "review": {
+            "title": "Personal Review & Rating",
+            "rating": "Rating",
+            "notRecommended": "Not Recommended",
+            "recommended": "Recommended",
+            "comment": "Comment",
+            "commentPlaceholder": "What do you think of this series?",
+            "save": "Save Review",
+            "saving": "Saving...",
+            "labels": {
+                "recommended": "Recommended",
+                "prettyGood": "Pretty Good",
+                "neutral": "Neutral",
+                "lacking": "Lacking",
+                "notRecommended": "Not Recommended"
+            }
+        },
+        "addVolumeDialog": {
+            "title": "Add Volume",
+            "descriptionPrefix": "Separate with commas. Use a dash for ranges. Example:",
+            "volumeNumber": "Volume Number",
+            "format": "Format",
+            "ebookSource": "Ebook Source",
+            "selectSource": "Select source",
+            "language": "Language",
+            "selectLanguageOptional": "Select language (optional)",
+            "cancel": "Cancel",
+            "saving": "Saving...",
+            "add": "Add"
+        },
+        "deleteVolumeDialog": {
+            "title": "Delete Volume #{{number}}",
+            "confirm": "Are you sure you want to remove this volume from your collection? Related loan history will also be lost.",
+            "cancel": "Cancel",
+            "deleting": "Deleting...",
+            "delete": "Delete"
+        },
+        "bulkDeleteDialog": {
+            "title": "Delete {{count}} Volumes",
+            "confirm": "Are you sure you want to remove the {{count}} selected volumes from your collection? Related loan history will also be lost.",
+            "cancel": "Cancel",
+            "deleting": "Deleting...",
+            "delete": "Delete"
+        },
+        "bulkFormatDialog": {
+            "title": "Change Format for {{count}} Volumes",
+            "description": "The format, ebook source, and language will be applied to all selected volumes.",
+            "cancel": "Cancel",
+            "saving": "Saving...",
+            "apply": "Apply"
+        },
+        "loanDialog": {
+            "title": "Lend Out Vol. #{{number}}",
+            "description": "Record who is borrowing this volume.",
+            "borrowerName": "Borrower Name",
+            "loanDate": "Loan Date",
+            "dueDate": "Due Date",
+            "notes": "Notes",
+            "cancel": "Cancel",
+            "saving": "Saving...",
+            "submit": "Record Loan"
+        },
+        "deleteCollectionDialog": {
+            "title": "Remove from Collection",
+            "confirmPrefix": "Are you sure you want to remove",
+            "confirmSuffix": "from your collection? All volume and active loan data will be lost.",
+            "cancel": "Cancel",
+            "deleting": "Removing...",
+            "delete": "Remove"
+        },
+        "formatSwitcher": {
+            "title": "Change Format for Vol. {{number}}",
+            "save": "Save",
+            "saving": "Saving..."
+        },
+        "ebookSource": { "bookwalker": "BookWalker", "amazon": "Amazon", "local_epub": "Local Epub" },
+        "language": { "id": "Indonesian", "en": "English", "ja": "Japanese", "other": "Other" }
+    }
+}

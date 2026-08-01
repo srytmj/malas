@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { ArrowLeft } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
@@ -35,9 +36,8 @@ interface Props extends PageProps {
 }
 
 const schema = z.object({
-    label:               z.string().min(1, 'Wajib diisi').max(100),
+    label:               z.string().min(1).max(100),
     icon:                z.string().max(50).optional(),
-    sort_order:          z.string(),
     is_visible:          z.boolean(),
     is_maintenance:      z.boolean(),
     maintenance_message: z.string().max(500).optional(),
@@ -46,13 +46,16 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 const ALL_ROLES = ['super_admin', 'admin', 'user'] as const;
-const ROLE_LABELS: Record<string, string> = {
-    super_admin: 'Super Admin',
-    admin:       'Admin',
-    user:        'User',
-};
 
 export default function MenuEdit({ menu }: Props) {
+    const { t } = useTranslation('admin');
+
+    const ROLE_LABELS: Record<string, string> = {
+        super_admin: t('common:settings.roles.super_admin'),
+        admin:       t('common:settings.roles.admin'),
+        user:        t('common:settings.roles.user'),
+    };
+
     const [submitting, setSubmitting] = useState(false);
     const [roleAccess, setRoleAccess] = useState<string[]>(menu.role_access);
 
@@ -68,7 +71,6 @@ export default function MenuEdit({ menu }: Props) {
         defaultValues: {
             label:               menu.label,
             icon:                menu.icon ?? '',
-            sort_order:          String(menu.sort_order),
             is_visible:          menu.is_visible,
             is_maintenance:      menu.is_maintenance,
             maintenance_message: menu.maintenance_message ?? '',
@@ -88,7 +90,6 @@ export default function MenuEdit({ menu }: Props) {
         setSubmitting(true);
         router.put(route('admin.menus.update', menu.id), {
             ...values,
-            sort_order:  parseInt(values.sort_order, 10),
             role_access: roleAccess,
         }, {
             onError: (errs) => {
@@ -104,15 +105,15 @@ export default function MenuEdit({ menu }: Props) {
         <AdminLayout
             header={
                 <PageHeader
-                    title="Manajemen Menu"
-                    description="Kelola visibilitas, maintenance mode, dan akses menu."
+                    title={t('menus.title')}
+                    description={t('menus.description')}
                     actions={
                         <Link
                             href={route('admin.menus.index')}
                             className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
                         >
                             <ArrowLeft className="mr-1.5 h-4 w-4" />
-                            Kembali
+                            {t('menus.back')}
                         </Link>
                     }
                 />
@@ -124,42 +125,29 @@ export default function MenuEdit({ menu }: Props) {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="w-16">#</TableHead>
-                                <TableHead>Label</TableHead>
-                                <TableHead>Route</TableHead>
-                                <TableHead>Akses Role</TableHead>
-                                <TableHead className="w-28 text-center">Tampil</TableHead>
-                                <TableHead className="w-32 text-center">Maintenance</TableHead>
+                                <TableHead>{t('menus.table.label')}</TableHead>
+                                <TableHead>{t('menus.table.route')}</TableHead>
+                                <TableHead>{t('menus.table.roleAccess')}</TableHead>
+                                <TableHead className="w-28 text-center">{t('menus.table.visible')}</TableHead>
+                                <TableHead className="w-32 text-center">{t('menus.table.maintenance')}</TableHead>
                                 <TableHead className="w-16" />
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {/* Edit row — same layout as Index but cells are inputs */}
                             <TableRow className="align-top">
-                                <TableCell className="pt-3">
-                                    <Input
-                                        type="number"
-                                        min={0}
-                                        className="h-7 w-14 text-xs"
-                                        {...register('sort_order')}
-                                    />
-                                    {errors.sort_order && (
-                                        <p className="mt-1 text-xs text-destructive">{errors.sort_order.message}</p>
-                                    )}
-                                </TableCell>
-
                                 <TableCell className="pt-3 space-y-1.5">
                                     <Input
                                         className="h-7 text-sm font-medium"
-                                        placeholder="Label"
+                                        placeholder={t('menus.labelPlaceholder')}
                                         {...register('label')}
                                     />
                                     {errors.label && (
-                                        <p className="text-xs text-destructive">{errors.label.message}</p>
+                                        <p className="text-xs text-destructive">{t('common:common.required')}</p>
                                     )}
                                     <Input
                                         className="h-6 text-xs text-muted-foreground"
-                                        placeholder="icon: cth book-open"
+                                        placeholder={t('menus.iconPlaceholder')}
                                         {...register('icon')}
                                     />
                                 </TableCell>
@@ -192,7 +180,7 @@ export default function MenuEdit({ menu }: Props) {
                                         })}
                                     </div>
                                     {roleAccess.length === 0 && (
-                                        <p className="mt-1 text-xs text-destructive">Pilih minimal satu role.</p>
+                                        <p className="mt-1 text-xs text-destructive">{t('menus.selectAtLeastOneRole')}</p>
                                     )}
                                 </TableCell>
 
@@ -216,14 +204,13 @@ export default function MenuEdit({ menu }: Props) {
                             {/* Expanded row for maintenance message */}
                             {isMaintenance && (
                                 <TableRow>
-                                    <TableCell />
                                     <TableCell colSpan={5} className="pb-3 pt-0">
                                         <p className="mb-1.5 text-xs font-medium text-muted-foreground">
-                                            Pesan Maintenance
+                                            {t('menus.maintenanceMessageLabel')}
                                         </p>
                                         <Textarea
                                             rows={2}
-                                            placeholder="Fitur ini sedang dalam pemeliharaan..."
+                                            placeholder={t('menus.maintenanceMessagePlaceholder')}
                                             className="text-sm"
                                             {...register('maintenance_message')}
                                         />
@@ -242,13 +229,13 @@ export default function MenuEdit({ menu }: Props) {
 
                 <div className="mt-4 flex gap-3">
                     <Button type="submit" disabled={submitting || roleAccess.length === 0}>
-                        {submitting ? 'Menyimpan...' : 'Simpan Perubahan'}
+                        {submitting ? t('common:common.saving') : t('menus.saveChanges')}
                     </Button>
                     <Link
                         href={route('admin.menus.index')}
                         className={cn(buttonVariants({ variant: 'outline' }))}
                     >
-                        Batal
+                        {t('common:common.cancel')}
                     </Link>
                 </div>
             </form>

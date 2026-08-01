@@ -1,0 +1,37 @@
+{
+    "title": "カタログ",
+    "seriesAvailable": "{{count}}件のシリーズ",
+    "searchPlaceholder": "タイトルを検索...",
+    "refresh": "更新",
+    "allStatus": "すべてのステータス",
+    "allGenre": "すべてのジャンル",
+    "ownership": {
+        "all": "すべて",
+        "owned": "コレクション済み",
+        "notOwned": "未コレクション"
+    },
+    "empty": {
+        "title": "シリーズが見つかりません。",
+        "requestPrompt": "お探しのタイトルがカタログにありませんか？",
+        "createTicket": "リクエストチケットを作成",
+        "toAdmin": "管理者へ。"
+    },
+    "show": {
+        "createTicket": "チケット作成",
+        "viewInCollection": "コレクションで見る",
+        "addToCollection": "コレクションに追加",
+        "adding": "追加中...",
+        "removeFromWishlist": "ウィッシュリストから削除",
+        "addToWishlist": "ウィッシュリストに追加",
+        "processing": "処理中...",
+        "author": "作者:",
+        "totalVolume": "総巻数",
+        "score": "スコア",
+        "rank": "ランク",
+        "published": "刊行",
+        "collectorsCount": "{{count}}人がこのマンガをコレクション中",
+        "viewOnAnilist": "AniListで見る",
+        "gallery": "ギャラリー",
+        "volumes": "巻 ({{count}})"
+    }
+}

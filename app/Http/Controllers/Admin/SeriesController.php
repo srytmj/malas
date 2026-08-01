@@ -190,11 +190,14 @@ class SeriesController extends Controller
     {
         $this->authorize('delete', $series);
 
+        $id = $series->id;
         ActivityLog::record('series.delete', "Menghapus series \"{$series->title_romaji}\".", $series);
         $series->delete();
 
-        return redirect()->route('admin.series.index')
-            ->with('success', 'Series berhasil dihapus.');
+        return redirect()->route('admin.series.index')->with([
+            'success' => 'Series berhasil dihapus.',
+            'undo_url' => route('admin.series.restore', $id),
+        ]);
     }
 
     public function bulkDestroy(Request $request): RedirectResponse
@@ -215,8 +218,42 @@ class SeriesController extends Controller
         ActivityLog::record('series.bulk_delete', "Menghapus {$count} series sekaligus: {$titles}.");
         Series::whereIn('id', $request->ids)->delete();
 
-        return redirect()->route('admin.series.index')
-            ->with('success', "{$count} series berhasil dihapus.");
+        return redirect()->route('admin.series.index')->with([
+            'success' => "{$count} series berhasil dihapus.",
+            'undo_url' => route('admin.series.restore-bulk'),
+            'undo_payload' => ['ids' => $request->ids],
+        ]);
+    }
+
+    public function restore(string $id): RedirectResponse
+    {
+        $series = Series::withTrashed()->findOrFail($id);
+
+        $this->authorize('delete', $series);
+
+        $series->restore();
+        ActivityLog::record('series.restore', "Memulihkan series \"{$series->title_romaji}\".", $series);
+
+        return redirect()->back()->with('success', 'Series berhasil dipulihkan.');
+    }
+
+    public function restoreBulk(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['uuid'],
+        ]);
+
+        $series = Series::withTrashed()->whereIn('id', $request->ids)->get();
+
+        foreach ($series as $s) {
+            $this->authorize('delete', $s);
+        }
+
+        Series::withTrashed()->whereIn('id', $request->ids)->restore();
+        ActivityLog::record('series.bulk_restore', "Memulihkan {$series->count()} series sekaligus.");
+
+        return redirect()->back()->with('success', "{$series->count()} series berhasil dipulihkan.");
     }
 
     private function storeCover(?UploadedFile $file): ?string

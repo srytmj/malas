@@ -110,7 +110,8 @@ class VolumeController extends Controller
     {
         $this->authorize('delete', $volume);
 
-        $seriesId = $volume->series_id;
+        $volumeId = $volume->id;
+        $hadCover = (bool) $volume->cover_path;
 
         ActivityLog::record(
             'volume.delete',
@@ -124,8 +125,27 @@ class VolumeController extends Controller
 
         $volume->delete();
 
-        return redirect()->back()
-            ->with('success', 'Volume berhasil dihapus.');
+        return redirect()->back()->with([
+            // Cover (kalau ada) sudah terhapus permanen dari storage — undo memulihkan datanya
+            // tapi covernya perlu diupload ulang manual.
+            'success' => 'Volume berhasil dihapus.'.($hadCover ? ' Cover volume tidak bisa dipulihkan otomatis.' : ''),
+            'undo_url' => route('admin.volumes.restore', $volumeId),
+        ]);
+    }
+
+    public function restore(string $volume): RedirectResponse
+    {
+        $volumeModel = Volume::withTrashed()->findOrFail($volume);
+
+        $this->authorize('delete', $volumeModel);
+
+        $volumeModel->restore();
+        ActivityLog::record(
+            'volume.restore',
+            "Memulihkan volume #{$volumeModel->volume_number} dari series \"{$volumeModel->series->title_romaji}\"."
+        );
+
+        return redirect()->back()->with('success', 'Volume berhasil dipulihkan.');
     }
 
     private function fetchCoverFromUrl(string $url): ?string

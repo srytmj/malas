@@ -52,13 +52,22 @@ class MenuSeeder extends Seeder
                 'role_access' => ['admin', 'super_admin'],
             ],
 
-            // Kategori: AniList
+            // Kategori: Import metadata eksternal (AniList untuk manga, RanobeDB untuk light novel)
             [
                 'key' => 'category.anilist',
-                'label' => 'AniList',
+                'label' => 'Import Data',
                 'icon' => 'search',
                 'route_name' => null,
                 'sort_order' => 6,
+                'role_access' => ['admin', 'super_admin'],
+            ],
+            [
+                'key' => 'admin.search-external',
+                'label' => 'Cari Semua Sumber',
+                'icon' => 'search',
+                'route_name' => 'admin.search-external.index',
+                'parent_key' => 'category.anilist',
+                'sort_order' => 1,
                 'role_access' => ['admin', 'super_admin'],
             ],
             [
@@ -67,7 +76,7 @@ class MenuSeeder extends Seeder
                 'icon' => 'search',
                 'route_name' => 'admin.anilist.index',
                 'parent_key' => 'category.anilist',
-                'sort_order' => 1,
+                'sort_order' => 2,
                 'role_access' => ['admin', 'super_admin'],
             ],
             [
@@ -76,7 +85,16 @@ class MenuSeeder extends Seeder
                 'icon' => 'activity',
                 'route_name' => 'admin.anilist.status.page',
                 'parent_key' => 'category.anilist',
-                'sort_order' => 2,
+                'sort_order' => 3,
+                'role_access' => ['admin', 'super_admin'],
+            ],
+            [
+                'key' => 'admin.ranobedb',
+                'label' => 'Cari Light Novel',
+                'icon' => 'search',
+                'route_name' => 'admin.ranobedb.index',
+                'parent_key' => 'category.anilist',
+                'sort_order' => 4,
                 'role_access' => ['admin', 'super_admin'],
             ],
 
@@ -99,12 +117,21 @@ class MenuSeeder extends Seeder
                 'role_access' => ['admin', 'super_admin'],
             ],
             [
+                'key' => 'admin.menus.user-sidebar',
+                'label' => 'Sidebar User',
+                'icon' => 'menu',
+                'route_name' => 'admin.menus.user-sidebar',
+                'parent_key' => 'category.lainnya',
+                'sort_order' => 2,
+                'role_access' => ['admin', 'super_admin'],
+            ],
+            [
                 'key' => 'admin.announcements',
                 'label' => 'Pengumuman',
                 'icon' => 'megaphone',
                 'route_name' => 'admin.announcements.index',
                 'parent_key' => 'category.lainnya',
-                'sort_order' => 2,
+                'sort_order' => 3,
                 'role_access' => ['admin', 'super_admin'],
             ],
             [
@@ -113,7 +140,7 @@ class MenuSeeder extends Seeder
                 'icon' => 'ticket',
                 'route_name' => 'admin.tickets.index',
                 'parent_key' => 'category.lainnya',
-                'sort_order' => 3,
+                'sort_order' => 4,
                 'role_access' => ['admin', 'super_admin'],
             ],
             [
@@ -122,7 +149,7 @@ class MenuSeeder extends Seeder
                 'icon' => 'settings',
                 'route_name' => 'admin.settings.index',
                 'parent_key' => 'category.lainnya',
-                'sort_order' => 4,
+                'sort_order' => 5,
                 'role_access' => ['super_admin'],
             ],
             [
@@ -131,7 +158,16 @@ class MenuSeeder extends Seeder
                 'icon' => 'activity',
                 'route_name' => 'admin.activity-logs.index',
                 'parent_key' => 'category.lainnya',
-                'sort_order' => 5,
+                'sort_order' => 6,
+                'role_access' => ['admin', 'super_admin'],
+            ],
+            [
+                'key' => 'admin.funfact-quota',
+                'label' => 'Kuota Funfact',
+                'icon' => 'sparkles',
+                'route_name' => 'admin.funfact-quota.index',
+                'parent_key' => 'category.lainnya',
+                'sort_order' => 7,
                 'role_access' => ['admin', 'super_admin'],
             ],
 
@@ -161,11 +197,27 @@ class MenuSeeder extends Seeder
                 'role_access' => ['user'],
             ],
             [
+                'key' => 'user.wishlist',
+                'label' => 'Wishlist',
+                'icon' => 'heart',
+                'route_name' => 'wishlist.index',
+                'sort_order' => 4,
+                'role_access' => ['user'],
+            ],
+            [
                 'key' => 'user.loans',
                 'label' => 'Pinjaman Saya',
                 'icon' => 'hand-coins',
                 'route_name' => 'loans.index',
-                'sort_order' => 4,
+                'sort_order' => 5,
+                'role_access' => ['user'],
+            ],
+            [
+                'key' => 'user.directory',
+                'label' => 'Cari Pengguna',
+                'icon' => 'search',
+                'route_name' => 'directory.index',
+                'sort_order' => 6,
                 'role_access' => ['user'],
             ],
             [

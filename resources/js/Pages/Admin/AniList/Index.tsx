@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import {
     Search, BookOpen, Download, RefreshCw, CheckCircle, ExternalLink, X,
 } from 'lucide-react';
@@ -10,8 +11,10 @@ import { Checkbox } from '@/Components/ui/checkbox';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { SeriesStatusBadge, SeriesTypeBadge } from '@/Components/app/StatusBadge';
+import { ToggleGroup, ToggleGroupItem } from '@/Components/ui/toggle-group';
 import { PageProps } from '@/types';
 import { type SeriesStatus, type SeriesType } from '@/lib/types';
+import { useTypeFilterOptions } from '@/lib/typeFilters';
 
 interface AniListResult {
     anilist_id: number;
@@ -36,13 +39,16 @@ interface Props extends PageProps {
         hasNextPage?: boolean;
         currentPage?: number;
     };
-    filters: { q: string; hide_adult: boolean };
+    filters: { q: string; hide_adult: boolean; type: string | null };
     error: string | null;
 }
 
 export default function AniListIndex({ results, pagination, filters, error }: Props) {
+    const { t } = useTranslation('admin');
+    const typeOptions = useTypeFilterOptions();
     const [search, setSearch]         = useState(filters.q);
     const [hideAdult, setHideAdult]   = useState(filters.hide_adult);
+    const [type, setType]             = useState(filters.type || 'all');
     const [preview, setPreview]       = useState<AniListResult | null>(null);
     const [importing, setImporting]   = useState(false);
     const debounceRef                 = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -53,13 +59,13 @@ export default function AniListIndex({ results, pagination, filters, error }: Pr
             if (search.trim()) {
                 router.get(
                     route('admin.anilist.index'),
-                    { q: search.trim(), hide_adult: hideAdult ? '1' : '0' },
+                    { q: search.trim(), hide_adult: hideAdult ? '1' : '0', type: type === 'all' ? undefined : type },
                     { preserveState: true, replace: true },
                 );
             }
         }, 500);
         return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-    }, [search, hideAdult]);
+    }, [search, hideAdult, type]);
 
     function handleImport(item: AniListResult) {
         setImporting(true);
@@ -87,7 +93,7 @@ export default function AniListIndex({ results, pagination, filters, error }: Pr
     function goToPage(page: number) {
         router.get(
             route('admin.anilist.index'),
-            { q: search.trim(), page, hide_adult: hideAdult ? '1' : '0' },
+            { q: search.trim(), page, hide_adult: hideAdult ? '1' : '0', type: type === 'all' ? undefined : type },
             { preserveState: true, replace: true },
         );
     }
@@ -98,19 +104,19 @@ export default function AniListIndex({ results, pagination, filters, error }: Pr
         <AdminLayout
             header={
                 <PageHeader
-                    title="Import dari AniList"
-                    description="Cari dan import data manga/manhwa/manhua dari AniList"
+                    title={t('anilist.title')}
+                    description={t('anilist.description')}
                 />
             }
         >
-            <Head title="Cari Manga (AniList)" />
+            <Head title={t('anilist.searchTitle')} />
             {/* Search */}
             <div className="mb-6 flex flex-wrap items-center gap-4">
                 <div className="relative max-w-lg flex-1">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                         className="pl-9"
-                        placeholder="Cari judul manga, manhwa, novel..."
+                        placeholder={t('anilist.searchPlaceholder')}
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
@@ -122,22 +128,42 @@ export default function AniListIndex({ results, pagination, filters, error }: Pr
                         onCheckedChange={(v) => setHideAdult(v === true)}
                     />
                     <Label htmlFor="hide_adult" className="text-sm font-normal text-muted-foreground">
-                        Sembunyikan konten 18+
+                        {t('anilist.hideAdult')}
                     </Label>
                 </div>
             </div>
 
+            {/* Quick filter tipe — Segmented Control */}
+            <div className="mb-4 overflow-x-auto">
+                <ToggleGroup
+                    value={[type]}
+                    onValueChange={(vals) => setType(vals[0] ?? 'all')}
+                    variant="outline"
+                    size="sm"
+                >
+                    {typeOptions.map((opt) => (
+                        <ToggleGroupItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                        </ToggleGroupItem>
+                    ))}
+                </ToggleGroup>
+            </div>
+
+            <p className="mb-4 text-xs text-muted-foreground">
+                {t('anilist.searchHint')}
+            </p>
+
             {/* Error state */}
             {error && (
                 <div className="mb-6 flex items-start gap-3 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-                    <span className="shrink-0 font-semibold">Error:</span>
+                    <span className="shrink-0 font-semibold">{t('anilist.errorPrefix')}</span>
                     <span>{error}</span>
                     <button
                         type="button"
                         className="ml-auto flex items-center gap-1 hover:underline"
                         onClick={() => router.get(route('admin.anilist.index'), { q: search }, { preserveState: true })}
                     >
-                        <RefreshCw className="h-3 w-3" /> Coba lagi
+                        <RefreshCw className="h-3 w-3" /> {t('anilist.tryAgain')}
                     </button>
                 </div>
             )}
@@ -146,7 +172,7 @@ export default function AniListIndex({ results, pagination, filters, error }: Pr
             {!error && results.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
                     <BookOpen className="mb-4 h-12 w-12 opacity-30" />
-                    <p className="text-sm">{filters.q ? 'Tidak ada hasil ditemukan.' : 'Ketik judul untuk memulai pencarian.'}</p>
+                    <p className="text-sm">{filters.q ? t('anilist.noResults') : t('anilist.typeToSearch')}</p>
                 </div>
             )}
 
@@ -179,7 +205,7 @@ export default function AniListIndex({ results, pagination, filters, error }: Pr
                                             <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/60 to-transparent p-2">
                                                 <span className="flex items-center gap-1 text-xs font-medium text-white">
                                                     <CheckCircle className="h-3.5 w-3.5 text-green-400" />
-                                                    Sudah diimpor
+                                                    {t('anilist.alreadyImported')}
                                                 </span>
                                             </div>
                                         )}
@@ -202,7 +228,7 @@ export default function AniListIndex({ results, pagination, filters, error }: Pr
                                             <SeriesTypeBadge type={item.type} />
                                         </div>
                                         {item.volumes && (
-                                            <p className="text-xs text-muted-foreground">{item.volumes} vol</p>
+                                            <p className="text-xs text-muted-foreground">{t('anilist.volumeCount', { count: item.volumes })}</p>
                                         )}
                                     </div>
                                 </button>
@@ -233,11 +259,11 @@ export default function AniListIndex({ results, pagination, filters, error }: Pr
                                             </div>
                                             <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                                                 <div>
-                                                    <p className="text-muted-foreground">Volume</p>
+                                                    <p className="text-muted-foreground">{t('anilist.volume')}</p>
                                                     <p className="font-medium">{item.volumes ?? '—'}</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-muted-foreground">Skor</p>
+                                                    <p className="text-muted-foreground">{t('anilist.score')}</p>
                                                     <p className="font-medium">{item.score ?? '—'}</p>
                                                 </div>
                                             </div>
@@ -248,7 +274,7 @@ export default function AniListIndex({ results, pagination, filters, error }: Pr
                                             )}
                                             {item.already_imported && (
                                                 <p className="text-xs text-amber-600 dark:text-amber-400">
-                                                    ⚠ Sudah ada di database. Import akan memperbarui data.
+                                                    {t('anilist.alreadyInDb')}
                                                 </p>
                                             )}
                                         </div>
@@ -261,7 +287,7 @@ export default function AniListIndex({ results, pagination, filters, error }: Pr
                                                 onClick={() => handleImport(item)}
                                             >
                                                 <Download className="mr-1.5 h-3.5 w-3.5" />
-                                                {importing ? 'Mengimpor...' : item.already_imported ? 'Perbarui' : 'Import'}
+                                                {importing ? t('anilist.importing') : item.already_imported ? t('anilist.update') : t('anilist.import')}
                                             </Button>
                                             {item.already_imported && item.series_id && (
                                                 <Link
@@ -287,16 +313,16 @@ export default function AniListIndex({ results, pagination, filters, error }: Pr
                                 disabled={currentPage <= 1}
                                 onClick={() => goToPage(currentPage - 1)}
                             >
-                                Sebelumnya
+                                {t('anilist.previous')}
                             </Button>
-                            <span className="text-sm text-muted-foreground">Hal. {currentPage}</span>
+                            <span className="text-sm text-muted-foreground">{t('anilist.pagePrefix', { page: currentPage })}</span>
                             <Button
                                 variant="outline"
                                 size="sm"
                                 disabled={!pagination.hasNextPage}
                                 onClick={() => goToPage(currentPage + 1)}
                             >
-                                Berikutnya
+                                {t('anilist.next')}
                             </Button>
                         </div>
                     ) : null}

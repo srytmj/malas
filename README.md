@@ -13,14 +13,19 @@ Aplikasi pengelolaan koleksi pribadi manga/manhwa/manhua/light novel. Dibuat unt
 - **Global search** — cari judul manga di katalog/koleksi atau navigasi cepat lewat ⌘K, dari search bar di header maupun Command Palette admin
 - **Dashboard dengan chart** — statistik series/koleksi/pinjaman divisualisasikan (Recharts), bukan cuma angka
 - **Import metadata dari AniList** — search & import judul, sinopsis, genre, author, theme, demographic, skor langsung dari [AniList GraphQL](https://anilist.co)
+- **Import metadata light novel dari RanobeDB** — paralel dengan AniList, khusus light novel, author/illustrator ter-split native ([`docs/RANOBEDB_INTEGRATION.md`](docs/RANOBEDB_INTEGRATION.md))
+- **Wishlist** — tandai series yang ingin dibaca tapi belum dikoleksi, terpisah dari koleksi
 - **Peminjaman volume** — catat siapa yang meminjam, tanggal jatuh tempo, status terlambat otomatis
 - **Sistem tiket** — user bisa request judul baru masuk katalog, admin merespon lewat tiket
+- **Profil publik & follow** — opt-in tampilkan koleksi di profil publik (bisa diakses tanpa login), follow user lain, direktori pengguna
+- **Selera Genre (AI Funfact)** — word cloud genre + funfact AI dari pola koleksi, default provider [Puter.js](https://docs.puter.com/) (gratis, client-side, tanpa API key), bisa diganti Gemini/OpenAI/Claude dari UI admin
 - **Undo pada aksi reversible** — toast notifikasi punya tombol "Undo" untuk aksi seperti tandai baca
 - **Login SSO** — autentikasi PKCE OAuth2 via whitearchive.id, tidak ada akun lokal terpisah
 - **Storage fleksibel** — konfigurasi Local disk atau S3-compatible (Cloudflare R2, dll) langsung dari UI admin, tanpa edit `.env`
 - **Backup & restore database** — download/import dump SQL dari UI admin (super_admin only)
-- **Role-based access** — `super_admin` > `admin` > `user`, dikontrol lewat Spatie Permission + menu management berbasis database
+- **Role-based access** — `super_admin` > `admin` > `user`, dikontrol lewat Spatie Permission + menu management berbasis database (drag-drop reorder)
 - **Mobile-first** — semua halaman sisi user responsive dari layar 375px ke atas
+- **Multi-bahasa** — Indonesia/English/日本語, preferensi per-user, ganti dari tombol quick-switch di sidebar atau halaman Settings (masih *rolling out* di sisi admin — lihat [`CLAUDE.md`](CLAUDE.md) bagian "Sistem Multi-Bahasa" untuk status per halaman)
 
 Detail lengkap tiap fitur ada di [`CLAUDE.md`](CLAUDE.md) bagian "Fitur yang Sudah Ada".
 
@@ -39,7 +44,10 @@ Detail lengkap tiap fitur ada di [`CLAUDE.md`](CLAUDE.md) bagian "Fitur yang Sud
 | Database | SQLite (dev) / MySQL 8+ (prod) |
 | Auth/Role | Spatie Laravel Permission |
 | Auth SSO | whitearchive.id (PKCE OAuth2) |
-| External API | AniList GraphQL |
+| External API | AniList GraphQL, RanobeDB REST |
+| AI (client-side) | Puter.js (default, gratis) — atau Gemini/OpenAI/Claude (dikonfigurasi via UI admin) |
+| Multi-bahasa | react-i18next (id/en/ja) |
+| Drag & drop | @dnd-kit (reorder menu sidebar admin) |
 
 Detail arsitektur lengkap: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 
@@ -125,6 +133,7 @@ npx tsc --noEmit
 | [`docs/PHASES.md`](docs/PHASES.md) | Log fase pengembangan dari awal sampai sekarang |
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Tutorial deploy & update — otomatis maupun manual |
 | [`docs/prd.md`](docs/prd.md) | Product requirements — latar belakang, persona, spesifikasi fitur |
+| [`docs/RANOBEDB_INTEGRATION.md`](docs/RANOBEDB_INTEGRATION.md) | Riset API + rencana development import light novel dari RanobeDB (sudah diimplementasikan, lihat Phase 13 di PHASES.md) |
 | [`CHANGELOG.md`](CHANGELOG.md) | Histori perubahan penting per tanggal |
 
 ## Lisensi
