@@ -623,5 +623,6 @@ Keputusan desain (hasil diskusi sebelum implementasi): bukan sistem approval adm
 | 21 | Favicon Terpasang, README Bilingual, Audit Fitur Kelewat | ✅ |
 | 22 | Filter Genre Multi-Select di Katalog User | ✅ |
 | 23 | Quick-Edit Progres Baca & Jumlah Volume di Koleksiku | ✅ |
+| 24 | Multi-Account Switching (Session-Based) | ✅ |
 
-**QA pass: 2026-07-03** — Phase 11–18 dikerjakan iteratif sesudahnya, lihat [`CHANGELOG.md`](../CHANGELOG.md) untuk detail per-perubahan. Gap yang masih terdokumentasi: flash message controller belum multi-bahasa (backlog sadar, lihat [`CLAUDE.md`](../CLAUDE.md)); Phase 18 butuh satu kali manual click-through di dev environment normal buat verifikasi visual modal login. Phase 19–23 (2026-08-14) semua sudah diverifikasi lewat HTTP request langsung ke server dev — dua bug nyata ketemu & diperbaiki selama proses (lihat Phase 20 poin 3 dan Phase 23 poin 3).
+**QA pass: 2026-07-03** — Phase 11–18 dikerjakan iteratif sesudahnya, lihat [`CHANGELOG.md`](../CHANGELOG.md) untuk detail per-perubahan. Gap yang masih terdokumentasi: flash message controller belum multi-bahasa (backlog sadar, lihat [`CLAUDE.md`](../CLAUDE.md)); Phase 18 butuh satu kali manual click-through di dev environment normal buat verifikasi visual modal login. Phase 19–24 (2026-08-14) semua sudah diverifikasi lewat HTTP request langsung ke server dev — tiga bug nyata ketemu & diperbaiki selama proses (Phase 20 poin 3, Phase 23 poin 3 — keduanya sebelum Phase 24, yang sendiri lolos verifikasi tanpa bug baru).

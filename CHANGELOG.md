@@ -4,6 +4,16 @@ Semua perubahan penting pada MALAS dicatat di file ini. Format mengikuti prinsip
 
 ---
 
+## 2026-08-14 (lanjutan 5) — Multi-Account Switching (Session-Based)
+
+- User (bukan cuma admin) sekarang bisa nyambungin akun lain ("Tambah Akun") dan switch cepat antar akun tanpa login ulang, selama masih di browser yang sama — dipicu dari kasus admin yang nggak bisa akses `/my-collection` pakai akun admin-nya sendiri.
+- Sengaja **session-based, tanpa link permanen di DB** — daftar akun ke-link (`linked_account_ids`) cuma hidup di session. Ganti browser/device, harus link ulang dari nol. Alasannya: link permanen cuma soal convenience, bukan keamanan — switch akun tetap selalu wajib bukti login beneran ke akun target lebih dulu.
+- Dibuka buat **semua user**, bukan dibatasi admin — nggak ada gap keamanan buat dibuka luas karena validasinya di session, bukan di role.
+- `AccountSwitcher.tsx` baru (Popover di avatar sidebar footer, Admin & User Layout) — lihat profil, quick-switch akun, "Tambah Akun" (reuse `LoginMethodDialog`), dan dua opsi logout: "Keluar dari Akun Ini" (pola X/Twitter — auto-switch ke akun ke-link lain kalau ada) vs "Keluar dari Semua Akun".
+- `AccountLinkService`, `Auth\AccountController` (`switch`/`logoutCurrent`) baru di backend — validasi ketat: target switch wajib sudah ada di whitelist session, nggak bisa switch ke akun sembarangan.
+
+---
+
 ## 2026-08-14 (lanjutan 4) — Quick-Edit Progres Baca & Jumlah Volume di Koleksiku
 
 - Stepper +/- "progres baca" baru di halaman detail koleksi — geser batas volume terbaca satu langkah tanpa harus cari & klik ikon mata volume tertentu. `+` menandai volume-belum-dibaca bernomor terendah jadi sudah dibaca, `-` membalik volume-sudah-dibaca bernomor tertinggi jadi belum dibaca. Ikon mata per-volume tetap ada buat koreksi manual di luar urutan.
