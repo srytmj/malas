@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
-import { Plus, MoreHorizontal, Pencil, RefreshCw, Trash2, Eye } from 'lucide-react';
+import { Plus, MoreHorizontal, Pencil, RefreshCw, Trash2, Eye, ExternalLink } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import { Pagination } from '@/Components/app/Pagination';
@@ -33,6 +33,7 @@ import { useTypeFilterOptions } from '@/lib/typeFilters';
 
 interface SeriesRow {
     id: string;
+    slug: string;
     title_romaji: string;
     title_english: string | null;
     cover_url: string | null;
@@ -261,7 +262,7 @@ export default function SeriesIndex({ series, filters }: Props) {
                         ) : series.data.map((s) => (
                             <ContextMenu key={s.id}>
                                 <ContextMenuTrigger
-                                    onClick={() => router.visit(route('admin.series.show', s.id))}
+                                    onClick={() => router.visit(route('admin.series.show', s.slug))}
                                     render={<TableRow className={cn('cursor-pointer', selectedIds.has(s.id) && 'bg-muted/50')} />}
                                 >
                                     <TableCell onClick={(e) => e.stopPropagation()}>
@@ -281,7 +282,7 @@ export default function SeriesIndex({ series, filters }: Props) {
                                     <TableCell onClick={(e) => e.stopPropagation()} className="w-64 max-w-64 whitespace-normal align-middle">
                                         <HoverCard>
                                             <HoverCardTrigger
-                                                render={<Link href={route('admin.series.show', s.id)} className="font-medium leading-snug hover:underline" />}
+                                                render={<Link href={route('admin.series.show', s.slug)} className="font-medium leading-snug hover:underline" />}
                                             >
                                                 {s.title_romaji}
                                             </HoverCardTrigger>
@@ -327,7 +328,7 @@ export default function SeriesIndex({ series, filters }: Props) {
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
                                                 <DropdownMenuItem
-                                                    onClick={() => router.visit(route('admin.series.edit', s.id))}
+                                                    onClick={() => router.visit(route('admin.series.edit', s.slug))}
                                                 >
                                                     <Pencil className="mr-2 h-4 w-4" />
                                                     {t('common:common.edit')}
@@ -345,11 +346,15 @@ export default function SeriesIndex({ series, filters }: Props) {
                                     </TableCell>
                                 </ContextMenuTrigger>
                                 <ContextMenuContent>
-                                    <ContextMenuItem onClick={() => router.visit(route('admin.series.show', s.id))}>
+                                    <ContextMenuItem onClick={() => router.visit(route('admin.series.show', s.slug))}>
                                         <Eye className="mr-2 h-4 w-4" />
                                         {t('series.index.view')}
                                     </ContextMenuItem>
-                                    <ContextMenuItem onClick={() => router.visit(route('admin.series.edit', s.id))}>
+                                    <ContextMenuItem onClick={() => window.open(route('admin.series.show', s.slug), '_blank', 'noopener,noreferrer')}>
+                                        <ExternalLink className="mr-2 h-4 w-4" />
+                                        {t('series.index.openInNewTab')}
+                                    </ContextMenuItem>
+                                    <ContextMenuItem onClick={() => router.visit(route('admin.series.edit', s.slug))}>
                                         <Pencil className="mr-2 h-4 w-4" />
                                         {t('common:common.edit')}
                                     </ContextMenuItem>

@@ -184,12 +184,30 @@
         }
     },
     "errorPage": {
-        "400": { "title": "不正なリクエスト", "description": "リクエストが不完全または無効です。" },
-        "403": { "title": "アクセス拒否", "description": "このページにアクセスする権限がありません。" },
-        "404": { "title": "ページが見つかりません", "description": "お探しのページは存在しないか、移動された可能性があります。" },
-        "500": { "title": "エラーが発生しました", "description": "サーバーで問題が発生しました。後でもう一度お試しください。" },
-        "502": { "title": "SSOが応答しません", "description": "whitearchive.idサーバーに接続できません。しばらくしてから再度お試しください。" },
-        "503": { "title": "サーバーが利用できません", "description": "サービスはメンテナンス中です。しばらくしてから再度お試しください。" },
+        "400": {
+            "title": "不正なリクエスト",
+            "description": "リクエストが不完全または無効です。"
+        },
+        "403": {
+            "title": "アクセス拒否",
+            "description": "このページにアクセスする権限がありません。"
+        },
+        "404": {
+            "title": "ページが見つかりません",
+            "description": "お探しのページは存在しないか、移動された可能性があります。"
+        },
+        "500": {
+            "title": "エラーが発生しました",
+            "description": "サーバーで問題が発生しました。後でもう一度お試しください。"
+        },
+        "502": {
+            "title": "SSOが応答しません",
+            "description": "whitearchive.idサーバーに接続できません。しばらくしてから再度お試しください。"
+        },
+        "503": {
+            "title": "サーバーが利用できません",
+            "description": "サービスはメンテナンス中です。しばらくしてから再度お試しください。"
+        },
         "back": "戻る",
         "home": "ホーム"
     },
@@ -212,11 +230,42 @@
         "subheading": "カタログ、個人コレクション、マンガ・ライトノベルの貸出をひとつの場所で管理できます。",
         "loginButton": "whitearchive.idでログイン",
         "features": {
-            "catalog": { "title": "カタログ", "description": "AniListのメタデータ付きでマンガ、マンファ、マンホア、ノベルを閲覧・検索できます。" },
-            "collection": { "title": "個人コレクション", "description": "所有している巻にマークを付けて、自分のコレクションを管理できます。" },
-            "loans": { "title": "貸出", "description": "他の人に貸した巻と返却期限を記録できます。" },
-            "announcements": { "title": "お知らせ", "description": "コレクションやサービスに関する最新情報を管理者から直接受け取れます。" }
+            "catalog": {
+                "title": "カタログ",
+                "description": "AniListのメタデータ付きでマンガ、マンファ、マンホア、ノベルを閲覧・検索できます。"
+            },
+            "collection": {
+                "title": "個人コレクション",
+                "description": "所有している巻にマークを付けて、自分のコレクションを管理できます。"
+            },
+            "loans": {
+                "title": "貸出",
+                "description": "他の人に貸した巻と返却期限を記録できます。"
+            },
+            "announcements": {
+                "title": "お知らせ",
+                "description": "コレクションやサービスに関する最新情報を管理者から直接受け取れます。"
+            }
+        },
+        "header": {
+            "directory": "ディレクトリ",
+            "login": "ログイン"
+        },
+        "footer": {
+            "tagline": "マンガ・ライトノベル収集家のために作られました。",
+            "copyright": "© {{year}} MALAS — Manga Library Admin System."
         }
+    },
+    "authFallback": {
+        "pageTitle": "SSOなしでログイン",
+        "heading": "SSOなしでログイン",
+        "description": "普段ログインに使っているメールアドレスを入力すると、登録済みであれば一度だけ使えるログインリンクを送信します。",
+        "emailLabel": "メールアドレス",
+        "emailPlaceholder": "you@email.com",
+        "submitButton": "ログインリンクを送信",
+        "submitting": "送信中...",
+        "backToLogin": "ログインページに戻る",
+        "note": "リンクの有効期限は15分で、一度しか使用できません。届かない場合は迷惑メールフォルダも確認してください。"
     },
     "locale": {
         "id": "Bahasa Indonesia",
@@ -225,5 +274,41 @@
         "label": "言語",
         "cardTitle": "言語",
         "cardDescription": "アプリの表示言語を選択してください。変更はすぐに反映されます。"
+    },
+    "loginDialog": {
+        "title": "MALASにログイン",
+        "description": "ログイン方法を選んでください。",
+        "linkTitle": "アカウントを追加",
+        "linkDescription": "連携したい別のアカウントにログインしてください。このブラウザを使っている間は、再ログインせずにアカウントを切り替えられます。",
+        "ssoOption": "whitearchive.idでログイン",
+        "emailOption": "メールでログイン",
+        "syncHint": "whitearchive.idでログインすると名前・アバター・ユーザー名が再同期されます。メールログインでは同期されません。",
+        "emailTitle": "メールでログイン",
+        "emailDescription": "普段ログインに使っているメールアドレスを入力すると、登録済みであれば一度だけ使えるログインリンクを送信します。",
+        "emailLabel": "メールアドレス",
+        "emailPlaceholder": "you@email.com",
+        "emailNote": "リンクの有効期限は15分で、一度しか使用できません。",
+        "sending": "送信中...",
+        "sendLink": "ログインリンクを送信",
+        "back": "戻る",
+        "sentTitle": "メールをご確認ください",
+        "sentDescription": "そのメールアドレスが登録済みであれば、ログインリンクを送信しました。受信箱（迷惑メールフォルダも）をご確認ください。"
+    },
+    "accountSwitcher": {
+        "viewProfile": "プロフィールを見る",
+        "otherAccounts": "他のアカウント",
+        "addAccount": "アカウントを追加",
+        "switching": "アカウントを切り替え中...",
+        "logoutCurrent": "このアカウントからログアウト",
+        "logoutAll": "すべてのアカウントからログアウト",
+        "loggingOut": "ログアウト中..."
+    },
+    "theme": {
+        "label": "テーマ",
+        "light": "ライト",
+        "dark": "ダーク",
+        "system": "システムに従う",
+        "cardTitle": "テーマ",
+        "cardDescription": "ライト、ダーク、またはデバイスのシステム設定に従うかを選択できます。変更はすぐに反映されます。"
     }
 }

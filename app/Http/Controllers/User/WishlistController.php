@@ -26,6 +26,7 @@ class WishlistController extends Controller
             ->map(fn ($item) => [
                 'id' => $item->id,
                 'series_id' => $item->series_id,
+                'series_slug' => $item->series->slug,
                 'title_romaji' => $item->series->title_romaji,
                 'title_english' => $item->series->title_english,
                 'cover_url' => $this->storage->url($item->series->cover_path),

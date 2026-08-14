@@ -5,6 +5,12 @@
     "refresh": "Segarkan",
     "allStatus": "Semua status",
     "allGenre": "Semua genre",
+    "genreFilter": {
+        "searchPlaceholder": "Cari genre...",
+        "emptyText": "Genre tidak ditemukan.",
+        "clearLabel": "Hapus semua",
+        "selectedCount": "{{count}} genre dipilih"
+    },
     "ownership": {
         "all": "Semua",
         "owned": "Sudah di Koleksi",

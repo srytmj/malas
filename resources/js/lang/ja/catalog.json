@@ -5,6 +5,12 @@
     "refresh": "更新",
     "allStatus": "すべてのステータス",
     "allGenre": "すべてのジャンル",
+    "genreFilter": {
+        "searchPlaceholder": "ジャンルを検索...",
+        "emptyText": "ジャンルが見つかりません。",
+        "clearLabel": "すべて解除",
+        "selectedCount": "{{count}}件のジャンルを選択中"
+    },
     "ownership": {
         "all": "すべて",
         "owned": "コレクション済み",

@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\UpdateStorageSettingRequest;
 use App\Jobs\MigrateStorageFilesJob;
 use App\Models\ActivityLog;
 use App\Models\AiSetting;
+use App\Models\MailSetting;
 use App\Models\StorageSetting;
 use App\Services\StorageSettingsService;
 use Illuminate\Http\JsonResponse;
@@ -26,6 +27,7 @@ class StorageSettingController extends Controller
         $this->authorize('view', $setting);
 
         $aiSetting = AiSetting::first() ?? new AiSetting(['provider' => 'puter']);
+        $mailSetting = MailSetting::first() ?? new MailSetting(['provider' => 'resend']);
 
         return Inertia::render('Admin/Settings/Index', [
             'setting' => [
@@ -44,6 +46,13 @@ class StorageSettingController extends Controller
                 'provider' => $aiSetting->provider,
                 // api_key is never sent to the frontend
                 'has_key' => filled($aiSetting->api_key),
+            ],
+            'mailSetting' => [
+                'provider' => $mailSetting->provider,
+                'from_address' => $mailSetting->from_address,
+                'from_name' => $mailSetting->from_name,
+                // api_key is never sent to the frontend
+                'has_key' => filled($mailSetting->api_key),
             ],
         ]);
     }

@@ -28,7 +28,7 @@ interface VolumeData {
 
 interface Props extends PageProps {
     volume: VolumeData;
-    series: { id: string; title_romaji: string };
+    series: { id: string; slug: string; title_romaji: string };
 }
 
 const schema = z.object({
@@ -102,7 +102,7 @@ export default function EditVolume({ volume, series }: Props) {
                     title={t('editVolume.title', { number: volume.volume_number })}
                     breadcrumbs={[
                         { label: t('series.breadcrumb'), href: route('admin.series.index') },
-                        { label: series.title_romaji, href: route('admin.series.show', series.id) },
+                        { label: series.title_romaji, href: route('admin.series.show', series.slug) },
                         { label: t('editVolume.breadcrumbVolume', { number: volume.volume_number }) },
                     ]}
                 />
@@ -171,7 +171,7 @@ export default function EditVolume({ volume, series }: Props) {
                         {submitting ? t('common:common.saving') : t('announcements.saveChanges')}
                     </Button>
                     <Link
-                        href={route('admin.series.show', series.id)}
+                        href={route('admin.series.show', series.slug)}
                         className={cn(buttonVariants({ variant: 'outline' }))}
                     >
                         {t('common:common.cancel')}

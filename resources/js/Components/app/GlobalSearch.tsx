@@ -22,7 +22,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
     'search':           Search,
 };
 
-interface SearchResult { id: string; title: string }
+interface SearchResult { id: string; title: string; slug?: string }
 
 export function GlobalSearch() {
     const { menus } = usePage().props;
@@ -131,7 +131,7 @@ export function GlobalSearch() {
                                 <CommandItem
                                     key={`series-${r.id}`}
                                     value={`series-${r.id}`}
-                                    onSelect={() => go('catalog.show', r.id)}
+                                    onSelect={() => go('catalog.show', r.slug ?? r.id)}
                                 >
                                     <BookOpen />
                                     {r.title}

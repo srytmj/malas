@@ -62,6 +62,19 @@
         "progress": "Progress",
         "volumesOwned": "volumes owned",
         "lastRead": "Last read: Vol. {{number}}",
+        "readProgress": {
+            "label": "Read progress",
+            "upTo": "up to Vol. {{number}}",
+            "none": "None yet",
+            "increase": "Mark next volume as read",
+            "decrease": "Undo read mark for the last volume"
+        },
+        "quickCount": {
+            "label": "Volumes owned",
+            "increase": "Add {{format}} volume",
+            "decrease": "Remove {{format}} volume",
+            "loanedTooltip": "The highest volume of this format is currently lent out"
+        },
         "conditionOptional": "Condition (optional)",
         "condition": { "mint": "Mint", "good": "Good", "fair": "Fair", "poor": "Poor" },
         "markAllRead": "Mark all volumes as read",

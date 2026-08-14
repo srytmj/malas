@@ -184,12 +184,30 @@
         }
     },
     "errorPage": {
-        "400": { "title": "Invalid Request", "description": "The request is incomplete or invalid." },
-        "403": { "title": "Access Denied", "description": "You don't have permission to access this page." },
-        "404": { "title": "Page Not Found", "description": "The page you're looking for doesn't exist or has been moved." },
-        "500": { "title": "An Error Occurred", "description": "The server encountered a problem. Please try again later." },
-        "502": { "title": "SSO Not Responding", "description": "Could not reach the whitearchive.id server. Please try again shortly." },
-        "503": { "title": "Server Unavailable", "description": "The service is under maintenance. Please try again shortly." },
+        "400": {
+            "title": "Invalid Request",
+            "description": "The request is incomplete or invalid."
+        },
+        "403": {
+            "title": "Access Denied",
+            "description": "You don't have permission to access this page."
+        },
+        "404": {
+            "title": "Page Not Found",
+            "description": "The page you're looking for doesn't exist or has been moved."
+        },
+        "500": {
+            "title": "An Error Occurred",
+            "description": "The server encountered a problem. Please try again later."
+        },
+        "502": {
+            "title": "SSO Not Responding",
+            "description": "Could not reach the whitearchive.id server. Please try again shortly."
+        },
+        "503": {
+            "title": "Server Unavailable",
+            "description": "The service is under maintenance. Please try again shortly."
+        },
         "back": "Back",
         "home": "Home"
     },
@@ -212,11 +230,42 @@
         "subheading": "Manage your catalog, personal collection, and manga and light novel loans all in one place.",
         "loginButton": "Log in with whitearchive.id",
         "features": {
-            "catalog": { "title": "Catalog", "description": "Browse and search manga, manhwa, manhua, and novels complete with metadata from AniList." },
-            "collection": { "title": "Personal Collection", "description": "Mark the volumes you already own and manage your own collection." },
-            "loans": { "title": "Loans", "description": "Track the volumes you've lent to others along with their due dates." },
-            "announcements": { "title": "Announcements", "description": "Get the latest news about the collection and service directly from admins." }
+            "catalog": {
+                "title": "Catalog",
+                "description": "Browse and search manga, manhwa, manhua, and novels complete with metadata from AniList."
+            },
+            "collection": {
+                "title": "Personal Collection",
+                "description": "Mark the volumes you already own and manage your own collection."
+            },
+            "loans": {
+                "title": "Loans",
+                "description": "Track the volumes you've lent to others along with their due dates."
+            },
+            "announcements": {
+                "title": "Announcements",
+                "description": "Get the latest news about the collection and service directly from admins."
+            }
+        },
+        "header": {
+            "directory": "Directory",
+            "login": "Login"
+        },
+        "footer": {
+            "tagline": "Built for manga and light novel collectors.",
+            "copyright": "© {{year}} MALAS — Manga Library Admin System."
         }
+    },
+    "authFallback": {
+        "pageTitle": "Login Without SSO",
+        "heading": "Login Without SSO",
+        "description": "Enter the email you normally log in with — if it's registered, we'll send a one-time login link to it.",
+        "emailLabel": "Email",
+        "emailPlaceholder": "you@email.com",
+        "submitButton": "Send Login Link",
+        "submitting": "Sending...",
+        "backToLogin": "Back to login",
+        "note": "The link is valid for 15 minutes and can only be used once. Check your spam folder if it hasn't arrived."
     },
     "locale": {
         "id": "Bahasa Indonesia",
@@ -225,5 +274,41 @@
         "label": "Language",
         "cardTitle": "Language",
         "cardDescription": "Choose the app's display language. Changes apply immediately."
+    },
+    "loginDialog": {
+        "title": "Log in to MALAS",
+        "description": "Choose how you want to log in.",
+        "linkTitle": "Add Account",
+        "linkDescription": "Log in to another account you want to link. You can switch between accounts without logging in again as long as you're in this browser.",
+        "ssoOption": "Log in with whitearchive.id",
+        "emailOption": "Log in with Email",
+        "syncHint": "Logging in via whitearchive.id re-syncs your name, avatar, and username. Logging in via email doesn't.",
+        "emailTitle": "Log in with Email",
+        "emailDescription": "Enter the email you normally log in with — if it's registered, we'll send a one-time login link to it.",
+        "emailLabel": "Email",
+        "emailPlaceholder": "you@email.com",
+        "emailNote": "The link is valid for 15 minutes and can only be used once.",
+        "sending": "Sending...",
+        "sendLink": "Send Login Link",
+        "back": "Back",
+        "sentTitle": "Check Your Email",
+        "sentDescription": "If that email is registered, a login link has been sent. Check your inbox (and spam folder)."
+    },
+    "accountSwitcher": {
+        "viewProfile": "View Profile",
+        "otherAccounts": "Other Accounts",
+        "addAccount": "Add Account",
+        "switching": "Switching account...",
+        "logoutCurrent": "Log Out of This Account",
+        "logoutAll": "Log Out of All Accounts",
+        "loggingOut": "Logging out..."
+    },
+    "theme": {
+        "label": "Theme",
+        "light": "Light",
+        "dark": "Dark",
+        "system": "Follow System",
+        "cardTitle": "Theme",
+        "cardDescription": "Choose light, dark, or follow your device's system setting. Changes apply immediately."
     }
 }

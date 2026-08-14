@@ -6,10 +6,11 @@ import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import { SeriesCard } from '@/Components/app/SeriesCard';
 import { Pagination } from '@/Components/app/Pagination';
+import { GenreMultiSelect } from '@/Components/app/GenreMultiSelect';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import {
-    Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue,
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/Components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/Components/ui/toggle-group';
 import { cn } from '@/lib/utils';
@@ -19,6 +20,7 @@ import { type PaginatedData, type SeriesStatus, type SeriesType } from '@/lib/ty
 
 interface SeriesRow {
     id: string;
+    slug: string;
     title_romaji: string;
     title_english: string | null;
     cover_url: string | null;
@@ -34,7 +36,7 @@ interface Props extends PageProps {
     series: PaginatedData<SeriesRow>;
     collectionSeriesIds: string[];
     genreOptions: { manga: string[]; novel: string[] };
-    filters: { search?: string | null; status?: string | null; type?: string | null; genre?: string | null; ownership?: string | null };
+    filters: { search?: string | null; status?: string | null; type?: string | null; genre?: string[] | null; ownership?: string | null };
 }
 
 export default function CatalogIndex({ series, collectionSeriesIds, genreOptions, filters }: Props) {
@@ -52,6 +54,10 @@ export default function CatalogIndex({ series, collectionSeriesIds, genreOptions
         { value: 'all', label: t('ownership.all') },
         { value: 'owned', label: t('ownership.owned') },
         { value: 'not_owned', label: t('ownership.notOwned') },
+    ];
+    const genreGroups = [
+        { label: t('common:common.manga'), options: genreOptions.manga },
+        { label: t('common:common.lightNovel'), options: genreOptions.novel },
     ];
     const [search, setSearch]         = useState(filters.search ?? '');
     const [refreshing, setRefreshing] = useState(false);
@@ -72,10 +78,11 @@ export default function CatalogIndex({ series, collectionSeriesIds, genreOptions
         return () => clearTimeout(t);
     }, [search]);
 
-    function handleFilter(key: string, value: string) {
+    function handleFilter(key: string, value: string | string[]) {
+        const cleaned = Array.isArray(value) ? (value.length > 0 ? value : undefined) : (value || undefined);
         router.get(
             route('catalog.index'),
-            { ...filters, search, [key]: value || undefined },
+            { ...filters, search, [key]: cleaned },
             { preserveState: true, preserveScroll: true, replace: true },
         );
     }
@@ -150,36 +157,16 @@ export default function CatalogIndex({ series, collectionSeriesIds, genreOptions
                         <SelectItem value="not_yet_published">{t('common:badge.status.not_yet_published')}</SelectItem>
                     </SelectContent>
                 </Select>
-                <Select
-                    value={filters.genre ?? ''}
-                    onValueChange={(v) => handleFilter('genre', v ?? '')}
-                >
-                    <SelectTrigger className="w-40">
-                        <SelectValue placeholder={t('allGenre')}>
-                            {(value: string) => value || t('allGenre')}
-                        </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="">{t('allGenre')}</SelectItem>
-                        {genreOptions.manga.length > 0 && (
-                            <SelectGroup>
-                                <SelectLabel>{t('common:common.manga')}</SelectLabel>
-                                {genreOptions.manga.map((g) => (
-                                    <SelectItem key={`manga-${g}`} value={g}>{g}</SelectItem>
-                                ))}
-                            </SelectGroup>
-                        )}
-                        {genreOptions.manga.length > 0 && genreOptions.novel.length > 0 && <SelectSeparator />}
-                        {genreOptions.novel.length > 0 && (
-                            <SelectGroup>
-                                <SelectLabel>{t('common:common.lightNovel')}</SelectLabel>
-                                {genreOptions.novel.map((g) => (
-                                    <SelectItem key={`novel-${g}`} value={g}>{g}</SelectItem>
-                                ))}
-                            </SelectGroup>
-                        )}
-                    </SelectContent>
-                </Select>
+                <GenreMultiSelect
+                    value={filters.genre ?? []}
+                    onChange={(genres) => handleFilter('genre', genres)}
+                    groups={genreGroups}
+                    placeholder={t('allGenre')}
+                    searchPlaceholder={t('genreFilter.searchPlaceholder')}
+                    emptyText={t('genreFilter.emptyText')}
+                    clearLabel={t('genreFilter.clearLabel')}
+                    selectedLabel={(count) => t('genreFilter.selectedCount', { count })}
+                />
                 <ToggleGroup
                     value={[filters.ownership || 'all']}
                     onValueChange={(vals) => handleFilter('ownership', vals[0] === 'all' ? '' : (vals[0] ?? ''))}
@@ -217,7 +204,7 @@ export default function CatalogIndex({ series, collectionSeriesIds, genreOptions
                         <SeriesCard
                             key={s.id}
                             {...s}
-                            href={route('catalog.show', s.id)}
+                            href={route('catalog.show', s.slug)}
                             inCollection={collectionSet.has(s.id)}
                         />
                     ))}

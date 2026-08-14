@@ -37,22 +37,45 @@ class AniListService
 
     public function __construct(private StorageSettingsService $storage) {}
 
-    public function searchManga(string $query, int $page = 1, bool $excludeAdult = false): array
-    {
+    /**
+     * @param  array<int, string>  $genres
+     */
+    public function searchManga(
+        string $query,
+        int $page = 1,
+        bool $excludeAdult = false,
+        array $genres = [],
+        ?int $year = null,
+        string $sort = 'SEARCH_MATCH',
+    ): array {
+        // Catatan: `seasonYear` di skema AniList itu konsep musim tayang anime, tidak berlaku
+        // buat manga (selalu balikin kosong). Filter tahun untuk manga harus lewat rentang
+        // `startDate_greater`/`startDate_lesser` (fuzzy date int YYYYMMDD) — diverifikasi langsung
+        // ke API sebelum dipakai di sini.
         $gql = <<<GRAPHQL
-            query (\$search: String, \$page: Int, \$isAdult: Boolean) {
+            query (\$search: String, \$page: Int, \$isAdult: Boolean, \$genres: [String], \$dateGt: FuzzyDateInt, \$dateLt: FuzzyDateInt, \$sort: [MediaSort]) {
                 Page(page: \$page, perPage: 24) {
                     pageInfo { currentPage hasNextPage lastPage }
-                    media(search: \$search, type: MANGA, sort: SEARCH_MATCH, isAdult: \$isAdult) {
+                    media(search: \$search, type: MANGA, sort: \$sort, isAdult: \$isAdult, genre_in: \$genres, startDate_greater: \$dateGt, startDate_lesser: \$dateLt) {
                         {$this->mediaFields()}
                     }
                 }
             }
         GRAPHQL;
 
-        $variables = ['search' => $query, 'page' => $page];
+        $variables = ['page' => $page, 'sort' => [$sort]];
+        if ($query !== '') {
+            $variables['search'] = $query;
+        }
         if ($excludeAdult) {
             $variables['isAdult'] = false;
+        }
+        if (! empty($genres)) {
+            $variables['genres'] = $genres;
+        }
+        if ($year) {
+            $variables['dateGt'] = $year.'0000';
+            $variables['dateLt'] = ($year + 1).'0000';
         }
 
         $data = $this->request($gql, $variables);
@@ -61,6 +84,34 @@ class AniListService
             'data' => $data['Page']['media'] ?? [],
             'pagination' => $data['Page']['pageInfo'] ?? [],
         ];
+    }
+
+    /**
+     * Ambil banyak manga sekaligus dalam satu request GraphQL (bukan N request terpisah) —
+     * dipakai buat batch import supaya nggak boros kuota rate-limit AniList (~90 req/menit).
+     * AniList membatasi perPage maksimal 50, jadi caller yang minta lebih banyak harus chunk sendiri.
+     *
+     * @param  array<int, int>  $anilistIds
+     */
+    public function getMangaBatch(array $anilistIds): array
+    {
+        if (empty($anilistIds)) {
+            return [];
+        }
+
+        $gql = <<<GRAPHQL
+            query (\$ids: [Int]) {
+                Page(perPage: 50) {
+                    media(id_in: \$ids, type: MANGA) {
+                        {$this->mediaFields()}
+                    }
+                }
+            }
+        GRAPHQL;
+
+        $data = $this->request($gql, ['ids' => array_values($anilistIds)]);
+
+        return $data['Page']['media'] ?? [];
     }
 
     public function getManga(int $anilistId): array

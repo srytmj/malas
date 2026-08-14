@@ -41,7 +41,7 @@ class TicketController extends Controller
     {
         $this->authorize('view', $ticket);
 
-        $ticket->load(['user:id,name,email', 'series:id,title_romaji', 'respondedBy:id,name']);
+        $ticket->load(['user:id,name,email', 'series:id,slug,title_romaji', 'respondedBy:id,name']);
 
         return Inertia::render('Admin/Tickets/Show', [
             'ticket' => [
@@ -60,6 +60,7 @@ class TicketController extends Controller
                 ],
                 'series' => $ticket->series ? [
                     'id' => $ticket->series->id,
+                    'slug' => $ticket->series->slug,
                     'title_romaji' => $ticket->series->title_romaji,
                 ] : null,
             ],

@@ -62,6 +62,19 @@
         "progress": "Progress",
         "volumesOwned": "volume dimiliki",
         "lastRead": "Terakhir dibaca: Vol. {{number}}",
+        "readProgress": {
+            "label": "Progres baca",
+            "upTo": "s/d Vol. {{number}}",
+            "none": "Belum ada",
+            "increase": "Tandai volume berikutnya sudah dibaca",
+            "decrease": "Batalkan tanda baca volume terakhir"
+        },
+        "quickCount": {
+            "label": "Jumlah dimiliki",
+            "increase": "Tambah volume {{format}}",
+            "decrease": "Kurangi volume {{format}}",
+            "loanedTooltip": "Volume tertinggi format ini sedang dipinjamkan"
+        },
         "conditionOptional": "Kondisi (opsional)",
         "condition": { "mint": "Mint", "good": "Bagus", "fair": "Cukup", "poor": "Buruk" },
         "markAllRead": "Tandai semua volume sudah dibaca",

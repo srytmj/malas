@@ -5,6 +5,12 @@
     "refresh": "Refresh",
     "allStatus": "All statuses",
     "allGenre": "All genres",
+    "genreFilter": {
+        "searchPlaceholder": "Search genres...",
+        "emptyText": "No genres found.",
+        "clearLabel": "Clear all",
+        "selectedCount": "{{count}} genres selected"
+    },
     "ownership": {
         "all": "All",
         "owned": "In Collection",

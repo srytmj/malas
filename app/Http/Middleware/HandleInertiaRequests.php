@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\Announcement;
 use App\Models\Menu;
 use App\Models\SiteSetting;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Cache;
@@ -24,6 +25,7 @@ class HandleInertiaRequests extends Middleware
         $user = $request->user();
         $menus = [];
         $blurAdultContent = true;
+        $linkedAccounts = [];
 
         if ($user) {
             $menus = Menu::where('is_visible', true)
@@ -36,6 +38,19 @@ class HandleInertiaRequests extends Middleware
                 'site_settings.blur_adult_content',
                 fn () => SiteSetting::first()?->blur_adult_content ?? true,
             );
+
+            // Multi-account switching — daftar akun lain yang sudah ke-link di session ini
+            // (bukan permanen di DB, lihat AccountLinkService). Di-fetch fresh dari DB tiap
+            // request supaya nama/avatar yang ditampilkan selalu up to date.
+            $linkedIds = collect(session('linked_account_ids', []))
+                ->reject(fn ($id) => $id === $user->id)
+                ->values();
+
+            if ($linkedIds->isNotEmpty()) {
+                $linkedAccounts = User::whereIn('id', $linkedIds)
+                    ->get(['id', 'name', 'username', 'avatar', 'role'])
+                    ->toArray();
+            }
         }
 
         return [
@@ -58,9 +73,11 @@ class HandleInertiaRequests extends Middleware
                     'is_banned' => $user->is_banned,
                     'ban_reason' => $user->ban_reason,
                     'is_profile_public' => $user->is_profile_public,
+                    'theme' => $user->theme,
                 ] : null,
             ],
             'menus' => $menus,
+            'linked_accounts' => $linkedAccounts,
             'locale' => App::getLocale(),
             'site_settings' => [
                 'blur_adult_content' => $blurAdultContent,

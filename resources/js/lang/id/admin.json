@@ -13,7 +13,11 @@
         "seriesByStatus": "Series per Status",
         "collectionByType": "Koleksi per Tipe",
         "loanStatus": "Status Pinjaman",
-        "loan": { "active": "Dipinjam", "overdue": "Terlambat", "returned": "Dikembalikan" }
+        "loan": {
+            "active": "Dipinjam",
+            "overdue": "Terlambat",
+            "returned": "Dikembalikan"
+        }
     },
     "series": {
         "breadcrumb": "Series",
@@ -103,7 +107,8 @@
             "bulkDeleteConfirmPrefix": "Yakin ingin menghapus",
             "bulkDeleteConfirmMiddle": "series",
             "bulkDeleteConfirmSuffix": "yang dipilih? Semua volume, koleksi user, dan pinjaman terkait juga akan ikut terhapus. Tindakan ini tidak dapat dibatalkan.",
-            "view": "Lihat"
+            "view": "Lihat",
+            "openInNewTab": "Buka di Tab Baru"
         },
         "show": {
             "author": "Author:",
@@ -116,7 +121,18 @@
             "deleteSeriesTitle": "Hapus Series",
             "deleteSeriesConfirmPrefix": "Yakin ingin menghapus",
             "deleteSeriesConfirmSuffix": "? Semua volume terkait juga akan dihapus."
-        }
+        },
+        "genres": "Genre",
+        "genresPlaceholder": "Ketik genre lalu Enter...",
+        "themes": "Tema",
+        "themesPlaceholder": "Ketik tema lalu Enter...",
+        "demographics": "Demografi",
+        "demographicsPlaceholder": "Ketik demografi lalu Enter...",
+        "authors": "Penulis",
+        "authorsPlaceholder": "Ketik nama penulis lalu Enter...",
+        "illustrators": "Ilustrator",
+        "illustratorsPlaceholder": "Ketik nama ilustrator lalu Enter...",
+        "removeTag": "Hapus {{tag}}"
     },
     "settings": {
         "title": "Pengaturan",
@@ -125,7 +141,8 @@
             "storage": "Penyimpanan",
             "database": "Database",
             "content": "Konten",
-            "ai": "AI"
+            "ai": "AI",
+            "mail": "Email"
         },
         "ai": {
             "cardTitle": "Konfigurasi AI",
@@ -188,6 +205,16 @@
             "cardDescription": "Series yang ditandai 18+ saat import dari AniList akan otomatis di-blur di halaman katalog dan koleksi sampai pengguna klik untuk melihatnya — mirip Reddit/Instagram.",
             "blurTitle": "Blur konten 18+ secara default",
             "blurDescription": "Berlaku untuk semua pengguna. Cover akan diblur, klik untuk mengungkap sementara."
+        },
+        "mail": {
+            "cardTitle": "Konfigurasi Email",
+            "cardDescription": "Dipakai untuk fitur login tanpa SSO (magic link) saat whitearchive.id tidak bisa diakses. Provider: Resend. API key disimpan terenkripsi, tidak pernah ditampilkan ulang setelah disimpan.",
+            "apiKey": "API Key Resend",
+            "apiKeyPlaceholder": "Biarkan kosong untuk tetap pakai yang lama",
+            "apiKeySaved": "API key sudah tersimpan.",
+            "fromAddress": "Alamat Pengirim",
+            "fromName": "Nama Pengirim",
+            "hint": "Kalau API key belum diisi, fitur login tanpa SSO tidak akan mengirim email apa pun — link cuma akan digenerate kalau ada API key aktif."
         }
     },
     "users": {
@@ -408,7 +435,18 @@
             "recentImports": "Riwayat Import Terbaru",
             "emptyTitle": "Belum ada import",
             "emptyDescription": "Series yang di-import/update via AniList akan muncul di sini."
-        }
+        },
+        "allGenres": "Semua Genre",
+        "year": "Tahun",
+        "sortPopularity": "Urutkan Popularitas",
+        "hideImported": "Sembunyikan yang sudah ada",
+        "allHiddenByFilter": "Semua hasil sudah ada di katalog — matikan \"Sembunyikan yang sudah ada\" untuk melihatnya.",
+        "deselectAll": "Batalkan Semua",
+        "selectAllNotImported": "Pilih Semua ({{count}} belum diimpor)",
+        "selectedCount": "{{count}} dipilih",
+        "bulkImporting": "Mengimpor...",
+        "bulkImport": "Import {{count}} Series",
+        "selectItem": "Pilih {{title}}"
     },
     "collections": {
         "title": "Semua Koleksi",
@@ -464,7 +502,10 @@
         "allUsers": "Semua user",
         "typeUserName": "Ketik nama user...",
         "noMatchingUser": "Tidak ada user cocok.",
-        "empty": { "title": "Tidak ada aktivitas ditemukan", "description": "Coba ubah kata kunci pencarian atau filter." },
+        "empty": {
+            "title": "Tidak ada aktivitas ditemukan",
+            "description": "Coba ubah kata kunci pencarian atau filter."
+        },
         "viewMore": "Lihat selengkapnya",
         "categories": {
             "ai": "AI Funfact",

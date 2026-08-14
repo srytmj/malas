@@ -10,13 +10,16 @@ import { cn } from '@/lib/utils';
 const LOCALES = ['id', 'en', 'ja'] as const;
 
 export function LanguageSwitcher({ collapsed }: { collapsed?: boolean }) {
-    const { locale } = usePage().props;
+    const { locale, auth } = usePage().props;
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
 
     function handleSelect(value: string) {
         void i18n.changeLanguage(value);
         setOpen(false);
+        // Guest (mis. Landing page) belum punya akun buat nyimpen preferensi bahasa —
+        // ganti bahasa cukup di client, tanpa panggil endpoint yang butuh login.
+        if (!auth?.user) return;
         router.patch(route('settings.locale.update'), { locale: value }, {
             preserveScroll: true,
             preserveState: true,

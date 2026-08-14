@@ -62,6 +62,19 @@
         "progress": "進捗",
         "volumesOwned": "巻所有",
         "lastRead": "最終既読: 第{{number}}巻",
+        "readProgress": {
+            "label": "既読の進捗",
+            "upTo": "第{{number}}巻まで",
+            "none": "まだなし",
+            "increase": "次の巻を既読にする",
+            "decrease": "最後の既読巻を取り消す"
+        },
+        "quickCount": {
+            "label": "所有数",
+            "increase": "{{format}}の巻を追加",
+            "decrease": "{{format}}の巻を削除",
+            "loanedTooltip": "このフォーマットの最新巻は現在貸出中です"
+        },
         "conditionOptional": "状態（任意）",
         "condition": { "mint": "美品", "good": "良好", "fair": "可", "poor": "傷み" },
         "markAllRead": "すべての巻を既読にする",

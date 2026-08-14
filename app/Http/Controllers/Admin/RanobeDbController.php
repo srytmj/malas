@@ -330,7 +330,7 @@ class RanobeDbController extends Controller
     private function formatResults(array $data): array
     {
         $ranobedbIds = array_column($data, 'id');
-        $imported = Series::whereIn('ranobedb_id', $ranobedbIds)->pluck('id', 'ranobedb_id')->toArray();
+        $imported = Series::whereIn('ranobedb_id', $ranobedbIds)->get(['id', 'slug', 'ranobedb_id'])->keyBy('ranobedb_id');
 
         return array_map(fn ($item) => [
             'ranobedb_id' => $item['id'],
@@ -343,7 +343,8 @@ class RanobeDbController extends Controller
             'published_from' => $this->mapDate($item['c_start_date'] ?? null),
             'published_to' => $this->mapDate($item['c_end_date'] ?? null),
             'already_imported' => isset($imported[$item['id']]),
-            'series_id' => $imported[$item['id']] ?? null,
+            'series_id' => $imported[$item['id']]->id ?? null,
+            'series_slug' => $imported[$item['id']]->slug ?? null,
         ], $data);
     }
 }

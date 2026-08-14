@@ -8,6 +8,15 @@ export interface User {
     is_banned: boolean;
     ban_reason: string | null;
     is_profile_public: boolean;
+    theme: 'light' | 'dark' | 'system';
+}
+
+export interface LinkedAccount {
+    id: string;
+    name: string;
+    username: string | null;
+    avatar: string | null;
+    role: 'super_admin' | 'admin' | 'user';
 }
 
 export interface MenuItem {
@@ -34,6 +43,7 @@ export type PageProps<
         user: User | null;
     };
     menus: MenuItem[];
+    linked_accounts: LinkedAccount[];
     locale: 'id' | 'en' | 'ja';
     site_settings: {
         blur_adult_content: boolean;

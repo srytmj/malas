@@ -28,6 +28,18 @@ class UpdateSeriesRequest extends FormRequest
             'total_volumes' => ['nullable', 'integer', 'min:1'],
             'score' => ['nullable', 'numeric', 'min:0', 'max:10'],
             'rank' => ['nullable', 'integer', 'min:1'],
+            'genres' => ['nullable', 'array'],
+            // nullable di sini penting: ConvertEmptyStringsToNull middleware (global Laravel 12)
+            // ngubah sentinel string kosong (genres[]='') jadi null sebelum validasi jalan.
+            'genres.*' => ['nullable', 'string', 'max:100'],
+            'authors' => ['nullable', 'array'],
+            'authors.*' => ['nullable', 'string', 'max:150'],
+            'illustrators' => ['nullable', 'array'],
+            'illustrators.*' => ['nullable', 'string', 'max:150'],
+            'themes' => ['nullable', 'array'],
+            'themes.*' => ['nullable', 'string', 'max:100'],
+            'demographics' => ['nullable', 'array'],
+            'demographics.*' => ['nullable', 'string', 'max:100'],
         ];
     }
 }

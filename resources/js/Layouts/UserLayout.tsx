@@ -1,20 +1,20 @@
 import { PropsWithChildren, ReactNode, useEffect, useRef, useState } from 'react';
-import { Link, router, usePage } from '@inertiajs/react';
+import { usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/lib/i18n';
 import {
-    BookOpen, HandCoins, Heart, Layers, LayoutDashboard, Library, LogOut,
-    Menu as MenuIcon, Moon, PanelLeftClose, PanelLeftOpen, Search, Settings, Sun, Ticket, User, X,
+    BookOpen, HandCoins, Heart, Layers, LayoutDashboard, Library,
+    Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, Search, Settings, Ticket, User, X,
     type LucideIcon,
 } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/Components/ui/avatar';
 import { Button } from '@/Components/ui/button';
 import { ScrollArea } from '@/Components/ui/scroll-area';
 import {
     Sheet, SheetContent, SheetHeader, SheetTitle,
 } from '@/Components/ui/sheet';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/Components/ui/tooltip';
-import { useTheme } from '@/hooks/useTheme';
+import { ThemeSwitcher } from '@/Components/app/ThemeSwitcher';
+import { AccountSwitcher } from '@/Components/app/AccountSwitcher';
 import { useFlash } from '@/hooks/useFlash';
 import AnnouncementBanner from '@/Components/app/AnnouncementBanner';
 import { SidebarNav } from '@/Components/app/SidebarNav';
@@ -44,14 +44,7 @@ interface SidebarContentProps {
 }
 
 function SidebarContent({ menus, onNavClick, collapsed, onToggleCollapsed }: SidebarContentProps) {
-    const { auth } = usePage().props;
-    const user = auth.user!;
-    const { theme, toggleTheme } = useTheme();
     const { t } = useTranslation();
-
-    function handleLogout() {
-        router.post(route('logout'));
-    }
 
     function handleOpenSearch() {
         window.dispatchEvent(new Event('global-search:open'));
@@ -93,88 +86,11 @@ function SidebarContent({ menus, onNavClick, collapsed, onToggleCollapsed }: Sid
                     {t('nav.search')}
                 </Button>
 
-                {collapsed ? (
-                    <Tooltip>
-                        <TooltipTrigger
-                            render={
-                                <Button variant="ghost" size="icon" className="mx-auto flex" onClick={toggleTheme} aria-label={theme === 'dark' ? t('nav.lightMode') : t('nav.darkMode')}>
-                                    {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                                </Button>
-                            }
-                        />
-                        <TooltipContent side="right">{theme === 'dark' ? t('nav.lightMode') : t('nav.darkMode')}</TooltipContent>
-                    </Tooltip>
-                ) : (
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start gap-3 text-muted-foreground"
-                        onClick={toggleTheme}
-                    >
-                        {theme === 'dark'
-                            ? <Sun className="h-4 w-4" />
-                            : <Moon className="h-4 w-4" />}
-                        {theme === 'dark' ? t('nav.lightMode') : t('nav.darkMode')}
-                    </Button>
-                )}
+                <ThemeSwitcher collapsed={collapsed} />
 
                 <LanguageSwitcher collapsed={collapsed} />
 
-                {collapsed ? (
-                    <Tooltip>
-                        <TooltipTrigger
-                            render={
-                                <Link
-                                    href={route('profile.show', user.username ?? user.id)}
-                                    className="flex items-center justify-center rounded-md px-3 py-2 transition-colors hover:bg-muted"
-                                >
-                                    <Avatar className="h-8 w-8 shrink-0">
-                                        <AvatarImage src={user.avatar || undefined} alt={user.name} />
-                                        <AvatarFallback className="text-xs">{user.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                                    </Avatar>
-                                </Link>
-                            }
-                        />
-                        <TooltipContent side="right">{user.name}</TooltipContent>
-                    </Tooltip>
-                ) : (
-                    <Link
-                        href={route('profile.show', user.username ?? user.id)}
-                        className="flex items-center gap-2.5 rounded-md px-3 py-2 transition-colors hover:bg-muted"
-                    >
-                        <Avatar className="h-8 w-8 shrink-0">
-                            <AvatarImage src={user.avatar || undefined} alt={user.name} />
-                            <AvatarFallback className="text-xs">{user.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                            <p className="text-sm font-medium truncate">{user.name}</p>
-                            <p className="text-xs text-muted-foreground">{t('nav.member')}</p>
-                        </div>
-                    </Link>
-                )}
-
-                {collapsed ? (
-                    <Tooltip>
-                        <TooltipTrigger
-                            render={
-                                <Button variant="ghost" size="icon" className="mx-auto flex text-muted-foreground hover:text-destructive" onClick={handleLogout} aria-label={t('nav.logout')}>
-                                    <LogOut className="h-4 w-4" />
-                                </Button>
-                            }
-                        />
-                        <TooltipContent side="right">{t('nav.logout')}</TooltipContent>
-                    </Tooltip>
-                ) : (
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
-                        onClick={handleLogout}
-                    >
-                        <LogOut className="h-4 w-4" />
-                        {t('nav.logout')}
-                    </Button>
-                )}
+                <AccountSwitcher collapsed={collapsed} />
             </div>
         </div>
     );

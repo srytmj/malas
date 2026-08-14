@@ -184,12 +184,30 @@
         }
     },
     "errorPage": {
-        "400": { "title": "Permintaan Tidak Valid", "description": "Permintaan tidak lengkap atau tidak valid." },
-        "403": { "title": "Akses Ditolak", "description": "Kamu tidak punya izin untuk mengakses halaman ini." },
-        "404": { "title": "Halaman Tidak Ditemukan", "description": "Halaman yang kamu cari tidak ada atau sudah dipindahkan." },
-        "500": { "title": "Terjadi Kesalahan", "description": "Server mengalami masalah. Silakan coba lagi nanti." },
-        "502": { "title": "SSO Tidak Merespons", "description": "Tidak dapat menghubungi server whitearchive.id. Coba lagi beberapa saat lagi." },
-        "503": { "title": "Server Tidak Tersedia", "description": "Layanan sedang dalam pemeliharaan. Silakan coba beberapa saat lagi." },
+        "400": {
+            "title": "Permintaan Tidak Valid",
+            "description": "Permintaan tidak lengkap atau tidak valid."
+        },
+        "403": {
+            "title": "Akses Ditolak",
+            "description": "Kamu tidak punya izin untuk mengakses halaman ini."
+        },
+        "404": {
+            "title": "Halaman Tidak Ditemukan",
+            "description": "Halaman yang kamu cari tidak ada atau sudah dipindahkan."
+        },
+        "500": {
+            "title": "Terjadi Kesalahan",
+            "description": "Server mengalami masalah. Silakan coba lagi nanti."
+        },
+        "502": {
+            "title": "SSO Tidak Merespons",
+            "description": "Tidak dapat menghubungi server whitearchive.id. Coba lagi beberapa saat lagi."
+        },
+        "503": {
+            "title": "Server Tidak Tersedia",
+            "description": "Layanan sedang dalam pemeliharaan. Silakan coba beberapa saat lagi."
+        },
         "back": "Kembali",
         "home": "Beranda"
     },
@@ -212,11 +230,42 @@
         "subheading": "Kelola katalog, koleksi pribadi, dan peminjaman manga dan light novel-mu di satu tempat.",
         "loginButton": "Login dengan whitearchive.id",
         "features": {
-            "catalog": { "title": "Katalog", "description": "Jelajahi dan cari manga, manhwa, manhua, hingga novel lengkap dengan metadata dari AniList." },
-            "collection": { "title": "Koleksi Pribadi", "description": "Tandai volume yang sudah kamu miliki dan kelola koleksimu sendiri." },
-            "loans": { "title": "Peminjaman", "description": "Catat volume yang kamu pinjamkan ke orang lain beserta tanggal jatuh temponya." },
-            "announcements": { "title": "Pengumuman", "description": "Dapatkan info terbaru seputar koleksi dan layanan langsung dari admin." }
+            "catalog": {
+                "title": "Katalog",
+                "description": "Jelajahi dan cari manga, manhwa, manhua, hingga novel lengkap dengan metadata dari AniList."
+            },
+            "collection": {
+                "title": "Koleksi Pribadi",
+                "description": "Tandai volume yang sudah kamu miliki dan kelola koleksimu sendiri."
+            },
+            "loans": {
+                "title": "Peminjaman",
+                "description": "Catat volume yang kamu pinjamkan ke orang lain beserta tanggal jatuh temponya."
+            },
+            "announcements": {
+                "title": "Pengumuman",
+                "description": "Dapatkan info terbaru seputar koleksi dan layanan langsung dari admin."
+            }
+        },
+        "header": {
+            "directory": "Direktori",
+            "login": "Login"
+        },
+        "footer": {
+            "tagline": "Dibuat buat kolektor manga & light novel.",
+            "copyright": "© {{year}} MALAS — Manga Library Admin System."
         }
+    },
+    "authFallback": {
+        "pageTitle": "Login Tanpa SSO",
+        "heading": "Login Tanpa SSO",
+        "description": "Masukkan email yang biasa kamu pakai login — kalau email itu terdaftar, kami kirim link login sekali-pakai ke sana.",
+        "emailLabel": "Email",
+        "emailPlaceholder": "kamu@email.com",
+        "submitButton": "Kirim Link Login",
+        "submitting": "Mengirim...",
+        "backToLogin": "Kembali ke halaman login",
+        "note": "Link berlaku 15 menit dan cuma bisa dipakai sekali. Cek folder spam kalau email belum masuk."
     },
     "locale": {
         "id": "Bahasa Indonesia",
@@ -225,5 +274,41 @@
         "label": "Bahasa",
         "cardTitle": "Bahasa",
         "cardDescription": "Pilih bahasa tampilan aplikasi. Perubahan berlaku langsung."
+    },
+    "loginDialog": {
+        "title": "Masuk ke MALAS",
+        "description": "Pilih cara login.",
+        "linkTitle": "Tambah Akun",
+        "linkDescription": "Login ke akun lain yang mau kamu sambungkan. Kamu bisa switch antar akun tanpa login ulang selama masih di browser ini.",
+        "ssoOption": "Login dengan whitearchive.id",
+        "emailOption": "Login dengan Email",
+        "syncHint": "Login lewat whitearchive.id men-sync ulang nama, avatar, dan username-mu. Login lewat email tidak.",
+        "emailTitle": "Login dengan Email",
+        "emailDescription": "Masukkan email yang biasa kamu pakai login — kalau terdaftar, kami kirim link login sekali-pakai ke sana.",
+        "emailLabel": "Email",
+        "emailPlaceholder": "kamu@email.com",
+        "emailNote": "Link berlaku 15 menit dan cuma bisa dipakai sekali.",
+        "sending": "Mengirim...",
+        "sendLink": "Kirim Link Login",
+        "back": "Kembali",
+        "sentTitle": "Cek Email Kamu",
+        "sentDescription": "Kalau email itu terdaftar, link login sudah dikirim. Cek inbox (dan folder spam)."
+    },
+    "accountSwitcher": {
+        "viewProfile": "Lihat Profil",
+        "otherAccounts": "Akun Lain",
+        "addAccount": "Tambah Akun",
+        "switching": "Beralih akun...",
+        "logoutCurrent": "Keluar dari Akun Ini",
+        "logoutAll": "Keluar dari Semua Akun",
+        "loggingOut": "Keluar..."
+    },
+    "theme": {
+        "label": "Tema",
+        "light": "Terang",
+        "dark": "Gelap",
+        "system": "Ikuti Sistem",
+        "cardTitle": "Tema",
+        "cardDescription": "Pilih tampilan terang, gelap, atau ikut pengaturan sistem perangkatmu. Perubahan berlaku langsung."
     }
 }

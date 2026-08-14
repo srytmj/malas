@@ -13,7 +13,11 @@
         "seriesByStatus": "Series by Status",
         "collectionByType": "Collections by Type",
         "loanStatus": "Loan Status",
-        "loan": { "active": "On Loan", "overdue": "Overdue", "returned": "Returned" }
+        "loan": {
+            "active": "On Loan",
+            "overdue": "Overdue",
+            "returned": "Returned"
+        }
     },
     "series": {
         "breadcrumb": "Series",
@@ -103,7 +107,8 @@
             "bulkDeleteConfirmPrefix": "Are you sure you want to delete the",
             "bulkDeleteConfirmMiddle": "selected series",
             "bulkDeleteConfirmSuffix": "? All related volumes, user collections, and loans will also be deleted. This action cannot be undone.",
-            "view": "View"
+            "view": "View",
+            "openInNewTab": "Open in New Tab"
         },
         "show": {
             "author": "Author:",
@@ -116,7 +121,18 @@
             "deleteSeriesTitle": "Delete Series",
             "deleteSeriesConfirmPrefix": "Are you sure you want to delete",
             "deleteSeriesConfirmSuffix": "? All related volumes will also be deleted."
-        }
+        },
+        "genres": "Genres",
+        "genresPlaceholder": "Type a genre and press Enter...",
+        "themes": "Themes",
+        "themesPlaceholder": "Type a theme and press Enter...",
+        "demographics": "Demographics",
+        "demographicsPlaceholder": "Type a demographic and press Enter...",
+        "authors": "Authors",
+        "authorsPlaceholder": "Type an author name and press Enter...",
+        "illustrators": "Illustrators",
+        "illustratorsPlaceholder": "Type an illustrator name and press Enter...",
+        "removeTag": "Remove {{tag}}"
     },
     "settings": {
         "title": "Settings",
@@ -125,7 +141,8 @@
             "storage": "Storage",
             "database": "Database",
             "content": "Content",
-            "ai": "AI"
+            "ai": "AI",
+            "mail": "Email"
         },
         "ai": {
             "cardTitle": "AI Configuration",
@@ -188,6 +205,16 @@
             "cardDescription": "Series marked 18+ during AniList import are automatically blurred on catalog and collection pages until the user clicks to reveal them — similar to Reddit/Instagram.",
             "blurTitle": "Blur 18+ content by default",
             "blurDescription": "Applies to all users. Covers are blurred; click to temporarily reveal."
+        },
+        "mail": {
+            "cardTitle": "Email Configuration",
+            "cardDescription": "Used for the login-without-SSO feature (magic link) when whitearchive.id is unreachable. Provider: Resend. API key is stored encrypted and never shown again after saving.",
+            "apiKey": "Resend API Key",
+            "apiKeyPlaceholder": "Leave blank to keep the current one",
+            "apiKeySaved": "API key is already saved.",
+            "fromAddress": "From Address",
+            "fromName": "From Name",
+            "hint": "If the API key isn't set, the login-without-SSO feature won't send any email — a link is only generated when an active API key is configured."
         }
     },
     "users": {
@@ -408,7 +435,18 @@
             "recentImports": "Recent Import History",
             "emptyTitle": "No imports yet",
             "emptyDescription": "Series imported/updated via AniList will appear here."
-        }
+        },
+        "allGenres": "All Genres",
+        "year": "Year",
+        "sortPopularity": "Sort by Popularity",
+        "hideImported": "Hide already imported",
+        "allHiddenByFilter": "All results are already in the catalog — turn off \"Hide already imported\" to see them.",
+        "deselectAll": "Deselect All",
+        "selectAllNotImported": "Select All ({{count}} not imported)",
+        "selectedCount": "{{count}} selected",
+        "bulkImporting": "Importing...",
+        "bulkImport": "Import {{count}} Series",
+        "selectItem": "Select {{title}}"
     },
     "collections": {
         "title": "All Collections",
@@ -464,7 +502,10 @@
         "allUsers": "All users",
         "typeUserName": "Type user name...",
         "noMatchingUser": "No matching users.",
-        "empty": { "title": "No activity found", "description": "Try changing your search terms or filters." },
+        "empty": {
+            "title": "No activity found",
+            "description": "Try changing your search terms or filters."
+        },
         "viewMore": "View more",
         "categories": {
             "ai": "AI Funfact",

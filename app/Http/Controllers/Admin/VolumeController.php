@@ -74,7 +74,7 @@ class VolumeController extends Controller
                 'published_at' => $volume->published_at?->toDateString(),
                 'cover_url' => $this->storage->url($volume->cover_path),
             ],
-            'series' => $volume->series->only(['id', 'title_romaji']),
+            'series' => $volume->series->only(['id', 'slug', 'title_romaji']),
         ]);
     }
 

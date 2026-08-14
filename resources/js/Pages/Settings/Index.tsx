@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
-import { ExternalLink, Globe, Languages, ShieldCheck, User as UserIcon } from 'lucide-react';
+import { ExternalLink, Globe, Languages, Monitor, Moon, ShieldCheck, Sun, User as UserIcon } from 'lucide-react';
 import i18n from '@/lib/i18n';
 import AdminLayout from '@/Layouts/AdminLayout';
 import UserLayout from '@/Layouts/UserLayout';
+import { useTheme, type Theme } from '@/hooks/useTheme';
 import PageHeader from '@/Components/app/PageHeader';
 import { buttonVariants } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
@@ -24,6 +25,7 @@ interface Props extends PageProps {
 export default function SettingsIndex({ sso_account_url }: Props) {
     const { auth, locale } = usePage().props;
     const { t } = useTranslation();
+    const { theme, setTheme } = useTheme();
     const roleLabels: Record<string, string> = {
         super_admin: t('settings.roles.super_admin'),
         admin:       t('settings.roles.admin'),
@@ -138,6 +140,32 @@ export default function SettingsIndex({ sso_account_url }: Props) {
                                 <SelectItem value="id">{t('locale.id')}</SelectItem>
                                 <SelectItem value="en">{t('locale.en')}</SelectItem>
                                 <SelectItem value="ja">{t('locale.ja')}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-base">
+                            {theme === 'light' && <Sun className="h-4 w-4" />}
+                            {theme === 'dark' && <Moon className="h-4 w-4" />}
+                            {theme === 'system' && <Monitor className="h-4 w-4" />}
+                            {t('theme.cardTitle')}
+                        </CardTitle>
+                        <CardDescription>{t('theme.cardDescription')}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Select value={theme} onValueChange={(v) => v && setTheme(v as Theme)}>
+                            <SelectTrigger className="w-full">
+                                <SelectValue>
+                                    {(value: string) => t(`theme.${value}`)}
+                                </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="light">{t('theme.light')}</SelectItem>
+                                <SelectItem value="dark">{t('theme.dark')}</SelectItem>
+                                <SelectItem value="system">{t('theme.system')}</SelectItem>
                             </SelectContent>
                         </Select>
                     </CardContent>

@@ -1,7 +1,7 @@
 # PRD — MALAS (Manga Library Admin System)
 
-**Versi:** 2.3
-**Tanggal:** 2026-06-26, diperbarui 2026-08-01
+**Versi:** 2.6
+**Tanggal:** 2026-06-26, diperbarui 2026-08-03
 **Status:** Active
 
 ---
@@ -77,6 +77,7 @@ Admin mengontrol menu apa yang tampil dan statusnya:
 | Field | Keterangan |
 |-------|-----------|
 | `title_romaji` | required |
+| `slug` | auto-generated dari `title_romaji`, dipakai untuk URL `/catalog/{slug}` (user) dan `/admin/series/{slug}` (admin) — user/admin tidak input manual |
 | `title_english`, `title_japanese` | nullable |
 | `status` | `publishing` / `finished` / `on_hiatus` / `discontinued` / `not_yet_published` |
 | `type` | `manga` / `manhwa` / `manhua` / `novel` / `one_shot` / `doujinshi` |
@@ -90,7 +91,7 @@ Admin mengontrol menu apa yang tampil dan statusnya:
 | `published_from` / `published_to` | date range, nullable |
 
 User akses:
-- Browse list + filter (status, tipe, search judul, sudah/belum di koleksi)
+- Browse list + filter (status, tipe, search judul, sudah/belum di koleksi, genre — searchable multi-select combobox, OR-match: series lolos kalau punya salah satu genre yang dipilih)
 - Lihat detail: sinopsis, genre/theme/demographic lengkap, daftar volume, galeri media tambahan, avatar (tanpa nama) + jumlah user lain yang mengoleksi series ini
 - Tombol "Tambah ke Koleksi" dari halaman detail
 - Cari cepat lewat Global Search (⌘K) dari halaman manapun
@@ -125,6 +126,10 @@ Di dalam koleksi, user mencatat volume yang dimiliki via `collection_volumes`. U
 
 **Tracking baca:** tiap `collection_volume` punya `read_at` (nullable) — user toggle baca/belum lewat icon mata per volume (volume yang sudah dibaca ditampilkan greyed out), atau tandai semua sekaligus lewat satu tombol. Datatable koleksi menampilkan progres baca (`N/M dibaca`) dan "Terakhir dibaca: Vol. N" dihitung otomatis dari volume bernomor tertinggi yang sudah dibaca.
 
+**Stepper progres baca (+/-):** alternatif cepat dari toggle ikon mata satu-satu, khusus buat kasus baca linear (baca berurutan dari volume 1 ke atas) — `+` menandai volume-belum-dibaca bernomor terendah jadi sudah dibaca, `-` membalik volume-sudah-dibaca bernomor tertinggi jadi belum dibaca. Cuma menggeser satu batas per klik, tidak menyentuh volume yang ditandai manual di luar urutan lewat ikon mata.
+
+**Quick-edit jumlah volume per format (+/-):** alternatif cepat dari dialog "Tambah Volume" (yang tetap ada buat kasus non-sekuensial/gap), khusus kasus umum "nambah/kurang satu volume berurutan". `+` menambah volume bernomor berikutnya yang belum dimiliki sama sekali (nomor volume dibagi bersama lintas format dalam satu koleksi), `-` menghapus volume bernomor tertinggi dari format yang dipilih. Volume yang sedang dipinjamkan dilindungi — tombol `-` didisable + tooltip kalau volume tertinggi format itu lagi dipinjam, bukan diam-diam ganti target ke volume lain.
+
 **Mode hapus volume:** toolbar volume punya toggle "Hapus" yang mengubah icon mata di tiap volume jadi checkbox (posisi sama) untuk seleksi bulk-delete, supaya tidak konflik dengan aksi tandai-baca.
 
 **Cara tambah series:** dari halaman `/my-collection` via dialog search + multi-select. Bisa tambah lebih dari satu series sekaligus.
@@ -155,6 +160,9 @@ User mencatat volume yang dipinjamkan dari koleksinya:
 - Jika AniList ID sudah ada → tampil info + tombol lihat, bukan duplicate
 - Sync ulang metadata ke series yang sudah ada (Popover "Sync AniList" di Edit Series)
 - Filter sembunyikan konten 18+ saat mencari, badge 18+ di hasil
+- **Batch import**: filter genre (dropdown, enum AniList) dan tahun rilis (range `startDate_greater`/`startDate_lesser` — AniList's `seasonYear` tidak berlaku untuk manga), toggle urutkan berdasarkan popularitas (`POPULARITY_DESC`); boleh browse cuma dari genre/tahun tanpa ketik judul apa pun
+- Checkbox multi-select per hasil (cuma yang belum ada di katalog) + "Pilih Semua" + import sekaligus lewat satu request GraphQL (`id_in`) — bukan N request terpisah per series, supaya hemat kuota rate-limit AniList (~90 req/menit)
+- Toggle "Sembunyikan yang sudah ada di katalog" — filter client-side, dikombinasikan dengan badge "Sudah diimpor" yang sudah ada
 
 ### F-08 — Announcements
 
@@ -239,13 +247,42 @@ User mencatat volume yang dipinjamkan dari koleksinya:
 - Seluruh UI mendukung Bahasa Indonesia (default), Inggris, dan Jepang — preferensi disimpan per-user (`users.locale`)
 - Ganti bahasa dari kartu "Bahasa" di Settings atau tombol quick-switch di sidebar footer (tidak perlu buka Settings)
 - Pesan validasi & paginator Laravel bawaan ikut bahasa aktif user (`lang/{id,en,ja}/validation.php`, `pagination.php`)
-- **Wajib untuk semua fitur baru** — setiap teks user-facing baru harus langsung disiapkan terjemahannya di ketiga bahasa, tidak boleh ditunda. Lihat [`CLAUDE.md`](../CLAUDE.md) untuk daftar halaman yang sudah/belum diterjemahkan (masih ada backlog di sisi admin)
+- **Wajib untuk semua fitur baru** — setiap teks user-facing baru harus langsung disiapkan terjemahannya di ketiga bahasa, tidak boleh ditunda. Seluruh halaman `User/**` dan `Admin/**` sudah diterjemahkan penuh; lihat [`CLAUDE.md`](../CLAUDE.md) untuk cakupan lengkap dan gap yang masih terdokumentasi (flash message controller)
 - Flash message dari controller (`->with('success', '...')`) belum masuk sistem terjemahan terpusat — backlog terpisah, dicatat di CLAUDE.md
 
 ### F-21 — Reorder Menu Sidebar *(Admin)*
 
 - Admin bisa drag-and-drop urutan menu di `/admin/menus` (`SortableMenuList.tsx`, `@dnd-kit`), langsung update `menus.sort_order` via `PATCH /admin/menus/reorder`
 - Preview sidebar user tersedia di `/admin/menus/user` untuk melihat hasil susunan tanpa harus login sebagai user biasa
+
+### F-22 — Login dengan Email (Magic Link)
+
+- Opsi login setara SSO, dipilih dari modal "Masuk ke MALAS" (`LoginMethodDialog.tsx`) yang muncul begitu tombol Login di Landing page diklik — **bukan** cuma link kecil tersembunyi buat kondisi darurat lagi (awalnya dibangun sebagai fallback SSO-down, dipromosikan jadi opsi harian setelah mekanismenya terbukti aman)
+- Verifikasi identitas lewat kepemilikan inbox email yang sudah tersinkron dari SSO — **bukan** password lokal (tidak ada yang disimpan) dan **bukan** approval admin
+- Token (`sso_fallback_tokens`) tersimpan ter-hash, TTL 15 menit, single-use
+- Rate limit 5x/10 menit per endpoint request (dinaikkan dari 3x/15 menit setelah dipromosikan jadi opsi harian); response selalu pesan generik yang sama (anti email-enumeration, tidak membocorkan status akun)
+- Butuh provider email terkonfigurasi (Resend, F-23) — kalau belum dikonfigurasi, fitur ini diam-diam tidak mengirim apa pun (tidak error ke user)
+- **Trade-off yang disengaja**: profil (nama/avatar/username) cuma ikut ke-sync ulang dari whitearchive.id pas login lewat SSO. User yang seterusnya selalu login lewat email tidak dapat update profil otomatis — didiskusikan dan disetujui, bukan bug
+- Halaman mandiri `/auth/fallback` tetap tersedia sebagai direct link (dipakai juga oleh CLI `sso:emergency-login`, lihat F-24)
+
+### F-23 — Konfigurasi Email (Resend) *(Admin, super_admin only)*
+
+- Provider email (Resend) dikonfigurasi dari `/admin/settings` tab Email — `api_key` ter-encrypt, sama pola dengan Storage/AI, bukan `.env`
+- Dipakai untuk fitur Login dengan Email (F-22)
+
+### F-24 — Login Darurat via CLI *(Operator dengan akses SSH server)*
+
+- `php artisan sso:emergency-login {identifier=super_admin}` — reuse token magic link yang sama dengan F-22, tapi diterbitkan dari terminal, bukan dikirim lewat email
+- Identifier boleh role (`super_admin`/`admin`/`user`) atau email/username spesifik; kalau ada beberapa user dengan role yang sama, command kasih pilihan interaktif
+- Selalu minta konfirmasi dan tampilkan siapa yang bakal dikasih akses sebelum menerbitkan link
+- Berguna kalau mail service belum sempat dikonfigurasi (F-23), atau butuh akses instan tanpa nunggu email — satu-satunya syarat cuma akses SSH ke server, setara akses langsung ke database
+
+### F-25 — Tema Light/Dark/System
+
+- 3 opsi tema eksplisit (bukan cuma toggle 2-state) — preferensi disimpan per-user (`users.theme`, default `system`)
+- Ganti tema dari kartu "Tema" di Settings atau `ThemeSwitcher` (Popover) di sidebar footer/Landing page — pola sama persis dengan ganti bahasa (F-20)
+- Opsi `system` resolve otomatis dari preferensi OS (`prefers-color-scheme`) dan live-update kalau preferensi OS berubah selagi aplikasi terbuka
+- Guest-safe — tema tersimpan di localStorage kalau belum login, sync ke DB begitu login
 
 ---
 
@@ -282,6 +319,9 @@ User mencatat volume yang dipinjamkan dari koleksinya:
 | RanobeDB Import | ✓ | ✓ | — |
 | Reorder Menu Sidebar | ✓ | ✓ | — |
 | Ganti Bahasa (id/en/ja) | ✓ | ✓ | ✓ |
+| Login dengan Email (Magic Link) | ✓ | ✓ | ✓ |
+| Konfigurasi Email (Resend) | ✓ | — | — |
+| Login Darurat via CLI | ✓ (butuh akses SSH) | ✓ (butuh akses SSH) | — |
 
 ---
 

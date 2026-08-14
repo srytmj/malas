@@ -37,6 +37,7 @@ class SeriesController extends Controller
             ->withQueryString()
             ->through(fn ($s) => [
                 'id' => $s->id,
+                'slug' => $s->slug,
                 'title_romaji' => $s->title_romaji,
                 'title_english' => $s->title_english,
                 'cover_url' => $this->storage->url($s->cover_path),
@@ -93,9 +94,9 @@ class SeriesController extends Controller
         return Inertia::render('Admin/Series/Show', [
             'series' => [
                 ...$series->only([
-                    'id', 'title_romaji', 'title_english', 'title_japanese',
+                    'id', 'slug', 'title_romaji', 'title_english', 'title_japanese',
                     'synopsis', 'status', 'type', 'total_volumes', 'score', 'rank',
-                    'genres', 'authors', 'themes', 'demographics',
+                    'genres', 'authors', 'illustrators', 'themes', 'demographics',
                 ]),
                 'published_from' => $series->published_from?->toDateString(),
                 'published_to' => $series->published_to?->toDateString(),
@@ -142,12 +143,17 @@ class SeriesController extends Controller
         return Inertia::render('Admin/Series/Edit', [
             'series' => [
                 ...$series->only([
-                    'id', 'mal_id', 'title_romaji', 'title_english', 'title_japanese',
+                    'id', 'slug', 'mal_id', 'title_romaji', 'title_english', 'title_japanese',
                     'synopsis', 'status', 'type', 'total_volumes', 'score', 'rank',
                 ]),
                 'published_from' => $series->published_from?->toDateString(),
                 'published_to' => $series->published_to?->toDateString(),
                 'cover_url' => $this->storage->url($series->cover_path),
+                'genres' => $series->genres ?? [],
+                'authors' => $series->authors ?? [],
+                'illustrators' => $series->illustrators ?? [],
+                'themes' => $series->themes ?? [],
+                'demographics' => $series->demographics ?? [],
             ],
             'volumes' => $volumes,
             'media' => $series->media->map(fn ($m) => [
@@ -163,6 +169,18 @@ class SeriesController extends Controller
         $this->authorize('update', $series);
 
         $data = $request->validated();
+
+        // Frontend selalu kirim genres[]/authors[]/dll (bahkan pas kosong, isinya string kosong
+        // sebagai sentinel) supaya Laravel nggak skip key-nya sama sekali — kalau key nggak ada,
+        // update() nggak akan nyentuh kolomnya, jadi tag lama yang sengaja dihapus admin malah
+        // nggak kehapus. Sentinel string kosong dibuang di sini sebelum disimpan — middleware
+        // global ConvertEmptyStringsToNull sudah ngubah '' jadi null duluan sebelum validasi,
+        // jadi filter di sini harus buang null juga, bukan cuma ''.
+        foreach (['genres', 'authors', 'illustrators', 'themes', 'demographics'] as $tagField) {
+            if (array_key_exists($tagField, $data)) {
+                $data[$tagField] = array_values(array_filter($data[$tagField], fn ($v) => $v !== '' && $v !== null));
+            }
+        }
 
         if ($request->hasFile('cover')) {
             if ($series->cover_path) {

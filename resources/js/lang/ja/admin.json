@@ -13,7 +13,11 @@
         "seriesByStatus": "ステータス別シリーズ",
         "collectionByType": "タイプ別コレクション",
         "loanStatus": "貸出ステータス",
-        "loan": { "active": "貸出中", "overdue": "延滞", "returned": "返却済み" }
+        "loan": {
+            "active": "貸出中",
+            "overdue": "延滞",
+            "returned": "返却済み"
+        }
     },
     "series": {
         "breadcrumb": "シリーズ",
@@ -103,7 +107,8 @@
             "bulkDeleteConfirmPrefix": "選択した",
             "bulkDeleteConfirmMiddle": "件のシリーズ",
             "bulkDeleteConfirmSuffix": "を削除してもよろしいですか？関連するすべての巻、ユーザーコレクション、貸出も削除されます。この操作は元に戻せません。",
-            "view": "表示"
+            "view": "表示",
+            "openInNewTab": "新しいタブで開く"
         },
         "show": {
             "author": "作者：",
@@ -116,7 +121,18 @@
             "deleteSeriesTitle": "シリーズを削除",
             "deleteSeriesConfirmPrefix": "本当に削除しますか：",
             "deleteSeriesConfirmSuffix": "？関連するすべての巻も削除されます。"
-        }
+        },
+        "genres": "ジャンル",
+        "genresPlaceholder": "ジャンルを入力してEnter...",
+        "themes": "テーマ",
+        "themesPlaceholder": "テーマを入力してEnter...",
+        "demographics": "対象層",
+        "demographicsPlaceholder": "対象層を入力してEnter...",
+        "authors": "著者",
+        "authorsPlaceholder": "著者名を入力してEnter...",
+        "illustrators": "イラストレーター",
+        "illustratorsPlaceholder": "イラストレーター名を入力してEnter...",
+        "removeTag": "{{tag}}を削除"
     },
     "settings": {
         "title": "設定",
@@ -125,7 +141,8 @@
             "storage": "ストレージ",
             "database": "データベース",
             "content": "コンテンツ",
-            "ai": "AI"
+            "ai": "AI",
+            "mail": "メール"
         },
         "ai": {
             "cardTitle": "AI設定",
@@ -188,6 +205,16 @@
             "cardDescription": "AniListからのインポート時に18+と指定されたシリーズは、ユーザーがクリックして表示するまでカタログ・コレクションページで自動的にぼかされます — Reddit/Instagramに似た仕組みです。",
             "blurTitle": "18+コンテンツをデフォルトでぼかす",
             "blurDescription": "すべてのユーザーに適用されます。表紙はぼかされ、クリックすると一時的に表示されます。"
+        },
+        "mail": {
+            "cardTitle": "メール設定",
+            "cardDescription": "whitearchive.id にアクセスできないときの「SSOなしログイン」機能（マジックリンク）で使用します。プロバイダー: Resend。APIキーは暗号化して保存され、保存後は再表示されません。",
+            "apiKey": "Resend APIキー",
+            "apiKeyPlaceholder": "空欄のままにすると既存のキーを維持します",
+            "apiKeySaved": "APIキーは保存済みです。",
+            "fromAddress": "送信元アドレス",
+            "fromName": "送信元名",
+            "hint": "APIキーが未設定の場合、SSOなしログイン機能はメールを送信しません — 有効なAPIキーが設定されているときだけリンクが生成されます。"
         }
     },
     "users": {
@@ -408,7 +435,18 @@
             "recentImports": "最近のインポート履歴",
             "emptyTitle": "まだインポートがありません",
             "emptyDescription": "AniList経由でインポート/更新されたシリーズはここに表示されます。"
-        }
+        },
+        "allGenres": "すべてのジャンル",
+        "year": "年",
+        "sortPopularity": "人気順に並べ替え",
+        "hideImported": "インポート済みを非表示",
+        "allHiddenByFilter": "すべての結果がすでにカタログにあります —「インポート済みを非表示」をオフにすると表示されます。",
+        "deselectAll": "すべて選択解除",
+        "selectAllNotImported": "すべて選択（未インポート{{count}}件）",
+        "selectedCount": "{{count}}件選択中",
+        "bulkImporting": "インポート中...",
+        "bulkImport": "{{count}}件のシリーズをインポート",
+        "selectItem": "{{title}}を選択"
     },
     "collections": {
         "title": "すべてのコレクション",
@@ -464,7 +502,10 @@
         "allUsers": "すべてのユーザー",
         "typeUserName": "ユーザー名を入力...",
         "noMatchingUser": "一致するユーザーがいません。",
-        "empty": { "title": "アクティビティが見つかりません", "description": "検索キーワードやフィルターを変更してみてください。" },
+        "empty": {
+            "title": "アクティビティが見つかりません",
+            "description": "検索キーワードやフィルターを変更してみてください。"
+        },
         "viewMore": "もっと見る",
         "categories": {
             "ai": "AIファンファクト",

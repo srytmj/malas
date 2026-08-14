@@ -33,6 +33,7 @@ class ProfileController extends Controller
             ->get()
             ->map(fn ($c) => [
                 'series_id' => $c->series_id,
+                'series_slug' => $c->series->slug,
                 'title_romaji' => $c->series->title_romaji,
                 'cover_url' => $this->storage->url($c->series->cover_path),
                 'type' => $c->series->type,

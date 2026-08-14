@@ -177,7 +177,7 @@ php artisan db:seed --class=MenuSeeder --force
 php artisan storage:link
 ```
 
-> Setelah deploy pertama kali, konfigurasi **Storage** (`/admin/settings` tab Storage) dan **AI** (tab AI — default provider `puter`, tidak butuh API key, cukup didiamkan kalau tidak mau pakai Gemini/OpenAI/Claude) dilakukan lewat UI admin, bukan `.env`. Tidak ada env var tambahan yang wajib diisi untuk fitur i18n, wishlist, profil publik, atau RanobeDB — semuanya jalan begitu migrasi selesai.
+> Setelah deploy pertama kali, konfigurasi **Storage** (`/admin/settings` tab Storage), **AI** (tab AI — default provider `puter`, tidak butuh API key, cukup didiamkan kalau tidak mau pakai Gemini/OpenAI/Claude), dan **Email** (tab Email — API key Resend, dibutuhkan kalau mau fitur "Login Tanpa SSO" bisa mengirim magic link; kalau tidak diisi, fitur ini diam-diam tidak mengirim apa pun tanpa error) dilakukan lewat UI admin, bukan `.env`. Tidak ada env var tambahan yang wajib diisi untuk fitur i18n, wishlist, profil publik, RanobeDB, atau login tanpa SSO — semuanya jalan begitu migrasi selesai.
 
 ### 7. Cache untuk production
 
@@ -580,3 +580,31 @@ Setelah ubah `.env`:
 ```bash
 php artisan config:cache
 ```
+
+### SSO down / tidak bisa diakses sama sekali — akses darurat
+
+Kalau whitearchive.id benar-benar tidak bisa dihubungi (down, migrasi, maintenance terjadwal), ada dua jalur masuk yang tidak lewat SSO — **keduanya tetap butuh verifikasi identitas**, tidak ada bypass tanpa syarat apa pun (lihat [`PHASES.md`](PHASES.md) Phase 16 untuk alasan desainnya):
+
+**1. Self-service lewat email (buat user mana pun, tidak cuma admin)**
+
+- Halaman login (`/`) → klik tombol "Login" → modal "Masuk ke MALAS" muncul dengan 2 pilihan setara: "Login dengan whitearchive.id" atau "Login dengan Email". Ini bukan cuma jalur darurat lagi — sekarang opsi login harian yang selalu tersedia, jadi user nggak perlu nunggu SSO down buat coba pakai jalur email.
+- User pilih "Login dengan Email" → masukin email yang biasa dipakai login → kalau terdaftar, dikirim magic link sekali-pakai (15 menit) lewat email. Halaman mandiri `/auth/fallback` juga tetap ada sebagai direct link.
+- **Syarat:** provider Email (Resend) harus sudah dikonfigurasi di `/admin/settings` tab Email — kalau `api_key` belum diisi, fitur ini diam-diam tidak mengirim apa pun (tidak error ke user, tapi juga tidak menolong). Konfigurasi ini **sebelum** SSO benar-benar dibutuhkan, bukan pas kejadian.
+- **Catatan**: login lewat email TIDAK men-sync ulang profil (nama/avatar/username) — itu cuma terjadi pas login lewat SSO. Ini disengaja, bukan bug.
+
+**2. CLI, khusus admin/operator yang punya akses server**
+
+Kalau butuh masuk cepat tanpa nunggu email (atau mail service belum sempat dikonfigurasi), SSH ke server dan jalankan:
+
+```bash
+php artisan sso:emergency-login super_admin
+```
+
+- Argumen boleh role (`super_admin`, `admin`, `user` — bisa juga `superadmin` tanpa underscore) atau email/username spesifik, misal `php artisan sso:emergency-login admin@domainmu.com`.
+- Kalau ada lebih dari satu user dengan role yang sama, command kasih daftar pilihan interaktif — tidak asal ambil satu.
+- Command tampilkan dulu siapa yang bakal dikasih akses dan minta konfirmasi (`y/N`) sebelum menerbitkan link.
+- Output-nya URL langsung siap dibuka di browser, berlaku 15 menit, sekali pakai (token dan mekanismenya sama persis dengan magic link email di atas — cuma jalur penerbitannya beda, dari CLI bukan dari form).
+- **Kenapa ini aman untuk dijalankan tanpa gerbang tambahan:** satu-satunya syarat menjalankan command ini adalah akses SSH ke server itu sendiri — sudah setara dengan akses langsung ke database. Tidak ada endpoint publik yang menerbitkan token semudah ini.
+- Setiap link yang diterbitkan (baik dari email maupun CLI) tercatat di Log Aktivitas admin (`auth.fallback_requested` / `auth.emergency_login_issued`), jadi ada jejaknya kapan dan untuk siapa akses darurat ini pernah dipakai.
+
+**Jangan** bikin jalur bypass lain di luar dua ini (misal login otomatis berdasarkan pola email seperti `admin@domain`) — itu bisa ditebak siapa saja yang tau domain aplikasimu dan membuka celah account takeover tanpa verifikasi apa pun.

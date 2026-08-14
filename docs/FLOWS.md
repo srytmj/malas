@@ -1,7 +1,7 @@
 # FLOWS — MALAS v2
 
-**Versi:** 2.2
-**Tanggal:** 2026-06-26, diperbarui 2026-08-01
+**Versi:** 2.5
+**Tanggal:** 2026-06-26, diperbarui 2026-08-03
 
 ---
 
@@ -28,7 +28,7 @@ Dashboard             /admin/dashboard      (stat cards + chart)
 └── Pengaturan        /admin/settings       (tab Storage/Database/Konten/AI, super_admin only)
 ```
 
-Catatan: tidak ada `/admin/roles` terpisah. Role management bagian dari halaman detail user (`/admin/users/{id}`). Command Palette (⌘K/Ctrl+K) tersedia di semua halaman admin lewat tombol di sidebar. Tombol ganti bahasa (id/en/ja) ada di sidebar footer, di sebelah toggle dark/light mode.
+Catatan: tidak ada `/admin/roles` terpisah. Role management bagian dari halaman detail user (`/admin/users/{id}`). Command Palette (⌘K/Ctrl+K) tersedia di semua halaman admin lewat tombol di sidebar. Tombol ganti bahasa (id/en/ja) dan ThemeSwitcher (Light/Dark/System) ada bersebelahan di sidebar footer.
 
 ### User Sidebar
 ```
@@ -41,7 +41,7 @@ Direktori             /directory            (cari & follow user lain dengan prof
 Tiket                 /tickets
 ```
 
-Global Search (⌘K/Ctrl+K, atau search bar di header desktop / icon di mobile) tersedia di semua halaman user — cari judul di Katalog/Koleksiku atau navigasi cepat. Tombol ganti bahasa (id/en/ja) ada di sidebar footer, di sebelah toggle dark/light mode.
+Global Search (⌘K/Ctrl+K, atau search bar di header desktop / icon di mobile) tersedia di semua halaman user — cari judul di Katalog/Koleksiku atau navigasi cepat. Tombol ganti bahasa (id/en/ja) dan ThemeSwitcher (Light/Dark/System) ada bersebelahan di sidebar footer.
 
 Profil publik (`/u/{username-atau-id}`) **tidak ada di sidebar** — diakses lewat Direktori, link share, atau langsung dari URL. Bisa diakses tanpa login (lihat §2 Guest Flow).
 
@@ -49,7 +49,18 @@ Profil publik (`/u/{username-atau-id}`) **tidak ada di sidebar** — diakses lew
 
 ## 2. Auth Flows
 
-### Login (SSO whitearchive.id)
+### Login — Modal Pilihan Cara Login
+```
+Landing page → klik tombol "Login" (header atau hero)
+  └─ LoginMethodDialog terbuka — 2 pilihan setara:
+        ├─ "Login dengan whitearchive.id" → lanjut ke Login SSO di bawah
+        └─ "Login dengan Email" → form email inline di modal yang sama
+              → lanjut ke Login dengan Email (Magic Link) di bawah
+```
+
+Dialog yang sama juga jadi tempat nanti fitur "Tambah Akun" (multi-account, direncanakan — lihat backlog) dipasang.
+
+### Login SSO (whitearchive.id)
 ```
 GET /auth/redirect
   └─ Redirect ke whitearchive.id dengan PKCE code_challenge
@@ -57,13 +68,14 @@ GET /auth/redirect
               └─ Redirect balik ke GET /auth/callback
                     ├─ Tukar code → token, ambil klaim user (sso_id, name, username, email, avatar)
                     ├─ User baru → dibuat otomatis (role default `user`)
-                    ├─ User lama → data di-update dari klaim SSO terbaru
+                    ├─ User lama → data di-update dari klaim SSO terbaru (name/username/email/avatar
+                    │   ikut ter-refresh — satu-satunya jalur yang men-sync ulang profil)
                     └─ Session dibuat → redirect berdasarkan role:
                           ├─ admin / super_admin → /admin/dashboard
                           └─ user → /dashboard
 ```
 
-Tidak ada form register/login lokal — semua akun (termasuk admin) dikelola lewat SSO.
+Tidak ada form register/password lokal — semua akun (termasuk admin) dikelola lewat SSO. Login dengan Email (di bawah) adalah opsi kedua yang setara, bukan pengganti.
 
 ### Guest Access — Profil Publik
 ```
@@ -73,13 +85,55 @@ GET /u/{username-atau-id}  (di luar grup middleware 'auth', jadi diakses tanpa l
         └─ Viewer login → is_owner cek $viewer->id === $user->id, is_following cek relasi Follow
 
 Frontend (Profile/Show.tsx):
-  ├─ is_guest = true  → render PublicShell (header minimal "MALAS" + tombol Login, tanpa sidebar)
+  ├─ is_guest = true  → render PublicShell (header minimal "MALAS" + tombol Login yang buka
+  │                      LoginMethodDialog, tanpa sidebar)
   │                      Grid koleksi user: cover + judul saja, TIDAK bisa diklik ke /catalog/{slug}
   │                      (karena katalog butuh login). Tombol Follow diganti link "Login untuk follow".
   └─ is_guest = false → render UserLayout normal, koleksi bisa diklik, tombol Follow aktif
 ```
 
 Route `follow`/`unfollow`/`/directory` tetap di dalam grup middleware `auth` — guest bisa lihat profil tapi tidak bisa follow atau akses direktori tanpa login.
+
+### Login dengan Email (Magic Link)
+
+Dulu dibangun sebagai fallback darurat ("SSO nggak bisa diakses?", link kecil tersembunyi) —
+sekarang dipromosikan jadi opsi login harian yang setara SSO, dipilih dari `LoginMethodDialog`.
+Mekanisme backend-nya tidak berubah sama sekali, cuma cara masuknya.
+
+```
+LoginMethodDialog → pilih "Login dengan Email" → form email inline di modal
+  (atau langsung ke halaman mandiri GET /auth/fallback — link ini tetap ada,
+   dipakai juga sebagai basis untuk CLI sso:emergency-login)
+        └─ POST /auth/fallback (throttle:5,10)
+              ├─ Email cocok user yang ada DAN mail_settings terkonfigurasi
+              │     └─ Terbit SsoFallbackToken (hash SHA-256, TTL 15 menit, single-use)
+              │           └─ Kirim SsoFallbackLoginMail lewat Resend
+              │                 ├─ Kirim gagal (API key salah, provider down) → ditangkap
+              │                 │     try/catch, dicatat ke ActivityLog, TIDAK 500
+              │                 └─ Kirim sukses → ActivityLog 'auth.fallback_requested'
+              └─ Email tidak cocok / mail belum terkonfigurasi → skip diam-diam
+        Response SELALU pesan generik yang sama di kedua kasus (anti email-enumeration)
+
+User klik link di email → GET /auth/fallback/{token}
+  ├─ Token invalid/expired/sudah dipakai → 400, pesan "link tidak berlaku"
+  └─ Token valid → tandai used_at, Auth::login(), redirect sesuai role
+        (admin → /admin/dashboard, user → /dashboard) — SAMA seperti login SSO,
+        BEDANYA: profil (nama/avatar/username) TIDAK ikut ke-sync ulang (cuma SSO yang sync)
+```
+
+### Login Darurat via CLI
+```
+Operator SSH ke server → php artisan sso:emergency-login {role-atau-email}
+  └─ Resolve identifier: role keyword (super_admin/admin/user) atau email/username spesifik
+        ├─ Lebih dari satu kandidat (role sama) → pilihan interaktif
+        └─ Tidak ada yang cocok → error, exit 1
+  └─ Tampilkan siapa yang bakal dikasih akses → konfirmasi (y/N)
+        └─ Kalau "yes" → SsoFallbackToken::issueFor() (token sama persis dengan jalur email)
+              → print URL lengkap ke terminal, operator buka manual di browser
+```
+
+Satu-satunya syarat: akses SSH ke server (setara akses langsung ke database) — tidak ada rute
+publik yang menerbitkan token semudah ini.
 
 ### Akses Route Terproteksi
 ```
@@ -124,6 +178,21 @@ Request masuk
 ```
 
 Sync ulang metadata AniList ke series yang sudah ada tersedia dari Popover "Sync AniList" di halaman Edit Series.
+
+### F-A2b: Batch Import AniList (Genre/Tahun/Popularitas)
+```
+/admin/anilist → pilih Genre (dropdown) dan/atau Tahun, atau nyalain "Urutkan Popularitas"
+  (boleh browse cuma dari filter ini, tanpa ketik judul apa pun)
+        └─ GET /admin/anilist?genre=...&year=...&sort_popularity=1
+              └─ Hasil muncul sebagai grid — item yang belum ada di katalog dapat checkbox
+                    di pojok kiri atas card
+        └─ Centang beberapa item (atau klik "Pilih Semua")
+              └─ Klik "Import N Series" → POST /admin/anilist/bulk-import { anilist_ids: [...] }
+                    └─ AniListService::getMangaBatch() — SATU request GraphQL (id_in) buat
+                        semua ID terpilih, bukan N request terpisah
+                          └─ Toast: "N series baru, M diperbarui" (+ "K gagal" kalau ada)
+Toggle "Sembunyikan yang sudah ada di katalog" — filter client-side pakai badge already_imported.
+```
 
 ### F-A3: Kelola Volume
 ```
@@ -198,9 +267,14 @@ halaman Edit Series (sama pola dengan "Sync AniList").
 ## 4. User Flows
 
 ### F-U1: Browse Katalog
+
+`{slug}` di bawah adalah kolom asli `series.slug` (auto-generated dari judul, bukan sekadar
+notasi dokumentasi) — lihat `Series::generateUniqueSlug()`. URL lama berbasis UUID tetap jalan
+lewat fallback di `resolveRouteBinding()`.
+
 ```
 /catalog → grid series (cover, judul, status badge)
-  └─ Filter: status, tipe, search judul
+  └─ Filter: status, tipe, search judul, genre (combobox searchable, multi-select, OR-match)
         └─ Klik series → /catalog/{slug}
               └─ Halaman detail:
                     ├─ Info series (cover besar, sinopsis, score, status)
@@ -232,6 +306,21 @@ Cara 2 — dari halaman koleksi:
               └─ Submit → CollectionController@storeVolumes
                     └─ Toast: "N volume ditambahkan, M dilewati (sudah ada)"
   └─ Hapus volume → konfirmasi dialog → CollectionController@destroyVolume
+```
+
+### F-U3b: Quick-Edit Jumlah Volume per Format (+/-)
+```
+/my-collection/{id} → info series → stepper "Jumlah dimiliki" (satu per format yang sudah
+                       punya ≥1 volume, mis. "Fisik: 12", "Ebook: 3")
+  └─ Klik "+" → PATCH CollectionController@quickAdjustCount { format, direction: add }
+        └─ Nomor volume berikutnya yang belum dimiliki sama sekali (lintas format) dibuat
+              └─ Toast sukses + tombol "Undo" (panggil ulang endpoint yang sama, direction: remove)
+  └─ Klik "-" → PATCH quickAdjustCount { format, direction: remove }
+        └─ Volume bernomor tertinggi DARI format itu dihapus
+              └─ Kalau volume tertinggi lagi dipinjamkan → tombol "-" didisable + tooltip,
+                 request tetap ditolak (info toast) kalau dipaksa lewat server langsung —
+                 tidak pernah diam-diam ganti target ke volume lain
+              └─ Toast sukses + tombol "Undo" → PATCH restoreVolumes
 ```
 
 ### F-U4: Catat Peminjaman
@@ -272,6 +361,17 @@ Tandai semua sekaligus:
               └─ Semua volume yang belum dibaca → read_at = now()
                     └─ Toast + tombol "Undo" → PATCH unmarkVolumesRead
                           (hanya revert volume yang baru diubah aksi ini)
+
+Stepper progres baca (+/-) — alternatif cepat, khusus baca linear (berurutan vol 1 ke atas):
+/my-collection/{id} → info series → stepper "Progres baca"
+  └─ Klik "+" → PATCH CollectionController@advanceReadProgress { direction: forward }
+        └─ Volume-belum-dibaca bernomor terendah → read_at = now()
+              └─ Toast + tombol "Undo" → PATCH toggleVolumeRead (endpoint yang sama dengan
+                 toggle manual, otomatis balik ke state sebelumnya)
+  └─ Klik "-" → PATCH advanceReadProgress { direction: backward }
+        └─ Volume-sudah-dibaca bernomor tertinggi → read_at = null
+  (Tidak menyentuh volume yang ditandai manual di luar urutan lewat icon mata — cuma
+   menggeser satu batas per klik)
 ```
 
 ### F-U8: Mode Hapus Volume
@@ -352,12 +452,22 @@ Dashboard → card "Selera Genre"
 
 ### F-U14: Ganti Bahasa
 ```
-Klik tombol bahasa di sidebar footer (sebelah toggle dark/light mode) — atau kartu "Bahasa" di Settings
+Klik tombol bahasa di sidebar footer (sebelah ThemeSwitcher) — atau kartu "Bahasa" di Settings
   └─ Popover: pilih id / en / ja
         └─ i18n.changeLanguage(value) — UI berubah instan tanpa reload
         └─ PATCH settings.locale.update { locale } → users.locale tersimpan
               └─ Request berikutnya, App::setLocale() server-side ikut bahasa baru
                     (pesan validasi, paginator Laravel bawaan ikut berubah juga)
+```
+
+### F-U15: Ganti Tema
+```
+Klik ThemeSwitcher di sidebar footer (sebelah tombol bahasa) — atau kartu "Tema" di Settings
+  └─ Popover: pilih Light / Dark / System
+        └─ Update lokal instan (localStorage + resolvedTheme via matchMedia kalau System)
+        └─ Kalau login: PATCH settings.theme.update { theme } → users.theme tersimpan
+        └─ Kalau guest: skip persist ke server, cukup localStorage
+  System: live-update kalau preferensi OS berubah selagi app terbuka (matchMedia listener)
 ```
 
 ---

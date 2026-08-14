@@ -29,6 +29,7 @@ import { type SeriesStatus, type SeriesType, type TicketStatus } from '@/lib/typ
 
 interface RecommendedSeries {
     id: string;
+    slug: string;
     title_romaji: string;
     cover_url: string | null;
     type: SeriesType;
@@ -137,7 +138,7 @@ function GenreWordCloud({ data, selected, onSelect }: {
 function GenreMiniCard({ series }: { series: RecommendedSeries }) {
     return (
         <Link
-            href={route('catalog.show', series.id)}
+            href={route('catalog.show', series.slug)}
             className="group flex flex-col overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-sm"
         >
             <div className="aspect-[2/3] overflow-hidden bg-muted">
@@ -535,14 +536,14 @@ export default function UserDashboard({
                         ) : (
                             <Carousel
                                 opts={{ align: 'start', loop: true }}
-                                plugins={[Autoplay({ delay: 2000 })]}
+                                plugins={[Autoplay({ delay: 6000 })]}
                                 className="px-8"
                             >
                                 <CarouselContent>
                                     {recommendations.map((s) => (
                                         <CarouselItem key={s.id}>
                                             <Link
-                                                href={route('catalog.show', s.id)}
+                                                href={route('catalog.show', s.slug)}
                                                 className="group flex items-center gap-5 rounded-lg border bg-gradient-to-r from-muted/60 to-transparent p-5 transition-shadow hover:shadow-md"
                                             >
                                                 <div className="h-44 w-32 shrink-0 overflow-hidden rounded-lg bg-muted shadow-sm">
@@ -664,7 +665,7 @@ export default function UserDashboard({
                             {t('surprise.tryAgain')}
                         </Button>
                         {surpriseSeries && (
-                            <Link href={route('catalog.show', surpriseSeries.id)} className={cn(buttonVariants())}>
+                            <Link href={route('catalog.show', surpriseSeries.slug)} className={cn(buttonVariants())}>
                                 {t('surprise.viewSeries')}
                             </Link>
                         )}

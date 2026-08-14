@@ -37,6 +37,7 @@ interface VolumeRow {
 
 interface SeriesDetail {
     id: string;
+    slug: string;
     title_romaji: string;
     title_english: string | null;
     title_japanese: string | null;
@@ -167,7 +168,7 @@ export default function SeriesShow({ series, volumes, can, ownerships }: Props) 
                         can.update ? (
                             <div className="flex gap-2">
                                 <Link
-                                    href={route('admin.series.edit', series.id)}
+                                    href={route('admin.series.edit', series.slug)}
                                     className={cn(buttonVariants({ variant: 'outline' }))}
                                 >
                                     <Pencil className="mr-1.5 h-4 w-4" />

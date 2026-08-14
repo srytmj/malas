@@ -28,7 +28,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
     'sparkles':         Sparkles,
 };
 
-interface SeriesResult { id: string; title: string }
+interface SeriesResult { id: string; slug: string; title: string }
 interface UserResult { id: string; name: string; email: string }
 interface TicketResult { id: string; subject: string }
 
@@ -116,7 +116,7 @@ export function CommandPalette() {
                     {series.length > 0 && (
                         <CommandGroup heading={t('palette.series')}>
                             {series.map((s) => (
-                                <CommandItem key={s.id} value={`series-${s.id}`} onSelect={() => go('admin.series.show', s.id)}>
+                                <CommandItem key={s.id} value={`series-${s.id}`} onSelect={() => go('admin.series.show', s.slug)}>
                                     <BookOpen />
                                     {s.title}
                                 </CommandItem>

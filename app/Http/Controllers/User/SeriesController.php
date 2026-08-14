@@ -33,7 +33,13 @@ class SeriesController extends Controller
             ))
             ->when(request('status'), fn ($q, $s) => $q->where('status', $s))
             ->when(request('type'), fn ($q, $t) => $q->where('type', $t))
-            ->when(request('genre'), fn ($q, $g) => $q->whereJsonContains('genres', $g))
+            // Multi-select genre: OR-match — series lolos kalau punya salah satu genre yang dipilih,
+            // bukan wajib semuanya (biar hasilnya nggak keburu kosong pas user pilih beberapa genre).
+            ->when(array_filter((array) request('genre', [])), fn ($q, $genres) => $q->where(function ($sub) use ($genres) {
+                foreach ($genres as $genre) {
+                    $sub->orWhereJsonContains('genres', $genre);
+                }
+            }))
             ->when(request('ownership') === 'owned', fn ($q) => $q->whereIn('id', $collectionSeriesIds))
             ->when(request('ownership') === 'not_owned', fn ($q) => $q->whereNotIn('id', $collectionSeriesIds))
             ->withCount('volumes')
@@ -42,6 +48,7 @@ class SeriesController extends Controller
             ->withQueryString()
             ->through(fn ($s) => [
                 'id' => $s->id,
+                'slug' => $s->slug,
                 'title_romaji' => $s->title_romaji,
                 'title_english' => $s->title_english,
                 'cover_url' => $this->storage->url($s->cover_path),
@@ -57,7 +64,10 @@ class SeriesController extends Controller
             'series' => $series,
             'collectionSeriesIds' => $collectionSeriesIds,
             'genreOptions' => $this->genreOptions(),
-            'filters' => request()->only(['search', 'status', 'type', 'genre', 'ownership']),
+            'filters' => [
+                ...request()->only(['search', 'status', 'type', 'ownership']),
+                'genre' => array_values(array_filter((array) request('genre', []))),
+            ],
         ]);
     }
 
@@ -91,9 +101,10 @@ class SeriesController extends Controller
         )
             ->latest()
             ->limit(24)
-            ->get(['id', 'title_romaji', 'title_english', 'cover_path', 'type', 'status', 'is_adult'])
+            ->get(['id', 'slug', 'title_romaji', 'title_english', 'cover_path', 'type', 'status', 'is_adult'])
             ->map(fn ($s) => [
                 'id' => $s->id,
+                'slug' => $s->slug,
                 'title_romaji' => $s->title_romaji,
                 'title_english' => $s->title_english,
                 'cover_url' => $this->storage->url($s->cover_path),
@@ -147,7 +158,7 @@ class SeriesController extends Controller
         return Inertia::render('User/Catalog/Show', [
             'series' => [
                 ...$series->only([
-                    'id', 'anilist_id', 'title_romaji', 'title_english', 'title_japanese',
+                    'id', 'slug', 'anilist_id', 'title_romaji', 'title_english', 'title_japanese',
                     'synopsis', 'status', 'type', 'total_volumes', 'score', 'rank',
                     'genres', 'authors', 'themes', 'demographics', 'is_adult',
                 ]),

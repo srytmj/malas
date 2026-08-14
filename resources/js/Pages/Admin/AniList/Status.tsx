@@ -11,6 +11,7 @@ import { PageProps } from '@/types';
 
 interface RecentImport {
     id: string;
+    slug: string;
     title_romaji: string;
     anilist_id: number;
     updated_at: string;
@@ -126,7 +127,7 @@ export default function AniListStatus({ recentImports }: Props) {
                                 {recentImports.map((item) => (
                                     <Link
                                         key={item.id}
-                                        href={route('admin.series.show', item.id)}
+                                        href={route('admin.series.show', item.slug)}
                                         className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-muted"
                                     >
                                         <span className="truncate font-medium">{item.title_romaji}</span>

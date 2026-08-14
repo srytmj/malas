@@ -258,7 +258,7 @@ class DashboardController extends Controller
         }
 
         $ownedSeriesIds = $user->collections()->pluck('series_id');
-        $columns = ['id', 'title_romaji', 'cover_path', 'type', 'status', 'genres', 'authors', 'synopsis'];
+        $columns = ['id', 'slug', 'title_romaji', 'cover_path', 'type', 'status', 'genres', 'authors', 'synopsis'];
 
         $owned = Series::whereIn('id', $ownedSeriesIds)
             ->whereJsonContains('genres', $genre)
@@ -297,7 +297,7 @@ class DashboardController extends Controller
         }
 
         return Series::whereNotIn('id', $ownedSeriesIds)
-            ->get(['id', 'title_romaji', 'cover_path', 'type', 'status', 'genres', 'authors', 'synopsis'])
+            ->get(['id', 'slug', 'title_romaji', 'cover_path', 'type', 'status', 'genres', 'authors', 'synopsis'])
             ->map(fn ($s) => [
                 'series' => $s,
                 'score' => collect($s->genres ?? [])->sum(fn ($g) => $ownedGenreCounts->get($g, 0)),
@@ -322,7 +322,7 @@ class DashboardController extends Controller
         return Series::whereNotIn('id', $ownedSeriesIds)
             ->inRandomOrder()
             ->limit($limit)
-            ->get(['id', 'title_romaji', 'cover_path', 'type', 'status', 'genres', 'authors', 'synopsis']);
+            ->get(['id', 'slug', 'title_romaji', 'cover_path', 'type', 'status', 'genres', 'authors', 'synopsis']);
     }
 
     private function presentSeries(Series $series): array
@@ -331,6 +331,7 @@ class DashboardController extends Controller
 
         return [
             'id' => $series->id,
+            'slug' => $series->slug,
             'title_romaji' => $series->title_romaji,
             'cover_url' => $this->storage->url($series->cover_path),
             'type' => $series->type,

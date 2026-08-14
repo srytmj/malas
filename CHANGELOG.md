@@ -4,11 +4,134 @@ Semua perubahan penting pada MALAS dicatat di file ini. Format mengikuti prinsip
 
 ---
 
+## 2026-08-14 (lanjutan 4) — Quick-Edit Progres Baca & Jumlah Volume di Koleksiku
+
+- Stepper +/- "progres baca" baru di halaman detail koleksi — geser batas volume terbaca satu langkah tanpa harus cari & klik ikon mata volume tertentu. `+` menandai volume-belum-dibaca bernomor terendah jadi sudah dibaca, `-` membalik volume-sudah-dibaca bernomor tertinggi jadi belum dibaca. Ikon mata per-volume tetap ada buat koreksi manual di luar urutan.
+- Stepper +/- "jumlah dimiliki" per format (fisik/ebook/online/webtoon) — nambah/hapus volume cepat tanpa buka dialog "Tambah Volume". `+` ambil nomor volume berikutnya yang belum dimiliki sama sekali (nomor dibagi bersama lintas format dalam satu koleksi), `-` hapus volume bernomor tertinggi dari format itu. Stepper cuma muncul buat format yang sudah punya minimal 1 volume.
+- Volume yang lagi dipinjamkan dilindungi dari penghapusan lewat stepper — tombol `-` didisable + tooltip kalau volume tertinggi format itu lagi dipinjam.
+- **Bug ketemu & diperbaiki saat verifikasi HTTP langsung**: implementasi awal query di server diam-diam jatuh ke volume non-loaned berikutnya kalau top volume lagi dipinjam, alih-alih menolak aksinya — kontradiksi sama desain "disable + tooltip, jangan diam-diam ganti target". Fix: query cuma pernah incar top volume asli, tolak (info toast) kalau itu lagi dipinjam.
+
+---
+
+## 2026-08-14 (lanjutan 3) — Filter Genre Multi-Select di Katalog User
+
+- Filter genre di halaman Katalog diganti dari dropdown single-select jadi combobox yang bisa diketik (fuzzy search) dan pilih lebih dari satu genre — `GenreMultiSelect.tsx` baru (Popover + `Command`/cmdk), genre terpilih tampil sebagai badge yang bisa dihapus satu-satu.
+- Filter genre sekarang **OR-match**: series lolos kalau punya salah satu genre yang dipilih, bukan wajib semuanya. Diverifikasi: Comedy sendiri 59 hasil, Romance sendiri 43 hasil, gabungan keduanya 67 hasil (union yang benar).
+- Item ini adalah miss dari sesi sebelumnya — diminta eksplisit tapi sempat ke-skip; ketemu lagi lewat audit "cek fitur kelewat" (lihat entri di bawah).
+
+---
+
+## 2026-08-14 (lanjutan 2) — Favicon Terpasang, README Dirombak (Bilingual), Audit Fitur Kelewat
+
+- Favicon yang sudah digenerate sebelumnya (`public/images/favicon/`) akhirnya di-wire ke `resources/views/app.blade.php` — sebelumnya nol favicon sama sekali. SVG dengan varian light/dark (`prefers-color-scheme`), PNG fallback, `apple-touch-icon`, dan `site.webmanifest` baru buat PWA/home-screen icon.
+- README dirombak total jadi bilingual (🇮🇩 Indonesia / 🇬🇧 English) dengan language-switcher, logo, badge tech stack, dan section baru "Belum Selesai (Backlog)" yang transparan soal gap fitur.
+- Audit fitur yang diminta tapi kelewat: grep `TODO`/`FIXME` di kode (nihil), cross-check `CLAUDE.md`/`PHASES.md`/`prd.md`. Ketemu satu miss nyata — filter genre multi-select di Katalog (diminta sesi sebelumnya, belum dikerjakan) — langsung dibangun, lihat entri di atas.
+
+---
+
+## 2026-08-14 (lanjutan) — Fix URL Admin (Slug) & Editor Genre/Tags di Series Edit
+
+- **Fix URL admin masih UUID**: rollout slug di Phase 15 cuma nyentuh sisi user (`catalog.show`) — semua `route('admin.series.show'/'edit', ...)` di 9 halaman admin (Index, Show, EditVolume, Edit, AniList, RanobeDb, Search, Tickets, Command Palette) masih pakai UUID mentah. Backend diupdate kirim `slug`/`series_slug`, semua route call di frontend diganti pakai slug (UUID tetap dipakai di tempat yang butuh — bulk-select, target API delete/update).
+- **Editor genre/tags di Series Edit**: halaman ini sebelumnya sama sekali nggak punya UI buat genre/authors/illustrators/themes/demographics — `TagListInput.tsx` baru (editor tag bebas, Enter/koma nambah, klik-X hapus), 5 field baru di form. Popover "Sync AniList/RanobeDB" sekarang ikut ngisi tag (sebelumnya cuma judul/sinopsis/dll, walau data genre-nya sudah di-fetch dari API).
+- **Bug ketemu & diperbaiki saat verifikasi HTTP langsung**: middleware global Laravel 12 `ConvertEmptyStringsToNull` ngubah sentinel string-kosong (dipakai buat sinyal "hapus semua tag") jadi `null` sebelum validasi jalan — rule `genres.*` yang nggak punya `nullable` nolak `null` dengan 422. Artinya fitur "hapus semua tag" gagal total kalau sungguhan dicoba. Fix: tambah `nullable` ke rule tag, filter sentinel di controller diubah buang `null` juga.
+
+---
+
+## 2026-08-14 — Tema Light/Dark/System
+
+- Toggle dark/light satu-klik di sidebar footer (Admin/User Layout) dan Landing page diganti jadi 3 opsi eksplisit (Light/Dark/System) — pola sama persis dengan `LanguageSwitcher` yang sudah ada: `ThemeSwitcher.tsx` (Popover), sync ke DB per-user (`users.theme`, `PATCH /settings/theme`), guest-safe (localStorage-only kalau belum login).
+- `useTheme()` ditulis ulang — resolve `system` lewat `matchMedia`, live-update kalau preferensi OS berubah selagi app terbuka.
+- Kartu "Tema" baru di halaman Settings, antara kartu "Bahasa" dan "Profil Publik".
+
+---
+
+## 2026-08-03 (lanjutan 3) — Fix: Tombol Login di Halaman Profil Publik
+
+- Tombol Login di header `PublicShell` dan CTA "Login untuk follow" (keduanya di `Profile/Show.tsx`, dilihat guest yang buka profil publik) masih redirect langsung ke SSO — ketinggalan dari rollout modal login karena rollout awal cuma nyentuh Landing page.
+- Diperbaiki: kedua tempat sekarang buka `LoginMethodDialog` juga, masing-masing dengan state lokal sendiri (`loginOpen` di `PublicShell`, `followLoginOpen` di komponen utama).
+- Grep ulang `sso.redirect` di seluruh `resources/js` mastiin tidak ada tombol Login lain yang ketinggalan.
+
+---
+
+## 2026-08-03 (lanjutan 2) — Modal Pilihan Login (SSO / Email)
+
+- Landing page sekarang munculin modal pilihan cara login begitu tombol "Login" diklik — "Login dengan whitearchive.id" atau "Login dengan Email" (`LoginMethodDialog.tsx`), bukan langsung redirect ke SSO.
+- Login lewat Email dipromosikan dari link kecil "SSO nggak bisa diakses?" (fallback darurat tersembunyi) jadi opsi setara SSO di modal — mekanisme backend-nya sama persis (magic link sekali-pakai, `SsoFallbackController`), cuma framing UI-nya berubah.
+- Rate limit endpoint `POST /auth/fallback` dinaikkan dari `throttle:3,15` ke `throttle:5,10` — sekarang dipakai sebagai opsi harian, bukan cuma darurat, jadi limitnya perlu lebih longgar.
+- **Catatan penting**: profil (nama/avatar/username) cuma ikut ke-sync ulang dari whitearchive.id pas login lewat SSO. User yang seterusnya login lewat email nggak dapat update profil otomatis — ini keputusan sadar, bukan bug (didiskusikan & disetujui sebelum implementasi).
+
+---
+
+## 2026-08-03 (lanjutan) — Batch Import AniList, Fix Logout SSO Down, Context Menu Tab Baru
+
+### Batch Import AniList (genre, tahun, popularitas)
+
+- Filter genre (dropdown enum kanonis AniList), tahun rilis, dan toggle "Urutkan Popularitas" ditambahkan ke halaman `Admin/AniList/Index.tsx` — boleh browse cuma dari filter tanpa ketik judul apa pun.
+- Checkbox multi-select per hasil (cuma yang belum ada di katalog) + "Pilih Semua" + import sekaligus. `AniListService::getMangaBatch()` ambil sampai 50 series dalam **satu** request GraphQL (`media(id_in: [...])`), bukan N request terpisah per series — penting buat hemat kuota rate-limit AniList (~90 req/menit).
+- Toggle "Sembunyikan yang sudah ada di katalog" — filter client-side, dikombinasikan dengan badge "Sudah diimpor" yang sudah ada sebelumnya.
+- **Ketemu saat riset (diverifikasi langsung ke API sebelum coding)**: `seasonYear` di skema AniList adalah konsep musim tayang anime, selalu balikin array kosong untuk `type: MANGA`. Filter tahun untuk manga yang benar pakai rentang `startDate_greater`/`startDate_lesser` (`FuzzyDateInt`, format `YYYYMMDD`).
+
+### Fixed
+
+- `SsoController::logout()` selalu memaksa browser navigasi ke domain SSO (`whitearchive.id/logout`) buat destroy sesi di sana juga — kalau SSO down, browser nge-hang lama nunggu koneksi ke domain yang mati, padahal sesi lokal sebenarnya sudah invalid duluan. Ditambah `ssoReachable()`, pengecekan cepat (timeout 3 detik) sebelum redirect — kalau tidak bisa dihubungi, langsung balik ke halaman utama tanpa nunggu. Diverifikasi lewat HTTP request langsung: logout sekarang selesai dalam ~3.4 detik yang dibatasi timeout, bukan berpotensi hang tanpa batas menunggu browser sendiri yang menyerah.
+
+### Added
+
+- Context menu (klik kanan) di `Admin/Series/Index.tsx` sekarang punya opsi "Buka di Tab Baru" (`window.open()`) di samping navigasi SPA biasa.
+
+---
+
+## 2026-08-03 — Login Tanpa SSO (Fallback), Konfigurasi Email (Resend), Landing Page Dirombak
+
+### Login Tanpa SSO (Fallback)
+
+Jalan darurat kalau whitearchive.id (SSO) benar-benar tidak bisa diakses (down/migrasi/maintenance) — bukan pengganti SSO, cuma buat kondisi darurat. Sengaja **tidak** pakai password lokal (tidak ada user yang punya password tersimpan, semua dikelola SSO) atau sistem approval admin (dibahas lalu disederhanakan) — dipilih magic link sekali-pakai lewat email yang sudah tersinkron dari SSO, verifikasi identitas lewat kepemilikan inbox.
+
+#### Added
+- Link "SSO nggak bisa diakses?" di Landing page → `/auth/fallback` — form isi email → magic link sekali-pakai dikirim (kalau email terdaftar & mail service terkonfigurasi) → klik link → langsung login.
+- Tabel `sso_fallback_tokens` — token disimpan **ter-hash** (SHA-256), TTL 15 menit, single-use (sama pola dengan `password_reset_tokens` bawaan Laravel).
+- Rate limit `throttle:3,15` di endpoint request, dan response **selalu pesan generik yang sama** baik email terdaftar/tidak/banned — anti email-enumeration.
+- Kegagalan kirim email (API key salah, provider down) ditangkap try/catch — tidak bikin request 500, dicatat ke Log Aktivitas + log Laravel biasa.
+
+#### Fixed
+- `ActivityLog::record()` selalu pakai `auth()->id()` buat `user_id` (kolom NOT NULL) — meledak (SQL constraint violation → 500) untuk aksi yang dipicu guest seperti request login tanpa SSO. Ditambah fallback ke ID user subject kalau tidak ada yang login. Ketemu & diperbaiki saat verifikasi end-to-end lewat HTTP request langsung, bukan cuma tinker.
+- `SsoController::logout()` selalu maksa browser navigasi ke domain SSO (`whitearchive.id/logout`) buat destroy sesi SSO juga — kalau SSO down, browser nge-hang lama nunggu koneksi ke domain yang mati (session lokal sebenarnya sudah keburu invalid duluan). Ditambah pengecekan cepat (`ssoReachable()`, timeout 3 detik) sebelum redirect — kalau SSO tidak bisa dihubungi, langsung balik ke halaman utama tanpa nunggu.
+
+### Login Darurat via CLI
+
+- `php artisan sso:emergency-login {identifier=super_admin}` — reuse `SsoFallbackToken` yang sama dengan magic link email, tapi diterbitkan dari CLI (butuh akses SSH ke server). Identifier boleh role (`super_admin`/`admin`/`user`) atau email/username spesifik. Selalu minta konfirmasi dan tampilkan siapa yang bakal dikasih akses sebelum menerbitkan link — kalau ada beberapa user dengan role yang sama, command kasih pilihan interaktif, bukan asal ambil satu.
+
+### Konfigurasi Email (Resend)
+- Tabel `mail_settings` (single-row, `api_key` ter-encrypt) + tab baru "Email" di `/admin/settings` — pola sama dengan Storage/AI (dikonfigurasi UI admin, bukan `.env`).
+- `MailSettingsService` set config Resend secara runtime dari DB sebelum kirim, pola sama dengan `StorageSettingsService::disk()`.
+- Package `resend/resend-php` (native Laravel `resend` mail transport, `config/mail.php` sudah punya stub bawaan Laravel 12).
+
+### Landing Page Dirombak
+- Tambah header (brand MALAS, ganti bahasa, toggle dark/light mode, tombol Login) dan footer (tagline, copyright dinamis per tahun) — sebelumnya cuma hero + grid fitur tanpa navigasi.
+- `LanguageSwitcher` dibikin guest-safe — kalau belum login, ganti bahasa cukup di client (`i18n.changeLanguage()`) tanpa panggil endpoint yang butuh sesi otentikasi.
+
+---
+
+## 2026-08-02 — URL Katalog Berbasis Judul (Slug), Multi-Bahasa Admin Selesai
+
+### URL Katalog Berbasis Judul
+
+- Kolom `series.slug` baru — auto-generated dari `title_romaji` lewat `Series::generateUniqueSlug()`. Simbol seperti `@`, `!`, koma, titik dua dibuang langsung (bukan dikonversi jadi kata — dictionary default `Str::slug()` sengaja dikosongkan), full judul dipakai apa adanya walau panjang. Regenerate otomatis kalau judul diubah; tambah suffix `-2`/`-3` kalau ada judul kembar.
+- `/catalog/{series}` (dan semua route lain yang bind model `Series`) sekarang menerima slug — `Series::resolveRouteBinding()` coba cocokkan slug dulu, fallback ke `id` supaya link/bookmark lama yang masih pakai UUID tetap jalan.
+- Semua halaman yang link ke katalog (Catalog, Dashboard, Koleksiku, Wishlist, Tiket, Profil Publik, Global Search) diupdate untuk pakai slug, bukan UUID, saat membangun URL.
+- Migration baru membackfill slug untuk semua series yang sudah ada di database.
+
+### Multi-Bahasa (id/en/ja) — Admin Selesai
+
+Seluruh backlog halaman `Admin/**` (~25 halaman: Series, Settings, Users, Announcements, Tickets, Loans, Menus, GenreFunfacts, AniList, RanobeDb, Search, Collections), halaman root (`Landing`, `Error`, `Auth/Banned`, `Maintenance`), dan komponen `Components/app/**` yang tersisa sudah diterjemahkan penuh. Lihat [`CLAUDE.md`](CLAUDE.md) bagian "Sistem Multi-Bahasa" untuk detail cakupan terkini — sisa gap yang terdokumentasi cuma flash message controller (backlog terpisah) dan `Pages/Dashboard.tsx` root yang ternyata dead code (tidak direferensikan controller manapun, sengaja tidak disentuh).
+
+---
+
 ## 2026-08-01 — Multi-Bahasa (id/en/ja), Profil Publik untuk Guest, Puter.js AI
 
 ### Multi-Bahasa (id/en/ja)
 
-Fondasi sistem multi-bahasa ditambahkan dan sebagian besar halaman user-facing sudah diterjemahkan penuh. **Sisa halaman admin belum** — lihat [`CLAUDE.md`](CLAUDE.md) bagian "Sistem Multi-Bahasa" untuk daftar backlog per halaman yang selalu di-update.
+Fondasi sistem multi-bahasa ditambahkan dan sebagian besar halaman user-facing sudah diterjemahkan penuh — lihat entri 2026-08-02 di atas untuk penyelesaian sisi admin.
 
 #### Added
 - `react-i18next` + resource JSON per-namespace di `resources/js/lang/{id,en,ja}/` (`common.json`, `dashboard.json`, `user.json`, `catalog.json`, `collection.json`, `admin.json`).

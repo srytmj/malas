@@ -29,7 +29,7 @@ interface TicketDetail {
     responded_by: string | null;
     created_at: string;
     user: { name: string; email: string };
-    series: { id: string; title_romaji: string } | null;
+    series: { id: string; slug: string; title_romaji: string } | null;
 }
 
 interface Props extends PageProps {
@@ -97,7 +97,7 @@ export default function AdminTicketShow({ ticket, can }: Props) {
                     <TicketStatusBadge status={ticket.status} />
                     <TicketTypeBadge type={ticket.type} />
                     {ticket.series && (
-                        <Link href={route('admin.series.show', ticket.series.id)} className="text-sm text-muted-foreground hover:underline">
+                        <Link href={route('admin.series.show', ticket.series.slug)} className="text-sm text-muted-foreground hover:underline">
                             {t('ticketShow.relatedTo', { title: ticket.series.title_romaji })}
                         </Link>
                     )}

@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\ExternalSearchController;
 use App\Http\Controllers\Admin\GenreFunfactController;
 use App\Http\Controllers\Admin\ImageSearchController;
 use App\Http\Controllers\Admin\LoanController as AdminLoanController;
+use App\Http\Controllers\Admin\MailSettingController;
 use App\Http\Controllers\Admin\MenuController as AdminMenuController;
 use App\Http\Controllers\Admin\RanobeDbController;
 use App\Http\Controllers\Admin\SeriesController as AdminSeriesController;
@@ -22,7 +23,9 @@ use App\Http\Controllers\Admin\TicketController as AdminTicketController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\VolumeController as AdminVolumeController;
 use App\Http\Controllers\AnnouncementController;
+use App\Http\Controllers\Auth\AccountController;
 use App\Http\Controllers\Auth\SsoController;
+use App\Http\Controllers\Auth\SsoFallbackController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\User\CollectionController;
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
@@ -48,7 +51,24 @@ Route::get('/', function () {
 // SSO — whitearchive.id
 Route::get('/auth/redirect', [SsoController::class, 'redirect'])->name('sso.redirect');
 Route::get('/auth/callback', [SsoController::class, 'callback'])->name('sso.callback');
-Route::middleware('auth')->post('/logout', [SsoController::class, 'logout'])->name('logout');
+
+// Login via email (magic link) — opsi login setara SSO (dipilih dari modal login), bukan cuma
+// jalur darurat. Verifikasi identitas lewat magic link sekali-pakai ke email yang sudah
+// tersinkron dari SSO, bukan password lokal. Profil (nama/avatar/username) cuma ikut ke-sync
+// pas login lewat SSO — user yang selalu pakai email nggak dapat update profil otomatis.
+Route::get('/auth/fallback', [SsoFallbackController::class, 'show'])->name('sso.fallback.show');
+Route::post('/auth/fallback', [SsoFallbackController::class, 'send'])
+    ->middleware('throttle:5,10')
+    ->name('sso.fallback.send');
+Route::get('/auth/fallback/{token}', [SsoFallbackController::class, 'consume'])->name('sso.fallback.consume');
+Route::middleware('auth')->group(function () {
+    // "Keluar dari semua akun" — logout total, termasuk redirect ke SSO buat destroy sesi di sana.
+    Route::post('/logout', [SsoController::class, 'logout'])->name('logout');
+    // Multi-account switching (session-based, lihat AccountLinkService) — kepake semua user,
+    // bukan cuma admin.
+    Route::post('/accounts/switch', [AccountController::class, 'switch'])->name('accounts.switch');
+    Route::post('/accounts/logout-current', [AccountController::class, 'logoutCurrent'])->name('accounts.logoutCurrent');
+});
 
 // Banned page — auth required so ban_reason is available, but not_banned skipped
 Route::get('/banned', function () {
@@ -92,6 +112,8 @@ Route::middleware(['auth', 'not_banned', 'check.menu'])->group(function () {
     Route::patch('/my-collection/{collection}/volumes/read-all', [CollectionController::class, 'markAllVolumesRead'])->name('collection.volumes.readAll');
     Route::patch('/my-collection/{collection}/volumes/unmark-read', [CollectionController::class, 'unmarkVolumesRead'])->name('collection.volumes.unmarkRead');
     Route::patch('/my-collection/{collection}/volumes/restore', [CollectionController::class, 'restoreVolumes'])->name('collection.volumes.restore');
+    Route::patch('/my-collection/{collection}/volumes/read-progress', [CollectionController::class, 'advanceReadProgress'])->name('collection.volumes.readProgress');
+    Route::patch('/my-collection/{collection}/volumes/quick-count', [CollectionController::class, 'quickAdjustCount'])->name('collection.volumes.quickCount');
 
     // Pinjaman user
     Route::get('/my-loans', [LoanController::class, 'index'])->name('loans.index');
@@ -122,6 +144,7 @@ Route::middleware(['auth', 'not_banned', 'check.menu'])->group(function () {
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::patch('/settings/profile-visibility', [SettingsController::class, 'updateProfileVisibility'])->name('settings.profile-visibility.update');
     Route::patch('/settings/locale', [SettingsController::class, 'updateLocale'])->name('settings.locale.update');
+    Route::patch('/settings/theme', [SettingsController::class, 'updateTheme'])->name('settings.theme.update');
 });
 
 // Admin area
@@ -139,6 +162,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'not_banned', 'check
     Route::get('/images/search', [ImageSearchController::class, 'search'])->name('images.search');
     Route::get('/command-search', [CommandSearchController::class, 'search'])->name('command-search');
     Route::post('/anilist/import', [AniListController::class, 'import'])->name('anilist.import');
+    Route::post('/anilist/bulk-import', [AniListController::class, 'bulkImport'])->name('anilist.bulk-import');
     Route::get('/ranobedb', [RanobeDbController::class, 'index'])->name('ranobedb.index');
     Route::get('/ranobedb/search', [RanobeDbController::class, 'searchJson'])->name('ranobedb.search');
     Route::get('/ranobedb/detail', [RanobeDbController::class, 'detailJson'])->name('ranobedb.detail');
@@ -191,6 +215,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'not_banned', 'check
     Route::post('/settings/storage/test', [StorageSettingController::class, 'testConnection'])->name('settings.storage.test');
     Route::put('/settings/content', [SiteSettingController::class, 'update'])->name('settings.content.update');
     Route::put('/settings/ai', [AiSettingController::class, 'update'])->name('settings.ai.update');
+    Route::put('/settings/mail', [MailSettingController::class, 'update'])->name('settings.mail.update');
 
     // Backup & import database (super_admin only)
     Route::get('/settings/database/download', [DatabaseBackupController::class, 'download'])->name('settings.db.download');

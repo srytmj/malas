@@ -149,7 +149,7 @@ class CollectionController extends Controller
             ],
             'series' => [
                 ...$series->only([
-                    'id', 'title_romaji', 'title_english', 'status', 'type', 'total_volumes', 'is_adult',
+                    'id', 'slug', 'title_romaji', 'title_english', 'status', 'type', 'total_volumes', 'is_adult',
                 ]),
                 'genres' => $series->genres ?? [],
                 'themes' => $series->themes ?? [],
@@ -520,6 +520,127 @@ class CollectionController extends Controller
         ActivityLog::record('collection.volumes.undo_mark_read', auth()->user()->name.' membatalkan tanda baca volume.', $collection);
 
         return redirect()->back()->with('success', 'Perubahan dibatalkan.');
+    }
+
+    // Stepper "progres baca" — geser batas volume terbaca satu langkah, bukan toggle per-volume manual.
+    // forward menandai volume-belum-dibaca bernomor terendah; backward membalik volume-sudah-dibaca
+    // bernomor tertinggi. Sengaja tidak menyentuh volume yang ditandai manual di luar urutan.
+    public function advanceReadProgress(Request $request, Collection $collection): RedirectResponse
+    {
+        $this->authorize('update', $collection);
+
+        $request->validate([
+            'direction' => ['required', Rule::in(['forward', 'backward'])],
+        ]);
+
+        if ($request->direction === 'forward') {
+            $volume = $collection->collectionVolumes()->whereNull('read_at')->orderBy('volume_number')->first();
+
+            if (! $volume) {
+                return redirect()->back()->with('info', 'Semua volume yang dimiliki sudah ditandai dibaca.');
+            }
+
+            $volume->update(['read_at' => now()]);
+            $message = "Volume {$volume->volume_number} ditandai sudah dibaca.";
+        } else {
+            $volume = $collection->collectionVolumes()->whereNotNull('read_at')->orderBy('volume_number', 'desc')->first();
+
+            if (! $volume) {
+                return redirect()->back()->with('info', 'Belum ada volume yang ditandai dibaca.');
+            }
+
+            $volume->update(['read_at' => null]);
+            $message = "Volume {$volume->volume_number} ditandai belum dibaca.";
+        }
+
+        ActivityLog::record('collection.volumes.advance_read', auth()->user()->name.' '.$message, $collection);
+
+        return redirect()->back()->with([
+            'success' => $message,
+            'undo_url' => route('collection.volumes.toggleRead', [
+                'collection' => $collection->id,
+                'collectionVolume' => $volume->id,
+            ]),
+        ]);
+    }
+
+    // Quick-edit jumlah volume dimiliki per format — nomor volume dibagi bersama lintas format dalam
+    // satu koleksi (unique constraint di collection_id+volume_number), jadi "add" selalu ambil nomor
+    // berikutnya yang belum dimiliki sama sekali, bukan per-format. "remove" hapus volume bernomor
+    // tertinggi DARI format yang dipilih — tombolnya sudah didisable di frontend kalau volume itu
+    // lagi dipinjamkan, tapi ini validasi server-side sebagai lapisan kedua. PENTING: kalau volume
+    // tertinggi ternyata lagi dipinjam, request DITOLAK (bukan diam-diam turun ke volume di bawahnya)
+    // — user harus selalu tahu persis volume mana yang kehapus, bukan ditebak sistem.
+    public function quickAdjustCount(Request $request, Collection $collection): RedirectResponse
+    {
+        $this->authorize('update', $collection);
+
+        $request->validate([
+            'format' => ['required', Rule::in(['physical', 'ebook', 'online', 'webtoon'])],
+            'direction' => ['required', Rule::in(['add', 'remove'])],
+        ]);
+
+        $format = $request->format;
+
+        if ($request->direction === 'add') {
+            $nextNumber = ($collection->collectionVolumes()->max('volume_number') ?? 0) + 1;
+
+            $ebookSource = null;
+            if ($format === 'ebook') {
+                $ebookSource = $collection->collectionVolumes()
+                    ->where('format', 'ebook')
+                    ->whereNotNull('ebook_source')
+                    ->latest('created_at')
+                    ->value('ebook_source') ?? 'bookwalker';
+            }
+
+            $volume = $collection->collectionVolumes()->create([
+                'volume_number' => $nextNumber,
+                'format' => $format,
+                'ebook_source' => $ebookSource,
+            ]);
+
+            ActivityLog::record(
+                'collection.volumes.quick_add',
+                auth()->user()->name." menambahkan volume {$nextNumber} ({$format}) ke \"{$collection->series->title_romaji}\".",
+                $collection,
+            );
+
+            return redirect()->back()->with([
+                'success' => "Volume {$volume->volume_number} berhasil ditambahkan.",
+                'undo_url' => route('collection.volumes.quickCount', $collection->id),
+                'undo_payload' => ['format' => $format, 'direction' => 'remove'],
+            ]);
+        }
+
+        $volume = $collection->collectionVolumes()
+            ->where('format', $format)
+            ->orderBy('volume_number', 'desc')
+            ->first();
+
+        if (! $volume) {
+            return redirect()->back()->with('info', 'Belum ada volume dengan format ini.');
+        }
+
+        if ($volume->activeLoans()->exists()) {
+            return redirect()->back()->with('info', 'Volume tertinggi format ini sedang dipinjamkan, tidak bisa dihapus.');
+        }
+
+        $payload = $volume->only(['volume_number', 'format', 'ebook_source', 'language', 'read_at']);
+        $volumeNumber = $volume->volume_number;
+        $volume->delete();
+
+        ActivityLog::record(
+            'collection.volumes.quick_remove',
+            auth()->user()->name." menghapus volume {$volumeNumber} ({$format}) dari \"{$collection->series->title_romaji}\".",
+            $collection,
+        );
+
+        return redirect()->back()->with([
+            'success' => "Volume {$volumeNumber} berhasil dihapus.",
+            'undo_url' => route('collection.volumes.restore', $collection->id),
+            'undo_payload' => ['volumes' => [$payload]],
+        ]);
     }
 
     public function updateReview(Request $request, Collection $collection): RedirectResponse

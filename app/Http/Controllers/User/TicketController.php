@@ -23,7 +23,7 @@ class TicketController extends Controller
     {
         $tickets = auth()->user()
             ->tickets()
-            ->with('series:id,title_romaji')
+            ->with('series:id,slug,title_romaji')
             ->latest()
             ->paginate($this->perPage(15))
             ->withQueryString()
@@ -32,7 +32,7 @@ class TicketController extends Controller
                 'subject' => $t->subject,
                 'type' => $t->type,
                 'status' => $t->status,
-                'series' => $t->series ? ['id' => $t->series->id, 'title_romaji' => $t->series->title_romaji] : null,
+                'series' => $t->series ? ['id' => $t->series->id, 'slug' => $t->series->slug, 'title_romaji' => $t->series->title_romaji] : null,
                 'created_at' => $t->created_at->toDateString(),
             ]);
 
@@ -107,6 +107,7 @@ class TicketController extends Controller
                 'created_at' => $ticket->created_at->toDateTimeString(),
                 'series' => $ticket->series ? [
                     'id' => $ticket->series->id,
+                    'slug' => $ticket->series->slug,
                     'title_romaji' => $ticket->series->title_romaji,
                 ] : null,
             ],

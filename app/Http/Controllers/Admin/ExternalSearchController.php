@@ -65,7 +65,7 @@ class ExternalSearchController extends Controller
     private function formatAniListResults(array $data): array
     {
         $anilistIds = array_column($data, 'id');
-        $imported = Series::whereIn('anilist_id', $anilistIds)->pluck('id', 'anilist_id')->toArray();
+        $imported = Series::whereIn('anilist_id', $anilistIds)->get(['id', 'slug', 'anilist_id'])->keyBy('anilist_id');
 
         return array_map(fn ($item) => [
             'source' => 'anilist',
@@ -81,7 +81,8 @@ class ExternalSearchController extends Controller
             'published_from' => $this->buildAniListDate($item['startDate'] ?? null),
             'is_adult' => $item['isAdult'] ?? false,
             'already_imported' => isset($imported[$item['id']]),
-            'series_id' => $imported[$item['id']] ?? null,
+            'series_id' => $imported[$item['id']]->id ?? null,
+            'series_slug' => $imported[$item['id']]->slug ?? null,
         ], $data);
     }
 
@@ -89,7 +90,7 @@ class ExternalSearchController extends Controller
     private function formatRanobeDbResults(array $data): array
     {
         $ranobedbIds = array_column($data, 'id');
-        $imported = Series::whereIn('ranobedb_id', $ranobedbIds)->pluck('id', 'ranobedb_id')->toArray();
+        $imported = Series::whereIn('ranobedb_id', $ranobedbIds)->get(['id', 'slug', 'ranobedb_id'])->keyBy('ranobedb_id');
 
         return array_map(fn ($item) => [
             'source' => 'ranobedb',
@@ -107,7 +108,8 @@ class ExternalSearchController extends Controller
             'published_from' => null,
             'is_adult' => false,
             'already_imported' => isset($imported[$item['id']]),
-            'series_id' => $imported[$item['id']] ?? null,
+            'series_id' => $imported[$item['id']]->id ?? null,
+            'series_slug' => $imported[$item['id']]->slug ?? null,
         ], $data);
     }
 

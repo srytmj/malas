@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
 import {
-    BookMarked, BookOpen, Check, Eye, EyeOff, LayoutGrid, List, Plus, RotateCcw, Trash2, Wand2, X,
+    BookMarked, BookOpen, Check, Eye, EyeOff, LayoutGrid, List, Minus, Plus, RotateCcw, Trash2, Wand2, X,
 } from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -69,6 +69,7 @@ interface CollectionData {
 
 interface SeriesData {
     id: string;
+    slug: string;
     title_romaji: string;
     title_english: string | null;
     status: SeriesStatus;
@@ -329,6 +330,8 @@ export default function CollectionShow({ collection, series, volumes, last_read_
         return (window.localStorage.getItem(VOLUME_VIEW_KEY) as 'grid' | 'table') || 'grid';
     });
     const [updatingCondition, setUpdatingCondition] = useState(false);
+    const [advancingRead, setAdvancingRead]   = useState<'forward' | 'backward' | null>(null);
+    const [adjustingFormat, setAdjustingFormat] = useState<string | null>(null);
     const [rating, setRating]                 = useState(collection.personal_rating ?? 0);
     const [reviewText, setReviewText]         = useState(collection.personal_review ?? '');
     const [savingReview, setSavingReview]     = useState(false);
@@ -354,6 +357,24 @@ export default function CollectionShow({ collection, series, volumes, last_read_
             if (prev) setSelectedIds(new Set());
             return !prev;
         });
+    }
+
+    function handleAdvanceRead(direction: 'forward' | 'backward') {
+        setAdvancingRead(direction);
+        router.patch(
+            route('collection.volumes.readProgress', collection.id),
+            { direction },
+            { preserveScroll: true, onFinish: () => setAdvancingRead(null) },
+        );
+    }
+
+    function handleQuickCount(format: CollectionVolumeFormat, direction: 'add' | 'remove') {
+        setAdjustingFormat(`${format}:${direction}`);
+        router.patch(
+            route('collection.volumes.quickCount', collection.id),
+            { format, direction },
+            { preserveScroll: true, onFinish: () => setAdjustingFormat(null) },
+        );
     }
 
     function toggleRead(volumeId: string) {
@@ -500,6 +521,16 @@ export default function CollectionShow({ collection, series, volumes, last_read_
 
     const ownedCount = volumes.length;
     const filteredVolumes = formatFilter ? volumes.filter((v) => v.format === formatFilter) : volumes;
+    const hasUnreadVolume = volumes.some((v) => !v.read_at);
+    const hasReadVolume = volumes.some((v) => v.read_at);
+    const formatSummaries = (['physical', 'ebook', 'online', 'webtoon'] as CollectionVolumeFormat[])
+        .map((format) => {
+            const forFormat = volumes.filter((v) => v.format === format);
+            if (forFormat.length === 0) return null;
+            const top = forFormat.reduce((a, b) => (b.volume_number > a.volume_number ? b : a));
+            return { format, count: forFormat.length, topLoaned: !!top.active_loan };
+        })
+        .filter((x): x is { format: CollectionVolumeFormat; count: number; topLoaned: boolean } => x !== null);
 
     return (
         <UserLayout
@@ -513,7 +544,7 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                     actions={
                         <div className="flex flex-wrap gap-2">
                             <Link
-                                href={route('catalog.show', series.id)}
+                                href={route('catalog.show', series.slug)}
                                 className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
                             >
                                 {t('show.viewCatalog')}
@@ -581,6 +612,74 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                             </div>
                         )}
                     </div>
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                        <span className="text-xs text-muted-foreground">{t('show.readProgress.label')}</span>
+                        <div className="flex items-center gap-1 rounded-md border p-0.5">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                disabled={!hasReadVolume || advancingRead !== null}
+                                onClick={() => handleAdvanceRead('backward')}
+                                aria-label={t('show.readProgress.decrease')}
+                            >
+                                <Minus className="h-3.5 w-3.5" />
+                            </Button>
+                            <span className="min-w-14 text-center text-xs font-medium">
+                                {last_read_volume !== null
+                                    ? t('show.readProgress.upTo', { number: last_read_volume })
+                                    : t('show.readProgress.none')}
+                            </span>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                disabled={!hasUnreadVolume || advancingRead !== null}
+                                onClick={() => handleAdvanceRead('forward')}
+                                aria-label={t('show.readProgress.increase')}
+                            >
+                                <Plus className="h-3.5 w-3.5" />
+                            </Button>
+                        </div>
+                    </div>
+
+                    {formatSummaries.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-2 text-sm">
+                            <span className="text-xs text-muted-foreground">{t('show.quickCount.label')}</span>
+                            {formatSummaries.map(({ format, count, topLoaned }) => (
+                                <div key={format} className="flex items-center gap-1 rounded-md border py-0.5 pl-2 pr-0.5">
+                                    <span className="text-xs text-muted-foreground">{formatLabels[format]}</span>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        disabled={topLoaned || adjustingFormat !== null}
+                                        title={topLoaned ? t('show.quickCount.loanedTooltip') : undefined}
+                                        onClick={() => handleQuickCount(format, 'remove')}
+                                        aria-label={t('show.quickCount.decrease', { format: formatLabels[format] })}
+                                    >
+                                        <Minus className="h-3 w-3" />
+                                    </Button>
+                                    <span className="min-w-5 text-center text-xs font-semibold">{count}</span>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        disabled={adjustingFormat !== null}
+                                        onClick={() => handleQuickCount(format, 'add')}
+                                        aria-label={t('show.quickCount.increase', { format: formatLabels[format] })}
+                                    >
+                                        <Plus className="h-3 w-3" />
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
                     <div className="flex items-center gap-2 text-sm">
                         <span className="text-xs text-muted-foreground">{t('show.conditionOptional')}</span>
                         <Select

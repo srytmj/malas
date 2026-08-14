@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Series;
 use App\Services\AniListService;
 use Illuminate\Http\JsonResponse;
@@ -25,10 +26,23 @@ class AniListController extends Controller
         $hideAdult = $request->boolean('hide_adult', true);
 
         $type = $request->get('type');
+        $q = trim((string) $request->get('q', ''));
+        $genre = $request->get('genre');
+        $year = $request->get('year') ? (int) $request->get('year') : null;
+        $sortByPopularity = $request->boolean('sort_popularity');
 
-        if ($q = $request->get('q')) {
+        // Boleh browse cuma dari genre/tahun tanpa ketik judul sama sekali — makanya syaratnya
+        // "ada query ATAU ada filter genre/tahun", bukan cuma "ada query" seperti sebelumnya.
+        if ($q !== '' || $genre || $year) {
             try {
-                $raw = $this->anilist->searchManga(trim($q), (int) $request->get('page', 1), $hideAdult);
+                $raw = $this->anilist->searchManga(
+                    $q,
+                    (int) $request->get('page', 1),
+                    $hideAdult,
+                    $genre ? [$genre] : [],
+                    $year,
+                    $sortByPopularity ? 'POPULARITY_DESC' : ($q !== '' ? 'SEARCH_MATCH' : 'POPULARITY_DESC'),
+                );
                 $results = $this->filterByType($this->formatResults($raw['data']), $type);
                 $pagination = $raw['pagination'];
             } catch (\Exception $e) {
@@ -39,7 +53,14 @@ class AniListController extends Controller
         return Inertia::render('Admin/AniList/Index', [
             'results' => $results,
             'pagination' => $pagination,
-            'filters' => ['q' => $request->get('q', ''), 'hide_adult' => $hideAdult, 'type' => $type],
+            'filters' => [
+                'q' => $request->get('q', ''),
+                'hide_adult' => $hideAdult,
+                'type' => $type,
+                'genre' => $genre,
+                'year' => $year,
+                'sort_popularity' => $sortByPopularity,
+            ],
             'error' => $error,
         ]);
     }
@@ -90,9 +111,10 @@ class AniListController extends Controller
         $recentImports = Series::whereNotNull('anilist_id')
             ->latest('updated_at')
             ->limit(20)
-            ->get(['id', 'title_romaji', 'anilist_id', 'updated_at'])
+            ->get(['id', 'slug', 'title_romaji', 'anilist_id', 'updated_at'])
             ->map(fn ($s) => [
                 'id' => $s->id,
+                'slug' => $s->slug,
                 'title_romaji' => $s->title_romaji,
                 'anilist_id' => $s->anilist_id,
                 'updated_at' => $s->updated_at->toIso8601String(),
@@ -146,27 +168,13 @@ class AniListController extends Controller
             $fromCache = true;
         }
 
-        $existing = Series::where('anilist_id', $anilistId)->first();
+        [$series, $wasNew] = $this->createOrUpdateSeries($anilistId, $attributes, $coverUrl);
 
-        if ($existing) {
-            if ($existing->cover_path) {
-                unset($attributes['cover_path']);
-            }
-            $existing->update($attributes);
-            $series = $existing;
-            $message = 'Series berhasil diperbarui dari AniList.';
-        } else {
-            if ($coverUrl) {
-                $attributes['cover_path'] = $this->anilist->downloadCover(
-                    $coverUrl,
-                    'anilist_'.$anilistId
-                );
-            }
-            $series = Series::create($attributes);
-            $message = $fromCache
+        $message = $wasNew
+            ? ($fromCache
                 ? 'Series berhasil diimpor (data dari cache pencarian — beberapa field mungkin tidak lengkap).'
-                : 'Series berhasil diimpor dari AniList.';
-        }
+                : 'Series berhasil diimpor dari AniList.')
+            : 'Series berhasil diperbarui dari AniList.';
 
         $generated = $this->generateVolumesIfFinished($series);
         if ($generated > 0) {
@@ -174,6 +182,72 @@ class AniListController extends Controller
         }
 
         return redirect()->back()->with('success', $message);
+    }
+
+    /**
+     * Import banyak series sekaligus dari hasil search — satu request GraphQL (getMangaBatch)
+     * bukan N request terpisah per series, supaya nggak boros kuota rate-limit AniList.
+     */
+    public function bulkImport(Request $request): RedirectResponse
+    {
+        $this->authorize('create', Series::class);
+
+        $request->validate([
+            'anilist_ids' => ['required', 'array', 'min:1', 'max:50'],
+            'anilist_ids.*' => ['integer', 'min:1'],
+        ]);
+
+        $ids = array_map('intval', $request->anilist_ids);
+        $items = $this->anilist->getMangaBatch($ids);
+
+        $importedCount = 0;
+        $updatedCount = 0;
+        $failedCount = 0;
+
+        foreach ($items as $data) {
+            try {
+                $attributes = $this->mapToSeries($data);
+                $coverUrl = $data['coverImage']['large'] ?? null;
+                [, $wasNew] = $this->createOrUpdateSeries((int) $data['id'], $attributes, $coverUrl);
+                $wasNew ? $importedCount++ : $updatedCount++;
+            } catch (\Throwable $e) {
+                report($e);
+                $failedCount++;
+            }
+        }
+
+        $failedCount += count(array_diff($ids, array_column($items, 'id')));
+
+        ActivityLog::record(
+            'series.anilist_bulk_import',
+            auth()->user()->name." bulk import dari AniList: {$importedCount} baru, {$updatedCount} diperbarui".
+                ($failedCount > 0 ? ", {$failedCount} gagal" : '').'.',
+        );
+
+        $message = "Bulk import selesai: {$importedCount} series baru, {$updatedCount} diperbarui";
+        $message .= $failedCount > 0 ? ", {$failedCount} gagal diimpor." : '.';
+
+        return redirect()->back()->with($failedCount > 0 && $importedCount === 0 && $updatedCount === 0 ? 'error' : 'success', $message);
+    }
+
+    /** @return array{0: Series, 1: bool} [series, wasNew] */
+    private function createOrUpdateSeries(int $anilistId, array $attributes, ?string $coverUrl): array
+    {
+        $existing = Series::where('anilist_id', $anilistId)->first();
+
+        if ($existing) {
+            // cover_path sengaja tidak ada di $attributes (lihat mapToSeries) — cover lama
+            // dipertahankan, tidak pernah ke-overwrite otomatis oleh re-import/sync.
+            $existing->update($attributes);
+
+            return [$existing, false];
+        }
+
+        if ($coverUrl) {
+            $attributes['cover_path'] = $this->anilist->downloadCover($coverUrl, 'anilist_'.$anilistId);
+        }
+
+        return [Series::create($attributes), true];
     }
 
     private function mapFromRequest(Request $request): array
@@ -317,11 +391,18 @@ class AniListController extends Controller
         };
     }
 
-    /** @param array<int, array<string, mixed>> $data */
+    /**
+     * @param  array<int, array<string, mixed>>  $data
+     *
+     * Genres/authors/themes/demographics disertakan di sini (bukan cuma pas full import) supaya
+     * popover "Sync AniList" di halaman Edit Series bisa langsung ngisi field genre/tag dari hasil
+     * search — sebelumnya field ini nggak pernah sampai ke form, jadi sync kelihatan "nggak nambah"
+     * genre/tag walau AniList sebenarnya punya datanya.
+     */
     private function formatResults(array $data): array
     {
         $anilistIds = array_column($data, 'id');
-        $imported = Series::whereIn('anilist_id', $anilistIds)->pluck('id', 'anilist_id')->toArray();
+        $imported = Series::whereIn('anilist_id', $anilistIds)->get(['id', 'slug', 'anilist_id'])->keyBy('anilist_id');
 
         return array_map(fn ($item) => [
             'anilist_id' => $item['id'],
@@ -334,8 +415,13 @@ class AniListController extends Controller
             'score' => isset($item['averageScore']) ? round($item['averageScore'] / 10, 2) : null,
             'synopsis' => $this->cleanDescription($item['description'] ?? null),
             'published_from' => $this->buildDate($item['startDate'] ?? null),
+            'genres' => $item['genres'] ?? [],
+            'authors' => $this->extractAuthors($item['staff']['edges'] ?? []),
+            'themes' => $this->extractTags($item['tags'] ?? [], 'Theme-', 8),
+            'demographics' => $this->extractTags($item['tags'] ?? [], 'Demographic', 5),
             'already_imported' => isset($imported[$item['id']]),
-            'series_id' => $imported[$item['id']] ?? null,
+            'series_id' => $imported[$item['id']]->id ?? null,
+            'series_slug' => $imported[$item['id']]->slug ?? null,
             'is_adult' => $item['isAdult'] ?? false,
         ], $data);
     }

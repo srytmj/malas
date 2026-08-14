@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Series extends Model
 {
@@ -16,6 +17,7 @@ class Series extends Model
         'mal_id',
         'anilist_id',
         'ranobedb_id',
+        'slug',
         'title_romaji',
         'title_english',
         'title_japanese',
@@ -65,5 +67,56 @@ class Series extends Model
     public function media(): HasMany
     {
         return $this->hasMany(SeriesMedia::class)->orderBy('sort_order');
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Series $series) {
+            if (blank($series->slug) && filled($series->title_romaji)) {
+                $series->slug = static::generateUniqueSlug($series->title_romaji);
+            }
+        });
+
+        static::updating(function (Series $series) {
+            if ($series->isDirty('title_romaji') && filled($series->title_romaji)) {
+                $series->slug = static::generateUniqueSlug($series->title_romaji, $series->id);
+            }
+        });
+    }
+
+    /**
+     * Bikin slug dari judul — hilangkan karakter selain huruf/angka/spasi (@, !, koma, titik dua,
+     * dll ikut kebuang lewat Str::slug), full judul dipakai apa adanya tanpa dipotong. Kalau slug
+     * hasilnya sudah dipakai series lain, tambah suffix angka (-2, -3, dst) sampai unik.
+     */
+    public static function generateUniqueSlug(string $title, ?string $ignoreId = null): string
+    {
+        // Dictionary default Str::slug() (mis. '@' => 'at') sengaja dikosongkan supaya karakter
+        // simbol dibuang langsung, bukan dikonversi jadi kata.
+        $base = Str::slug($title, '-', 'en', []) ?: 'series';
+        $slug = $base;
+        $suffix = 2;
+
+        while (
+            static::withTrashed()
+                ->where('slug', $slug)
+                ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
+                ->exists()
+        ) {
+            $slug = "{$base}-{$suffix}";
+            $suffix++;
+        }
+
+        return $slug;
+    }
+
+    /**
+     * Route model binding: coba cocokkan lewat slug dulu (URL katalog pakai slug dari judul),
+     * fallback ke id — supaya link lama yang masih pakai uuid tetap jalan.
+     */
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        return static::where('slug', $value)->first()
+            ?? static::where('id', $value)->first();
     }
 }

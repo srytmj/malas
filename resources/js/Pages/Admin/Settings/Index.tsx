@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import {
-    AlertTriangle, Bot, CheckCircle2, Database, Download, Eye, HardDrive, Loader2, Save, Shield, Upload, XCircle, Zap,
+    AlertTriangle, Bot, CheckCircle2, Database, Download, Eye, HardDrive, Loader2, Mail, Save, Shield, Upload, XCircle, Zap,
 } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -40,9 +40,17 @@ interface AiSettingData {
     has_key: boolean;
 }
 
+interface MailSettingData {
+    provider: 'resend';
+    from_address: string | null;
+    from_name: string | null;
+    has_key: boolean;
+}
+
 interface Props extends PageProps {
     setting: StorageSettingData;
     aiSetting: AiSettingData;
+    mailSetting: MailSettingData;
 }
 
 const storageSchema = z.object({
@@ -61,6 +69,14 @@ const aiSchema = z.object({
     api_key: z.string().optional(),
 });
 type AiFormValues = z.infer<typeof aiSchema>;
+
+const mailSchema = z.object({
+    provider: z.enum(['resend']),
+    api_key: z.string().optional(),
+    from_address: z.string().optional(),
+    from_name: z.string().optional(),
+});
+type MailFormValues = z.infer<typeof mailSchema>;
 
 function FieldError({ message }: { message?: string }) {
     if (!message) return null;
@@ -162,6 +178,97 @@ function AiTab({ aiSetting }: { aiSetting: AiSettingData }) {
                             )}
                         </div>
                     )}
+
+                    <Button type="submit" disabled={submitting}>
+                        <Save className="mr-1.5 h-3.5 w-3.5" />
+                        {submitting ? t('common:common.saving') : t('common:common.save')}
+                    </Button>
+                </form>
+            </CardContent>
+        </Card>
+    );
+}
+
+function MailTab({ mailSetting }: { mailSetting: MailSettingData }) {
+    const { t } = useTranslation('admin');
+    const [submitting, setSubmitting] = useState(false);
+
+    const {
+        register, handleSubmit, setError,
+        formState: { errors },
+    } = useForm<MailFormValues>({
+        resolver: zodResolver(mailSchema),
+        defaultValues: {
+            provider: 'resend',
+            api_key: '',
+            from_address: mailSetting.from_address ?? '',
+            from_name: mailSetting.from_name ?? '',
+        },
+    });
+
+    function onSubmit(values: MailFormValues) {
+        setSubmitting(true);
+        router.put(route('admin.settings.mail.update'), values, {
+            onError: (errs) => {
+                Object.entries(errs).forEach(([k, msg]) => {
+                    setError(k as keyof MailFormValues, { message: msg as string });
+                });
+            },
+            onFinish: () => setSubmitting(false),
+        });
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                    <Mail className="h-4 w-4" />
+                    {t('settings.mail.cardTitle')}
+                </CardTitle>
+                <CardDescription>
+                    {t('settings.mail.cardDescription')}
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                    <div className="space-y-1.5">
+                        <Label htmlFor="mail_api_key">
+                            {t('settings.mail.apiKey')} {!mailSetting.has_key && <span className="text-destructive">*</span>}
+                        </Label>
+                        <Input
+                            id="mail_api_key"
+                            type="password"
+                            placeholder={mailSetting.has_key ? t('settings.mail.apiKeyPlaceholder') : 're_xxxxxxxx'}
+                            {...register('api_key')}
+                        />
+                        <FieldError message={errors.api_key?.message} />
+                        {mailSetting.has_key && (
+                            <p className="text-xs text-muted-foreground">{t('settings.mail.apiKeySaved')}</p>
+                        )}
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <Label htmlFor="from_address">{t('settings.mail.fromAddress')}</Label>
+                        <Input
+                            id="from_address"
+                            type="email"
+                            placeholder="noreply@domainmu.com"
+                            {...register('from_address')}
+                        />
+                        <FieldError message={errors.from_address?.message} />
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <Label htmlFor="from_name">{t('settings.mail.fromName')}</Label>
+                        <Input
+                            id="from_name"
+                            placeholder="MALAS"
+                            {...register('from_name')}
+                        />
+                        <FieldError message={errors.from_name?.message} />
+                    </div>
+
+                    <p className="text-xs text-muted-foreground">{t('settings.mail.hint')}</p>
 
                     <Button type="submit" disabled={submitting}>
                         <Save className="mr-1.5 h-3.5 w-3.5" />
@@ -532,7 +639,7 @@ function ContentTab() {
     );
 }
 
-export default function SettingsIndex({ setting, aiSetting }: Props) {
+export default function SettingsIndex({ setting, aiSetting, mailSetting }: Props) {
     const { t } = useTranslation('admin');
     return (
         <AdminLayout
@@ -552,6 +659,7 @@ export default function SettingsIndex({ setting, aiSetting }: Props) {
                         <TabsTrigger value="database">{t('settings.tabs.database')}</TabsTrigger>
                         <TabsTrigger value="content">{t('settings.tabs.content')}</TabsTrigger>
                         <TabsTrigger value="ai">{t('settings.tabs.ai')}</TabsTrigger>
+                        <TabsTrigger value="mail">{t('settings.tabs.mail')}</TabsTrigger>
                     </TabsList>
                     <TabsContent value="storage">
                         <StorageTab setting={setting} />
@@ -564,6 +672,9 @@ export default function SettingsIndex({ setting, aiSetting }: Props) {
                     </TabsContent>
                     <TabsContent value="ai">
                         <AiTab aiSetting={aiSetting} />
+                    </TabsContent>
+                    <TabsContent value="mail">
+                        <MailTab mailSetting={mailSetting} />
                     </TabsContent>
                 </Tabs>
             </div>

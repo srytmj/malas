@@ -29,6 +29,7 @@ class User extends Authenticatable
         'banned_at',
         'is_profile_public',
         'locale',
+        'theme',
     ];
 
     protected $hidden = [

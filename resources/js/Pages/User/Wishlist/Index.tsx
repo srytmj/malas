@@ -16,6 +16,7 @@ import { type SeriesStatus, type SeriesType } from '@/lib/types';
 interface WishlistRow {
     id: string;
     series_id: string;
+    series_slug: string;
     title_romaji: string;
     title_english: string | null;
     cover_url: string | null;
@@ -102,7 +103,7 @@ export default function WishlistIndex({ items }: Props) {
                 <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(160px,1fr))]">
                     {filteredItems.map((item) => (
                         <div key={item.id} className="flex flex-col overflow-hidden rounded-lg border bg-card">
-                            <Link href={route('catalog.show', item.series_id)} className="group block">
+                            <Link href={route('catalog.show', item.series_slug)} className="group block">
                                 <div className="aspect-[2/3] w-full overflow-hidden bg-muted">
                                     {item.cover_url ? (
                                         <img
@@ -118,7 +119,7 @@ export default function WishlistIndex({ items }: Props) {
                                 </div>
                             </Link>
                             <div className="flex flex-1 flex-col gap-1.5 p-3">
-                                <Link href={route('catalog.show', item.series_id)} className="hover:underline">
+                                <Link href={route('catalog.show', item.series_slug)} className="hover:underline">
                                     <p className="line-clamp-2 text-sm font-medium leading-tight">{item.title_romaji}</p>
                                 </Link>
                                 {item.title_english && (

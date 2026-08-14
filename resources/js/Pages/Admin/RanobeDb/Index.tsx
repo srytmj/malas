@@ -20,6 +20,7 @@ interface RanobeDbResult {
     published_to: string | null;
     already_imported: boolean;
     series_id: string | null;
+    series_slug: string | null;
 }
 
 interface Props extends PageProps {
@@ -211,9 +212,9 @@ export default function RanobeDbIndex({ results, pagination, filters, error }: P
                                                 <Download className="mr-1.5 h-3.5 w-3.5" />
                                                 {importing ? t('anilist.importing') : item.already_imported ? t('anilist.update') : t('anilist.import')}
                                             </Button>
-                                            {item.already_imported && item.series_id && (
+                                            {item.already_imported && item.series_slug && (
                                                 <Link
-                                                    href={route('admin.series.show', item.series_id)}
+                                                    href={route('admin.series.show', item.series_slug)}
                                                     className={buttonVariants({ variant: 'outline', size: 'sm' })}
                                                 >
                                                     <ExternalLink className="h-3.5 w-3.5" />

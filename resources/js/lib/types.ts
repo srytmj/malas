@@ -13,6 +13,7 @@ export type TicketStatus          = 'open' | 'in_progress' | 'resolved' | 'close
 
 export interface Series {
     id: string;
+    slug: string;
     mal_id: number | null;
     title_romaji: string;
     title_english: string | null;

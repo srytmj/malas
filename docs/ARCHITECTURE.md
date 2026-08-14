@@ -1,7 +1,7 @@
 # ARCHITECTURE — MALAS
 
-**Versi:** 3.2
-**Diperbarui:** 2026-08-01
+**Versi:** 3.5
+**Diperbarui:** 2026-08-03
 
 > Dokumen ini menggambarkan arsitektur **aktual** aplikasi saat ini. Untuk histori perubahan, lihat [`CHANGELOG.md`](../CHANGELOG.md). Untuk log fase pengembangan, lihat [`PHASES.md`](PHASES.md).
 
@@ -32,6 +32,7 @@
 | Multi-bahasa | react-i18next | latest | UI id/en/ja, namespace JSON per halaman, lihat §9 |
 | AI (client-side) | Puter.js | v2 | Provider default fitur Selera Genre — jalan di browser user, gratis, tanpa API key server |
 | External API | RanobeDB REST API | — | Import metadata light novel, paralel dengan AniList; lihat [`RANOBEDB_INTEGRATION.md`](RANOBEDB_INTEGRATION.md) |
+| Email | Resend (`resend/resend-php`) | v1 | Magic link login tanpa SSO — dikonfigurasi via UI admin (`mail_settings`), bukan `.env` |
 
 ---
 
@@ -48,6 +49,7 @@
 | avatar | string | nullable |
 | is_profile_public | boolean | default false — opt-in tampilkan profil di `/u/{user}` (bisa diakses guest) |
 | locale | string(5) | default `id` — preferensi bahasa UI (`id`/`en`/`ja`) |
+| theme | string(10) | default `system` — `light`/`dark`/`system`, pola sync sama seperti `locale` (`PATCH /settings/theme`) |
 | password | string | nullable (akun SSO tidak selalu punya password lokal) |
 | role | enum | `super_admin`, `admin`, `user` |
 | is_banned | boolean | default false |
@@ -63,6 +65,7 @@
 | mal_id | bigint unique | nullable — legacy, sisa era Jikan |
 | anilist_id | bigint unique | nullable |
 | ranobedb_id | bigint unique | nullable — dari RanobeDB, khusus light novel |
+| slug | string unique | auto-generated dari `title_romaji` (`Str::slug()` dengan dictionary kosong — simbol seperti `@`/`!`/koma/titik dua dibuang langsung, bukan dikonversi jadi kata; full judul dipakai tanpa dipotong walau panjang) — dipakai untuk URL katalog user (`/catalog/{slug}`) **dan** URL series admin (`/admin/series/{slug}`, termasuk link dari hasil AniList/RanobeDB/Search dan Command Palette), regenerate otomatis kalau `title_romaji` berubah, tambah suffix `-2`/`-3` kalau bentrok. Route model binding coba slug dulu, fallback ke id (link lama tetap jalan). |
 | title_romaji | string | required |
 | title_english | string | nullable |
 | title_japanese | string | nullable |
@@ -254,6 +257,30 @@ Single-row table, dikelola dari `/admin/settings` tab AI. Kalau belum ada row sa
 
 Bagian dari fitur "Selera Genre" (word cloud + funfact AI) di dashboard user — lihat §9.
 
+### `mail_settings`
+| Kolom | Tipe | Keterangan |
+|-------|------|-----------|
+| id | uuid PK | |
+| provider | string | default `resend` — satu-satunya provider yang didukung saat ini |
+| api_key | text | nullable — **ter-encrypt** via Eloquent cast |
+| from_address | string | nullable — alamat pengirim, fallback ke placeholder kalau kosong |
+| from_name | string | nullable — nama pengirim, fallback ke `config('app.name')` kalau kosong |
+| created_at / updated_at | timestamp | |
+
+Single-row table, dikelola dari `/admin/settings` tab Email. Dipakai `MailSettingsService::send()` yang set config `services.resend.key`/`mail.from.*` secara runtime sebelum kirim — pola sama dengan `StorageSettingsService::disk()`. Kalau `api_key` kosong, `isConfigured()` return false dan fitur yang bergantung ke email (login tanpa SSO) diam-diam skip pengiriman tanpa error ke user.
+
+### `sso_fallback_tokens`
+| Kolom | Tipe | Keterangan |
+|-------|------|-----------|
+| id | uuid PK | |
+| user_id | uuid FK | cascade delete |
+| token_hash | string unique | SHA-256 hash dari token mentah — token asli cuma ada di link email, sama pola dengan `password_reset_tokens` bawaan Laravel |
+| expires_at | timestamp | 15 menit dari saat diterbitkan (`SsoFallbackToken::issueFor()`) |
+| used_at | timestamp | nullable — diisi begitu token dipakai, mencegah reuse |
+| created_at / updated_at | timestamp | |
+
+Dipakai fitur "Login dengan Email" — lihat §8.
+
 ---
 
 ## 3. Folder Structure
@@ -265,7 +292,8 @@ app/
 │   │   ├── Admin/
 │   │   │   ├── DashboardController.php
 │   │   │   ├── MenuController.php
-│   │   │   ├── SeriesController.php        (termasuk bulkDestroy)
+│   │   │   ├── SeriesController.php        (termasuk bulkDestroy; edit()/update() kirim & terima
+│   │   │   │                                genres/authors/illustrators/themes/demographics)
 │   │   │   ├── VolumeController.php
 │   │   │   ├── CollectionController.php
 │   │   │   ├── LoanController.php
@@ -283,13 +311,16 @@ app/
 │   │   │   ├── ExternalSearchController.php (search gabungan AniList+RanobeDB untuk admin, /admin/search-external)
 │   │   │   ├── RanobeDbController.php      (search & import metadata light novel dari RanobeDB)
 │   │   │   ├── AiSettingController.php     (konfigurasi provider AI: puter/gemini/openai/claude + api_key)
-│   │   │   └── GenreFunfactController.php  (kelola kuota generate-ulang funfact per user, /admin/funfact-quota)
+│   │   │   ├── GenreFunfactController.php  (kelola kuota generate-ulang funfact per user, /admin/funfact-quota)
+│   │   │   └── MailSettingController.php   (konfigurasi provider Email: Resend + api_key/from_address/from_name)
 │   │   ├── User/
 │   │   │   ├── DashboardController.php     (rekomendasi genre + Surprise Me + funfact AI: regenerate/
 │   │   │   │                                auto-save/report-error/genre-detail)
-│   │   │   ├── SeriesController.php        (katalog, read-only + search endpoint)
+│   │   │   ├── SeriesController.php        (katalog, read-only + search endpoint; filter genre
+│   │   │   │                                multi-select OR-match lewat whereJsonContains berantai)
 │   │   │   ├── CollectionController.php    (destroyVolumes bulk, range parsing, toggle/mark-all
-│   │   │   │                                read, update review/rating, format per-volume/bulk)
+│   │   │   │                                read, update review/rating, format per-volume/bulk,
+│   │   │   │                                advanceReadProgress stepper, quickAdjustCount per-format)
 │   │   │   ├── TicketController.php        (user buat & lihat tiket)
 │   │   │   ├── LoanController.php
 │   │   │   ├── SearchController.php        (search Series + Collection untuk Global Search)
@@ -297,7 +328,9 @@ app/
 │   │   │   │                                direktori pengguna)
 │   │   │   └── WishlistController.php      (series yang ingin dibaca, belum dikoleksi)
 │   │   └── Auth/
-│   │       └── SsoController.php           (PKCE OAuth2 redirect/callback/logout)
+│   │       ├── SsoController.php           (PKCE OAuth2 redirect/callback/logout)
+│   │       └── SsoFallbackController.php   (login tanpa SSO — magic link email sekali-pakai,
+│   │                                        dipakai kalau whitearchive.id tidak bisa diakses)
 │   ├── Middleware/
 │   │   ├── CheckMenuAccess.php
 │   │   ├── EnsureNotBanned.php
@@ -322,7 +355,9 @@ app/
 │   ├── WishlistItem.php
 │   ├── Follow.php           (follower_id / following_id, keduanya FK ke users)
 │   ├── AiSetting.php        (encrypted api_key cast, single-row)
-│   └── GenreFunfact.php     (DEFAULT_MANUAL_QUOTA = 5, quota_override per user)
+│   ├── GenreFunfact.php     (DEFAULT_MANUAL_QUOTA = 5, quota_override per user)
+│   ├── MailSetting.php      (encrypted api_key cast, single-row)
+│   └── SsoFallbackToken.php (token_hash SHA-256, single-use, TTL 15 menit)
 ├── Policies/
 │   ├── SeriesPolicy.php
 │   ├── VolumePolicy.php
@@ -340,7 +375,16 @@ app/
     │                                Claude via HTTP; provider `puter` di-generate di browser, lihat lib/puter.ts)
     ├── AiRateLimitException.php   (dilempar AiFunfactService saat provider balas HTTP 429, ditangkap
     │                                DashboardController agar fallback ke teks default tanpa potong kuota manual)
-    └── StorageSettingsService.php (satu pintu untuk semua operasi file storage)
+    ├── MailSettingsService.php    (set config Resend runtime dari mail_settings, satu pintu kirim email —
+    │                                pola sama dengan StorageSettingsService::disk())
+    ├── StorageSettingsService.php (satu pintu untuk semua operasi file storage)
+
+app/Mail/
+└── SsoFallbackLoginMail.php   (magic link login tanpa SSO, view: resources/views/emails/sso-fallback-login.blade.php)
+
+app/Console/Commands/
+└── IssueEmergencyLoginLink.php (`sso:emergency-login` — terbitkan SsoFallbackToken dari CLI, buat admin
+    yang butuh akses cepat lewat SSH tanpa nunggu email; lihat docs/DEPLOYMENT.md)
 
 resources/js/
 ├── Pages/
@@ -360,7 +404,7 @@ resources/js/
 │   │   ├── GenreFunfacts/  Index.tsx (kuota generate-ulang funfact per user — lihat/reset/override)
 │   │   ├── Tickets/        Index.tsx, Show.tsx
 │   │   ├── ActivityLog/    Index.tsx
-│   │   └── Settings/       Index.tsx (tab Storage/Database/Konten/AI)
+│   │   └── Settings/       Index.tsx (tab Storage/Database/Konten/AI/Email)
 │   ├── User/
 │   │   ├── Dashboard.tsx   (stat cards, chart Koleksi per Status, Carousel rekomendasi + Surprise Me,
 │   │   │                   card Selera Genre — word cloud + funfact AI)
@@ -373,7 +417,7 @@ resources/js/
 │   │   ├── Directory/      Index.tsx (direktori pengguna, butuh login, untuk follow)
 │   │   ├── Tickets/        Index.tsx, Create.tsx, Show.tsx
 │   │   └── Loans/          Index.tsx
-│   ├── Auth/               Banned.tsx
+│   ├── Auth/               Banned.tsx, SsoFallback.tsx (login tanpa SSO — form email + status kirim)
 │   ├── Settings/           Index.tsx (read-only profil dari SSO + kartu Bahasa + toggle profil publik)
 │   ├── Error.tsx           (handle 403, 404, 500, 503)
 │   ├── Maintenance.tsx
@@ -400,7 +444,16 @@ resources/js/
 │       ├── CommandPalette.tsx      (⌘K admin — nav cepat + search Series/Users/Tiket)
 │       ├── GlobalSearch.tsx        (⌘K user — nav cepat + search Katalog/Koleksiku)
 │       ├── SortableMenuList.tsx    (drag-drop reorder menu, @dnd-kit, dipakai Admin/Menus/Index.tsx)
-│       └── LanguageSwitcher.tsx    (Popover ganti bahasa id/en/ja, di sidebar footer + Settings)
+│       ├── LanguageSwitcher.tsx    (Popover ganti bahasa id/en/ja, di sidebar footer + Settings;
+│       │                            guest-safe — skip persist kalau belum login)
+│       ├── ThemeSwitcher.tsx       (Popover Light/Dark/System, pola identik LanguageSwitcher;
+│       │                            resolvedTheme via matchMedia, live-update saat OS ganti tema)
+│       ├── TagListInput.tsx        (editor tag bebas — Enter/koma nambah, klik-X hapus; dipakai
+│       │                            genres/authors/illustrators/themes/demographics di Series Edit)
+│       ├── GenreMultiSelect.tsx    (filter genre searchable + multi-select, Popover+Command/cmdk,
+│       │                            grouped manga/novel; dipakai di Catalog/Index.tsx)
+│       └── LoginMethodDialog.tsx   (modal pilihan SSO/Email — dipasang di Landing page dan
+│                                    PublicShell/CTA follow di Profile/Show.tsx buat guest)
 ├── hooks/
 │   └── useFlash.ts         (sonner toast dari flash session, dukung aksi "Undo" via
 │                             flash.undo_url/undo_payload)
@@ -497,11 +550,29 @@ Semua file (cover series, cover volume) diakses lewat **`StorageSettingsService`
 - Dipakai untuk search & import metadata series (judul, sinopsis, genre, author, theme, demographic, skor, cover) dari `Admin/AniList/Index.tsx`.
 - Sync ulang metadata ke series yang sudah ada tersedia dari Popover "Sync AniList" di halaman Edit Series.
 - Menggantikan integrasi Jikan/MyAnimeList generasi sebelumnya (`JikanService` sudah dihapus total).
+- **Batch import** (`AniListController::bulkImport()`): filter genre (`genre_in`) + tahun rilis + sort popularitas dilewatkan ke `AniListService::searchManga()`. **Penting**: `seasonYear` di skema AniList adalah konsep musim tayang anime dan selalu balikin array kosong untuk `type: MANGA` — diverifikasi langsung ke API sebelum dipakai. Filter tahun untuk manga harus lewat rentang `startDate_greater`/`startDate_lesser` (`FuzzyDateInt`, format `YYYYMMDD`: `gt = {tahun}0000`, `lt = {tahun+1}0000`). `AniListService::getMangaBatch()` ambil sampai 50 series sekaligus dalam satu request GraphQL (`media(id_in: [...])`) — bukan N request terpisah, penting buat menghemat kuota rate-limit AniList (~90 req/menit).
 
 ### SSO whitearchive.id
 - PKCE-based OAuth2. Semua user (termasuk admin) login lewat SSO — tidak ada form register/login lokal.
 - Flow: `/auth/redirect` → whitearchive.id → `/auth/callback` (`SsoController`) → user dibuat/diupdate dari klaim SSO (`sso_id`, `name`, `username`, `email`, `avatar`) → session dibuat.
 - Halaman `Settings/Index.tsx` menampilkan profil secara read-only (data profil dikelola di sisi SSO, bukan di MALAS).
+- `SsoController::curlRequest()` pakai curl langsung (bukan `Http::` facade Laravel/Guzzle) — di environment ini `curl_multi` milik Guzzle intermiten hang di PHP-FPM, blocking `curl_exec` lebih reliable.
+
+### Login dengan Email (magic link)
+- Awalnya dibangun sebagai fallback darurat kalau whitearchive.id tidak bisa diakses, sekarang dipromosikan jadi **opsi login setara SSO** — dipilih dari `LoginMethodDialog.tsx` (modal "Masuk ke MALAS" yang muncul saat klik tombol Login di Landing page), bukan cuma link kecil tersembunyi. Mekanisme backend tidak berubah sama sekali dari versi fallback-nya.
+- Flow: `LoginMethodDialog` (atau langsung `/auth/fallback`) → user isi email → `POST /auth/fallback` (`throttle:5,10`, dinaikkan dari `3,15` setelah dipromosikan jadi opsi harian) → kalau email cocok dengan user yang ada DAN `mail_settings` terkonfigurasi, terbitkan `SsoFallbackToken` (TTL 15 menit, single-use) dan kirim magic link lewat email (`SsoFallbackLoginMail`) → user klik link → `GET /auth/fallback/{token}` (`SsoFallbackController::consume`) → `Auth::login()` langsung, redirect sesuai role.
+- **Trade-off yang disengaja**: profil (nama/avatar/username) cuma ikut ke-sync ulang dari SSO pas login lewat SSO — user yang selalu login lewat email tidak dapat update profil otomatis.
+- **Anti email-enumeration**: response `POST /auth/fallback` SELALU pesan generik yang sama ("kalau email terdaftar, link sudah dikirim") baik email-nya valid/tidak/user banned — tidak pernah membocorkan status akun lewat response.
+- Kegagalan kirim email (mis. Resend down, API key salah) ditangkap try/catch, tidak bikin request 500 — dicatat ke `ActivityLog` (action `auth.fallback_mail_error`) dan log Laravel biasa, user tetap dapat response generik yang sama.
+- `ActivityLog::record()` di-fallback ke ID user subject kalau tidak ada user yang login (`auth()->id()` null) — dibutuhkan khusus buat flow ini karena request datang dari guest, bukan dari user/admin yang sudah authenticated seperti aksi lain yang dicatat log aktivitas.
+- Token disimpan **ter-hash** (SHA-256) di `sso_fallback_tokens`, token mentah cuma ada di link email — sama pola dengan `password_reset_tokens` bawaan Laravel.
+- **Jalur kedua (CLI)**: `php artisan sso:emergency-login {identifier=super_admin}` (`app/Console/Commands/IssueEmergencyLoginLink.php`) — reuse `SsoFallbackToken::issueFor()` yang sama, cuma diterbitkan dari terminal (butuh akses SSH ke server) bukan dari form. Berguna kalau mail service belum dikonfigurasi atau butuh akses instan tanpa nunggu email. Panduan pakai lengkap: [`docs/DEPLOYMENT.md`](DEPLOYMENT.md).
+
+### Resend (Email)
+- Provider email satu-satunya yang didukung saat ini, dikonfigurasi dari `/admin/settings` tab Email (`mail_settings` table, api_key ter-encrypt) — bukan `.env`.
+- `MailSettingsService::send()` set config `services.resend.key`/`mail.from.*` secara runtime sebelum kirim (pola sama dengan `StorageSettingsService::disk()` yang bangun disk S3 ad-hoc dari kredensial DB), lalu `Mail::mailer('resend')->send(...)`.
+- Paket `resend/resend-php` (native Laravel `resend` mail transport, `config/mail.php` sudah punya stub-nya bawaan Laravel 12).
+- Kalau `api_key` belum diisi, `MailSettingsService::isConfigured()` return false — fitur yang bergantung ke email (login tanpa SSO) diam-diam skip pengiriman, tidak error ke user.
 
 ### RanobeDB REST API
 - Endpoint: lihat [`docs/RANOBEDB_INTEGRATION.md`](RANOBEDB_INTEGRATION.md) untuk detail lengkap (tanpa auth, model tiga level Series → Books → Releases).

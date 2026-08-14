@@ -10,6 +10,7 @@ import PageHeader from '@/Components/app/PageHeader';
 import EmptyState from '@/Components/app/EmptyState';
 import { SeriesTypeBadge, VolumeTypeBadge } from '@/Components/app/StatusBadge';
 import { SeriesMediaGallery, type SeriesMediaItem } from '@/Components/app/SeriesMediaGallery';
+import { TagListInput } from '@/Components/app/TagListInput';
 import { Button, buttonVariants } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Textarea } from '@/Components/ui/textarea';
@@ -45,6 +46,10 @@ interface AniListResult {
     score: number | null;
     synopsis: string | null;
     published_from: string | null;
+    genres: string[];
+    authors: string[];
+    themes: string[];
+    demographics: string[];
     already_imported: boolean;
 }
 
@@ -71,6 +76,11 @@ interface RanobeDbDetail {
     total_volumes: number | null;
     score: number | null;
     cover_url: string | null;
+    genres: string[];
+    themes: string[];
+    demographics: string[];
+    authors: string[];
+    illustrators: string[];
 }
 
 interface VolumeRow {
@@ -84,6 +94,7 @@ interface VolumeRow {
 
 interface SeriesData {
     id: string;
+    slug: string;
     mal_id: number | null;
     title_romaji: string;
     title_english: string | null;
@@ -97,6 +108,11 @@ interface SeriesData {
     score: number | null;
     rank: number | null;
     cover_url: string | null;
+    genres: string[];
+    authors: string[];
+    illustrators: string[];
+    themes: string[];
+    demographics: string[];
 }
 
 interface Props extends PageProps {
@@ -134,6 +150,17 @@ function FieldError({ message }: { message?: string }) {
     return <p className="text-xs text-destructive">{message}</p>;
 }
 
+// FormData butuh key ber-index (genres[0], genres[1], ...) supaya Laravel parse-nya jadi array,
+// bukan string tunggal — array kosong sengaja TETAP dikirim (genres[] tanpa isi) supaya "hapus
+// semua tag" beneran ke-submit, bukan cuma di-skip diam-diam kayak field kosong lainnya.
+function appendTagList(fd: FormData, key: string, values: string[]) {
+    if (values.length === 0) {
+        fd.append(`${key}[]`, '');
+        return;
+    }
+    values.forEach((v, i) => fd.append(`${key}[${i}]`, v));
+}
+
 export default function SeriesEdit({ series, volumes, media }: Props) {
     const { t } = useTranslation('admin');
 
@@ -167,6 +194,14 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
     const [coverUrlInput, setCoverUrlInput] = useState('');
     const [submitting, setSubmitting]       = useState(false);
     const fileRef = useRef<HTMLInputElement>(null);
+
+    // Genre & tags — bebas (bukan enum tetap), diedit lewat TagListInput, dikirim terpisah dari
+    // seriesSchema (react-hook-form) karena bentuknya array, bukan field skalar.
+    const [genres, setGenres]             = useState<string[]>(series.genres ?? []);
+    const [authors, setAuthors]           = useState<string[]>(series.authors ?? []);
+    const [illustrators, setIllustrators] = useState<string[]>(series.illustrators ?? []);
+    const [themes, setThemes]             = useState<string[]>(series.themes ?? []);
+    const [demographics, setDemographics] = useState<string[]>(series.demographics ?? []);
 
     // Cover image search dialog state
     const [coverSearchOpen, setCoverSearchOpen]       = useState(false);
@@ -296,6 +331,11 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
         } else if (coverMode === 'url' && coverUrlInput.trim()) {
             fd.append('cover_url', coverUrlInput.trim());
         }
+        appendTagList(fd, 'genres', genres);
+        appendTagList(fd, 'authors', authors);
+        appendTagList(fd, 'illustrators', illustrators);
+        appendTagList(fd, 'themes', themes);
+        appendTagList(fd, 'demographics', demographics);
 
         router.post(route('admin.series.update', series.id), fd, {
             forceFormData: true,
@@ -471,6 +511,10 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
         setValue('score',          item.score   ? String(item.score)   : '');
         setValue('synopsis',       item.synopsis       ?? '');
         setValue('published_from', item.published_from ?? '');
+        setGenres(item.genres ?? []);
+        setAuthors(item.authors ?? []);
+        setThemes(item.themes ?? []);
+        setDemographics(item.demographics ?? []);
         if (item.cover_url) {
             setCoverMode('url');
             setCoverUrlInput(item.cover_url);
@@ -531,6 +575,11 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                 setValue('synopsis',       d.synopsis ?? '');
                 setValue('published_from', d.published_from ?? '');
                 setValue('published_to',   d.published_to   ?? '');
+                setGenres(d.genres ?? []);
+                setAuthors(d.authors ?? []);
+                setIllustrators(d.illustrators ?? []);
+                setThemes(d.themes ?? []);
+                setDemographics(d.demographics ?? []);
                 if (d.cover_url) {
                     setCoverMode('url');
                     setCoverUrlInput(d.cover_url);
@@ -553,7 +602,7 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                     title={series.title_romaji}
                     breadcrumbs={[
                         { label: t('series.breadcrumb'), href: route('admin.series.index') },
-                        { label: series.title_romaji, href: route('admin.series.show', series.id) },
+                        { label: series.title_romaji, href: route('admin.series.show', series.slug) },
                         { label: t('series.breadcrumbEdit') },
                     ]}
                     actions={
@@ -757,7 +806,7 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                 {submitting ? t('common:common.saving') : t('common:common.save')}
                             </Button>
                             <Link
-                                href={route('admin.series.show', series.id)}
+                                href={route('admin.series.show', series.slug)}
                                 className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
                             >
                                 <X className="mr-1.5 h-3.5 w-3.5" />
@@ -962,6 +1011,30 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                             className="resize-none text-sm text-muted-foreground leading-relaxed"
                             {...register('synopsis')}
                         />
+
+                        {/* Genre & Tags — bebas, diketik manual atau keisi dari Sync AniList/RanobeDB */}
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="space-y-1">
+                                <Label className="text-xs text-muted-foreground">{t('series.genres')}</Label>
+                                <TagListInput value={genres} onChange={setGenres} placeholder={t('series.genresPlaceholder')} />
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-xs text-muted-foreground">{t('series.themes')}</Label>
+                                <TagListInput value={themes} onChange={setThemes} placeholder={t('series.themesPlaceholder')} />
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-xs text-muted-foreground">{t('series.demographics')}</Label>
+                                <TagListInput value={demographics} onChange={setDemographics} placeholder={t('series.demographicsPlaceholder')} />
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-xs text-muted-foreground">{t('series.authors')}</Label>
+                                <TagListInput value={authors} onChange={setAuthors} placeholder={t('series.authorsPlaceholder')} />
+                            </div>
+                            <div className="space-y-1 sm:col-span-2">
+                                <Label className="text-xs text-muted-foreground">{t('series.illustrators')}</Label>
+                                <TagListInput value={illustrators} onChange={setIllustrators} placeholder={t('series.illustratorsPlaceholder')} />
+                            </div>
+                        </div>
                     </div>
                 </div>
 

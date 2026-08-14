@@ -5,9 +5,10 @@ import { ArrowUp, BookOpen, Layers, LogIn, Settings, UserMinus, UserPlus, Users 
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import { AdultBlurOverlay } from '@/Components/app/AdultBlurOverlay';
+import { LoginMethodDialog } from '@/Components/app/LoginMethodDialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/Components/ui/avatar';
 import { Badge } from '@/Components/ui/badge';
-import { Button, buttonVariants } from '@/Components/ui/button';
+import { Button } from '@/Components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import { ToggleGroup, ToggleGroupItem } from '@/Components/ui/toggle-group';
 import {
@@ -20,21 +21,20 @@ import { type SeriesType } from '@/lib/types';
 
 function PublicShell({ header, children }: PropsWithChildren<{ header?: ReactNode }>) {
     const { t } = useTranslation();
+    const [loginOpen, setLoginOpen] = useState(false);
 
     return (
         <div className="min-h-screen bg-background">
             <header className="flex h-14 items-center justify-between border-b px-6">
                 <span className="text-base font-bold tracking-tight">MALAS</span>
-                <Link
-                    href={route('sso.redirect')}
-                    className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
-                >
+                <Button variant="outline" size="sm" onClick={() => setLoginOpen(true)}>
                     <LogIn className="mr-1.5 h-3.5 w-3.5" />
                     {t('nav.login')}
-                </Link>
+                </Button>
             </header>
             {header && <div className="border-b bg-background px-6 py-4">{header}</div>}
             <main className="mx-auto max-w-5xl p-6">{children}</main>
+            <LoginMethodDialog open={loginOpen} onOpenChange={setLoginOpen} />
         </div>
     );
 }
@@ -74,6 +74,7 @@ interface ProfileUser {
 
 interface ProfileCollectionItem {
     series_id: string;
+    series_slug: string;
     title_romaji: string;
     cover_url: string | null;
     type: SeriesType;
@@ -122,6 +123,7 @@ export default function ProfileShow({
     const [processing, setProcessing] = useState(false);
     const [typeFilter, setTypeFilter] = useState('all');
     const [showCount, setShowCount] = useState('25');
+    const [followLoginOpen, setFollowLoginOpen] = useState(false);
 
     const filteredCollections = useMemo(
         () => (typeFilter === 'all' ? collections : collections.filter((c) => c.type === typeFilter)),
@@ -164,13 +166,14 @@ export default function ProfileShow({
                                 {t('profile.manageProfile')}
                             </Link>
                         ) : is_guest ? (
-                            <Link
-                                href={route('sso.redirect')}
+                            <button
+                                type="button"
+                                onClick={() => setFollowLoginOpen(true)}
                                 className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
                             >
                                 <UserPlus className="h-4 w-4" />
                                 {t('common:profile.loginToFollow')}
-                            </Link>
+                            </button>
                         ) : (
                             <Button variant={following ? 'outline' : 'default'} disabled={processing} onClick={handleToggleFollow}>
                                 {following ? (
@@ -313,7 +316,7 @@ export default function ProfileShow({
                             return is_guest ? (
                                 <div key={c.series_id} title={c.title_romaji}>{cover}</div>
                             ) : (
-                                <Link key={c.series_id} href={route('catalog.show', c.series_id)}>{cover}</Link>
+                                <Link key={c.series_id} href={route('catalog.show', c.series_slug)}>{cover}</Link>
                             );
                         })}
                     </div>
@@ -321,6 +324,7 @@ export default function ProfileShow({
             </div>
 
             {!is_guest && <BackToTop />}
+            {is_guest && <LoginMethodDialog open={followLoginOpen} onOpenChange={setFollowLoginOpen} />}
         </Layout>
     );
 }

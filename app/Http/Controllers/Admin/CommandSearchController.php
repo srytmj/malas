@@ -24,8 +24,8 @@ class CommandSearchController extends Controller
                 ->orWhere('title_english', 'like', "%{$q}%")
             )
             ->limit(5)
-            ->get(['id', 'title_romaji'])
-            ->map(fn ($s) => ['id' => $s->id, 'title' => $s->title_romaji]);
+            ->get(['id', 'slug', 'title_romaji'])
+            ->map(fn ($s) => ['id' => $s->id, 'slug' => $s->slug, 'title' => $s->title_romaji]);
 
         $users = User::query()
             ->where(fn ($sub) => $sub->where('name', 'like', "%{$q}%")

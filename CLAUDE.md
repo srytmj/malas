@@ -375,12 +375,16 @@ Jangan duplikasi atau rebuild ulang fitur-fitur ini:
 | Fitur | Lokasi |
 |-------|--------|
 | Import manga dari AniList | `Admin/AniList/Index.tsx` + `AniListController` |
+| Batch import AniList (filter genre/tahun/popularitas, multi-select) | `Admin/AniList/Index.tsx` + `AniListController::bulkImport()` + `AniListService::getMangaBatch()` (satu request GraphQL `id_in`, bukan N request terpisah) |
+| Buka series di tab baru dari context menu (klik kanan) | `Admin/Series/Index.tsx` — `window.open()`, terpisah dari navigasi SPA Inertia biasa |
 | Sync metadata AniList ke series yang ada | Edit Series page (Popover "Sync AniList") |
 | Koleksi pribadi + volume tracking | `User/Collection/*` |
 | Bulk delete volumes | `Collection/Show.tsx` + `CollectionController::destroyVolumes()` |
 | Bulk delete series (admin) | `Admin/Series/Index.tsx` + `SeriesController::bulkDestroy()` |
 | Input volume dengan range (`1-5,7,9-12`) | `CollectionController::storeVolumes()` |
 | Toggle baca per volume + tandai semua sekaligus | `Collection/Show.tsx` + `CollectionController::toggleVolumeRead()`/`markAllVolumesRead()` |
+| Stepper progres baca (+/-) — geser batas volume terbaca tanpa klik ikon mata satu-satu | `Collection/Show.tsx` + `CollectionController::advanceReadProgress()` |
+| Quick-edit jumlah volume dimiliki per format (+/-) | `Collection/Show.tsx` + `CollectionController::quickAdjustCount()` — skip volume yang lagi dipinjamkan (disable + tooltip di frontend, ditolak juga di server) |
 | Mode hapus volume (icon mata → checkbox) | `Collection/Show.tsx` |
 | Review & rating pribadi (-10..10) | `Collection/Show.tsx` + `CollectionController::updateReview()` |
 | Rekomendasi genre + Surprise Me | `User/Dashboard.tsx` + `DashboardController::genreRecommendations()`/`surpriseMe()` |
@@ -406,10 +410,22 @@ Jangan duplikasi atau rebuild ulang fitur-fitur ini:
 | Direktori pengguna | `User/Directory/Index.tsx` + `ProfileController::directory()` |
 | Search gabungan AniList + RanobeDB (admin) | `Admin/Search/Index.tsx` + `ExternalSearchController` |
 | Reorder menu sidebar (drag & drop) | `Admin/Menus/Index.tsx` (`SortableMenuList.tsx`, `@dnd-kit`) + `AdminMenuController::reorder()`, preview di `Admin/Menus/UserSidebar.tsx` |
+| URL katalog berbasis judul (slug, bukan UUID) | `Series::generateUniqueSlug()`/`resolveRouteBinding()` — fallback ke `id` untuk link lama |
+| Modal pilihan login (SSO / Email) | `LoginMethodDialog.tsx` — dipakai dari tombol Login di Landing page; login lewat email tidak sync ulang profil (cuma SSO yang sync) |
+| Login dengan Email (magic link, peer method — bukan cuma fallback) | `Auth/SsoFallback.tsx` + `Auth\SsoFallbackController` — magic link sekali-pakai lewat email, `throttle:5,10`, generic response (anti email-enumeration) |
+| Login darurat via CLI (tanpa nunggu email) | `php artisan sso:emergency-login {identifier=super_admin}` (`IssueEmergencyLoginLink.php`) — reuse `SsoFallbackToken`, butuh akses SSH ke server, lihat `docs/DEPLOYMENT.md` |
+| Konfigurasi Email (Resend) | `Admin/Settings/Index.tsx` tab Email + `Admin\MailSettingController` + `MailSettingsService` — API key ter-encrypt, sama pola dengan Storage/AI |
+| Editor genre/authors/illustrators/themes/demographics di Admin Series Edit | `Admin/Series/Edit.tsx` (`TagListInput.tsx`) — sync AniList/RanobeDB ikut ngisi tag, sentinel string kosong buat hapus semua tag lewat `SeriesController::update()` |
+| URL admin series berbasis judul (slug, bukan UUID) | Sama mekanisme dengan katalog user — semua `route('admin.series.show'/'edit', ...)` (Index, Show, EditVolume, AniList/RanobeDB/Search results, Tickets, Command Palette) pakai `slug` |
+| Filter genre searchable + multi-select di Katalog user | `User/Catalog/Index.tsx` (`GenreMultiSelect.tsx`, Popover+Command/cmdk) + `User\SeriesController::index()` — OR-match (`orWhereJsonContains`), genre dikirim sebagai array (`genre[]=...`) |
+| Multi-account switching (session-based, kepake semua user) | `AccountSwitcher.tsx` (dropdown avatar di sidebar footer Admin/User) + `AccountLinkService`/`Auth\AccountController` — daftar akun ke-link cuma hidup di session (`linked_account_ids`), **tidak** ada link permanen di DB (switch tetap selalu butuh bukti login beneran ke akun target sekali). "Tambah Akun" reuse `LoginMethodDialog` (`mode="link"`) lewat SSO atau email; flag `sso_link_mode` di session nandain ke `SsoController`/`SsoFallbackController` supaya user lama ikut ditambahkan ke daftar ke-link, bukan digantikan. Logout `POST /accounts/logout-current` cuma keluarin akun aktif (auto-switch ke akun ke-link lain kalau ada; kalau ini akun terakhir, delegasi ke `SsoController::logout()`) — `POST /logout` tetap logout semua akun sekaligus. |
 
 **Belum dikerjakan (backlog):**
 - Activity feed di profil publik (community hub, gaya Steam) — profil publik + follow sudah ada, activity feed-nya masih ditunda.
 - Badge/label selera genre ("Genre Explorer" vs "Genre Loyalist") berdasar distribusi genre koleksi — ditunda, numpang di data yang sama dengan fitur Selera Genre (word cloud + funfact AI).
+- Grouping/label custom buat koleksi milik user (mis. "Rak Kamar", "Rak Kantor") — didiskusikan bareng multi-account switching (alasannya kepake buat kasus yang butuh pemisahan koleksi tanpa akun terpisah), belum di-"gas".
+- Advanced filter batch import AniList: multi-select genre (sekarang masih single-select), filter tag (`tag_in` — AniList punya ~470 tag, butuh combobox searchable, bukan dropdown statis), dan filter status (`status_in`, publishing/finished/hiatus/dll). Sudah didiskusikan dan diverifikasi lewat API langsung (`tag_in`/`status_in` keduanya jalan buat manga), tapi belum di-"gas".
+- Verifikasi visual manual buat modal `LoginMethodDialog` — kode sudah `tsc`-clean dan direview, tapi belum di-klik langsung di browser (lihat PHASES.md Phase 18 buat detail kenapa).
 
 ---
 
