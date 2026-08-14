@@ -1,4 +1,4 @@
-# FLOWS — MALAS v2
+# FLOWS — Malas v2
 
 **Versi:** 2.5
 **Tanggal:** 2026-06-26, diperbarui 2026-08-03
@@ -64,7 +64,7 @@ Dialog yang sama juga jadi tempat nanti fitur "Tambah Akun" (multi-account, dire
 ```
 GET /auth/redirect
   └─ Redirect ke whitearchive.id dengan PKCE code_challenge
-        └─ User login di whitearchive.id (di luar MALAS)
+        └─ User login di whitearchive.id (di luar Malas)
               └─ Redirect balik ke GET /auth/callback
                     ├─ Tukar code → token, ambil klaim user (sso_id, name, username, email, avatar)
                     ├─ User baru → dibuat otomatis (role default `user`)
@@ -85,7 +85,7 @@ GET /u/{username-atau-id}  (di luar grup middleware 'auth', jadi diakses tanpa l
         └─ Viewer login → is_owner cek $viewer->id === $user->id, is_following cek relasi Follow
 
 Frontend (Profile/Show.tsx):
-  ├─ is_guest = true  → render PublicShell (header minimal "MALAS" + tombol Login yang buka
+  ├─ is_guest = true  → render PublicShell (header minimal "Malas" + tombol Login yang buka
   │                      LoginMethodDialog, tanpa sidebar)
   │                      Grid koleksi user: cover + judul saja, TIDAK bisa diklik ke /catalog/{slug}
   │                      (karena katalog butuh login). Tombol Follow diganti link "Login untuk follow".

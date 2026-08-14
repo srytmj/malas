@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="public/images/favicon/favicon-512.png" alt="MALAS logo" width="96" height="96">
+  <img src="public/images/favicon/favicon-512.png" alt="Malas logo" width="96" height="96">
 
-  # MALAS
+  # Malas
   ### Manga Library Admin System
 
   Aplikasi pengelolaan koleksi pribadi manga / manhwa / manhua / light novel.<br/>

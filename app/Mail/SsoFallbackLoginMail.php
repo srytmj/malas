@@ -21,7 +21,7 @@ class SsoFallbackLoginMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Link Login MALAS (tanpa SSO)',
+            subject: 'Link Login Malas (tanpa SSO)',
         );
     }
 

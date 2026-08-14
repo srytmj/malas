@@ -1,10 +1,10 @@
-# MALAS — Agent Context
+# Malas — Agent Context
 
 Baca file ini sebelum mengerjakan task apapun di project ini.
 
-## Apa itu MALAS?
+## Apa itu Malas?
 
-**MALAS** (Manga Library Admin System) adalah aplikasi web untuk mengelola koleksi manga pribadi dan perpustakaan.
+**Malas** (Manga Library Admin System) adalah aplikasi web untuk mengelola koleksi manga pribadi dan perpustakaan.
 
 Dua sisi:
 - **Admin panel** — kelola katalog, pengguna, menu, pengumuman

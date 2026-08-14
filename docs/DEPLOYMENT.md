@@ -1,6 +1,6 @@
-# MALAS — Panduan Deployment
+# Malas — Panduan Deployment
 
-> Dokumen ini mencakup cara deploy MALAS ke berbagai environment: **Local Server**, **AWS EC2**, dan **Azure VM**, menggunakan script otomatis maupun manual.
+> Dokumen ini mencakup cara deploy Malas ke berbagai environment: **Local Server**, **AWS EC2**, dan **Azure VM**, menggunakan script otomatis maupun manual.
 
 ---
 
@@ -34,7 +34,7 @@ Semua platform membutuhkan:
 
 Sebelum mulai, pastikan kamu punya:
 - Akses SSH ke server
-- Repo MALAS sudah di-clone ke server
+- Repo Malas sudah di-clone ke server
 - Credentials SSO whitearchive.id (`SSO_CLIENT_ID` dan `SSO_CLIENT_SECRET`)
 - (Opsional) Domain yang sudah diarahkan ke server
 
@@ -587,7 +587,7 @@ Kalau whitearchive.id benar-benar tidak bisa dihubungi (down, migrasi, maintenan
 
 **1. Self-service lewat email (buat user mana pun, tidak cuma admin)**
 
-- Halaman login (`/`) → klik tombol "Login" → modal "Masuk ke MALAS" muncul dengan 2 pilihan setara: "Login dengan whitearchive.id" atau "Login dengan Email". Ini bukan cuma jalur darurat lagi — sekarang opsi login harian yang selalu tersedia, jadi user nggak perlu nunggu SSO down buat coba pakai jalur email.
+- Halaman login (`/`) → klik tombol "Login" → modal "Masuk ke Malas" muncul dengan 2 pilihan setara: "Login dengan whitearchive.id" atau "Login dengan Email". Ini bukan cuma jalur darurat lagi — sekarang opsi login harian yang selalu tersedia, jadi user nggak perlu nunggu SSO down buat coba pakai jalur email.
 - User pilih "Login dengan Email" → masukin email yang biasa dipakai login → kalau terdaftar, dikirim magic link sekali-pakai (15 menit) lewat email. Halaman mandiri `/auth/fallback` juga tetap ada sebagai direct link.
 - **Syarat:** provider Email (Resend) harus sudah dikonfigurasi di `/admin/settings` tab Email — kalau `api_key` belum diisi, fitur ini diam-diam tidak mengirim apa pun (tidak error ke user, tapi juga tidak menolong). Konfigurasi ini **sebelum** SSO benar-benar dibutuhkan, bukan pas kejadian.
 - **Catatan**: login lewat email TIDAK men-sync ulang profil (nama/avatar/username) — itu cuma terjadi pas login lewat SSO. Ini disengaja, bukan bug.

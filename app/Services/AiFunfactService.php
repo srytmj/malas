@@ -40,7 +40,7 @@ class AiFunfactService
             : '';
 
         return <<<PROMPT
-            Kamu adalah asisten yang membuat "funfact" singkat dan menyenangkan tentang selera genre koleksi manga/light novel seorang pengguna aplikasi bernama MALAS.
+            Kamu adalah asisten yang membuat "funfact" singkat dan menyenangkan tentang selera genre koleksi manga/light novel seorang pengguna aplikasi bernama Malas.
 
             Data genre koleksi pengguna ini (persentase dari total genre di koleksinya): {$topGenres}.
             {$comparisonLine}

@@ -1,4 +1,4 @@
-# ARCHITECTURE — MALAS
+# ARCHITECTURE — Malas
 
 **Versi:** 3.5
 **Diperbarui:** 2026-08-03
@@ -555,11 +555,11 @@ Semua file (cover series, cover volume) diakses lewat **`StorageSettingsService`
 ### SSO whitearchive.id
 - PKCE-based OAuth2. Semua user (termasuk admin) login lewat SSO — tidak ada form register/login lokal.
 - Flow: `/auth/redirect` → whitearchive.id → `/auth/callback` (`SsoController`) → user dibuat/diupdate dari klaim SSO (`sso_id`, `name`, `username`, `email`, `avatar`) → session dibuat.
-- Halaman `Settings/Index.tsx` menampilkan profil secara read-only (data profil dikelola di sisi SSO, bukan di MALAS).
+- Halaman `Settings/Index.tsx` menampilkan profil secara read-only (data profil dikelola di sisi SSO, bukan di Malas).
 - `SsoController::curlRequest()` pakai curl langsung (bukan `Http::` facade Laravel/Guzzle) — di environment ini `curl_multi` milik Guzzle intermiten hang di PHP-FPM, blocking `curl_exec` lebih reliable.
 
 ### Login dengan Email (magic link)
-- Awalnya dibangun sebagai fallback darurat kalau whitearchive.id tidak bisa diakses, sekarang dipromosikan jadi **opsi login setara SSO** — dipilih dari `LoginMethodDialog.tsx` (modal "Masuk ke MALAS" yang muncul saat klik tombol Login di Landing page), bukan cuma link kecil tersembunyi. Mekanisme backend tidak berubah sama sekali dari versi fallback-nya.
+- Awalnya dibangun sebagai fallback darurat kalau whitearchive.id tidak bisa diakses, sekarang dipromosikan jadi **opsi login setara SSO** — dipilih dari `LoginMethodDialog.tsx` (modal "Masuk ke Malas" yang muncul saat klik tombol Login di Landing page), bukan cuma link kecil tersembunyi. Mekanisme backend tidak berubah sama sekali dari versi fallback-nya.
 - Flow: `LoginMethodDialog` (atau langsung `/auth/fallback`) → user isi email → `POST /auth/fallback` (`throttle:5,10`, dinaikkan dari `3,15` setelah dipromosikan jadi opsi harian) → kalau email cocok dengan user yang ada DAN `mail_settings` terkonfigurasi, terbitkan `SsoFallbackToken` (TTL 15 menit, single-use) dan kirim magic link lewat email (`SsoFallbackLoginMail`) → user klik link → `GET /auth/fallback/{token}` (`SsoFallbackController::consume`) → `Auth::login()` langsung, redirect sesuai role.
 - **Trade-off yang disengaja**: profil (nama/avatar/username) cuma ikut ke-sync ulang dari SSO pas login lewat SSO — user yang selalu login lewat email tidak dapat update profil otomatis.
 - **Anti email-enumeration**: response `POST /auth/fallback` SELALU pesan generik yang sama ("kalau email terdaftar, link sudah dikirim") baik email-nya valid/tidak/user banned — tidak pernah membocorkan status akun lewat response.

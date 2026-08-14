@@ -1,4 +1,4 @@
-# MALAS Favicon — Usage Guide
+# Malas Favicon — Usage Guide
 
 Option 4 (M + Book), monochrome: `#1f2937` / `#9ca3af` / `#f3f4f6` (+ `#6b7280` accent dot).
 

@@ -26,7 +26,7 @@ export default function Landing() {
             <div className="flex min-h-screen flex-col bg-background">
                 <header className="border-b">
                     <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-3">
-                        <span className="text-sm font-bold tracking-tight">MALAS</span>
+                        <span className="text-sm font-bold tracking-tight">Malas</span>
                         <div className="flex items-center gap-1.5">
                             <LanguageSwitcher />
                             <ThemeSwitcher />
@@ -40,7 +40,7 @@ export default function Landing() {
 
                 <main className="flex flex-1 flex-col items-center px-4 py-16">
                     <div className="w-full max-w-3xl text-center">
-                        <p className="text-sm font-medium text-muted-foreground">MALAS</p>
+                        <p className="text-sm font-medium text-muted-foreground">Malas</p>
                         <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
                             {t('landing.heading')}
                         </h1>
@@ -78,7 +78,7 @@ export default function Landing() {
                 <footer className="border-t">
                     <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-2 px-4 py-6 text-center sm:flex-row sm:justify-between sm:text-left">
                         <div>
-                            <p className="text-sm font-semibold">MALAS</p>
+                            <p className="text-sm font-semibold">Malas</p>
                             <p className="text-xs text-muted-foreground">{t('landing.footer.tagline')}</p>
                         </div>
                         <p className="text-xs text-muted-foreground">

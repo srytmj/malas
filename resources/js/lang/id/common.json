@@ -253,7 +253,7 @@
         },
         "footer": {
             "tagline": "Dibuat buat kolektor manga & light novel.",
-            "copyright": "© {{year}} MALAS — Manga Library Admin System."
+            "copyright": "© {{year}} Malas — Manga Library Admin System."
         }
     },
     "authFallback": {
@@ -276,7 +276,7 @@
         "cardDescription": "Pilih bahasa tampilan aplikasi. Perubahan berlaku langsung."
     },
     "loginDialog": {
-        "title": "Masuk ke MALAS",
+        "title": "Masuk ke Malas",
         "description": "Pilih cara login.",
         "linkTitle": "Tambah Akun",
         "linkDescription": "Login ke akun lain yang mau kamu sambungkan. Kamu bisa switch antar akun tanpa login ulang selama masih di browser ini.",

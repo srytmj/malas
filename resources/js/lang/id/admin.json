@@ -2,7 +2,7 @@
     "dashboard": {
         "title": "Dashboard",
         "welcome": "Selamat datang, {{name}}.",
-        "subtitle": "Ringkasan sistem MALAS.",
+        "subtitle": "Ringkasan sistem Malas.",
         "totalSeries": "Total Series",
         "totalVolume": "Total Volume",
         "totalCollection": "Total Koleksi",

@@ -8,11 +8,11 @@
 
 ## 1. What RanobeDB Is
 
-RanobeDB is a community-maintained light novel database (same family/style as VNDB — same query-param conventions, same packed-date encoding). It's the natural light-novel equivalent of what AniList is for manga in MALAS today.
+RanobeDB is a community-maintained light novel database (same family/style as VNDB — same query-param conventions, same packed-date encoding). It's the natural light-novel equivalent of what AniList is for manga in Malas today.
 
 - **API base URL:** `https://ranobedb.org/api/v0`
 - **Auth:** None. No API key, no OAuth.
-- **License:** Open Database License (ODbL) + Database Contents License — **non-commercial use only**. MALAS is a personal/self-hosted collection tracker, not monetized, so this is compliant — but it rules out ever charging for a MALAS instance that uses this data.
+- **License:** Open Database License (ODbL) + Database Contents License — **non-commercial use only**. Malas is a personal/self-hosted collection tracker, not monetized, so this is compliant — but it rules out ever charging for a Malas instance that uses this data.
 - **Rate limit:** None enforced server-side, but the docs ask to stay under 60 requests/minute. `AniListService` has no explicit throttling either, so this is a new constraint to actually implement (simple sleep/backoff or a request counter).
 - **Transport:** Plain REST + query params, JSON responses. No GraphQL query-building like AniList — simpler client code.
 - **Coverage:** Not just Japanese light novels — also web novels, and multi-language editions (the same book can have `ja`, `en`, etc. releases with separate ISBNs/dates).
@@ -52,7 +52,7 @@ publishers[]   — { id, name, publisher_type: "publisher"|"imprint" }
 child_series[] — { relation_type: "prequel"|"sequel"|"side story"|"main story"|"spin-off"|"parent story"|"alternate version" }
 ```
 
-### `GET /book/{id}` response (per-volume detail — richer than anything AniList gives MALAS today)
+### `GET /book/{id}` response (per-volume detail — richer than anything AniList gives Malas today)
 ```
 title, description, image
 editions[] — { staff[]: same role_type breakdown as series, per language edition }
@@ -63,18 +63,18 @@ series     — back-reference to parent series (id, title, tags)
 
 ---
 
-## 3. Data Model Mapping → MALAS Schema
+## 3. Data Model Mapping → Malas Schema
 
-MALAS's existing `series` table already has almost everything needed — this is additive, not a schema rework.
+Malas's existing `series` table already has almost everything needed — this is additive, not a schema rework.
 
-| RanobeDB field | MALAS column | Notes |
+| RanobeDB field | Malas column | Notes |
 |---|---|---|
 | `series.titles[]` (pick official `en`/`romaji`/`ja`) | `title_romaji`, `title_english`, `title_japanese` | Same "pick from array by lang" logic `AniListService` already does for AniList's `title{romaji,english,native}` object — different shape, same idea. |
 | `series.description` | `synopsis` | Direct. |
 | `series.publication_status` | `status` | Needs a mapping table — see §5. |
 | `series.start_date` / `end_date` | `published_from` / `published_to` | Parse `YYYYMMDD` int; `99999999` → `null`. |
 | `series.books.length` (or `c_num_books`) | `total_volumes` | Direct. |
-| `series.tags[]` where `ttype:"genre"` | `genres` | Direct — RanobeDB's `ttype` split maps 1:1 onto MALAS's existing genres/themes/demographics split, better than AniList's flatter tag list. |
+| `series.tags[]` where `ttype:"genre"` | `genres` | Direct — RanobeDB's `ttype` split maps 1:1 onto Malas's existing genres/themes/demographics split, better than AniList's flatter tag list. |
 | `series.tags[]` where `ttype:"demographic"` | `demographics` | Direct. |
 | `series.tags[]` where `ttype:"content"` or `"tag"` | `themes` | Reasonable fit, not a perfect 1:1 concept but close enough. |
 | `series.staff[]` where `role_type:"author"` | `authors` | Direct. |
@@ -82,7 +82,7 @@ MALAS's existing `series` table already has almost everything needed — this is
 | `book.image.filename` (first/main book) | `cover_path` | Via `https://images.ranobedb.org/{filename}`, downloaded through `StorageSettingsService` exactly like AniList covers are today. |
 | — (no series-level score in this API) | `score` | Leave null on RanobeDB import, or average `book.rating.score` across books — optional, not required. |
 | `series.id` | **New column: `ranobedb_id`** | Mirrors `anilist_id` — unique, nullable, bigint. |
-| `series.books[]` (with real `release_date`/`isbn13`/`pages`/`format`) | `volumes` table rows | **This is new capability** — MALAS's `volumes` table already has `isbn`, `published_at`, `type`, `cover_path` columns, but nothing populates them today (AniList only gives a volume *count*, never per-volume data). RanobeDB import could genuinely fill these in for the first time. |
+| `series.books[]` (with real `release_date`/`isbn13`/`pages`/`format`) | `volumes` table rows | **This is new capability** — Malas's `volumes` table already has `isbn`, `published_at`, `type`, `cover_path` columns, but nothing populates them today (AniList only gives a volume *count*, never per-volume data). RanobeDB import could genuinely fill these in for the first time. |
 
 ---
 
@@ -94,9 +94,9 @@ Worth internalizing before writing code, since a few assumptions baked into `Ani
 2. **REST, not GraphQL.** Simpler — no query-building, just `Http::get()` with query params. No new client library needed.
 3. **Role-typed staff, not a flat author list.** Genuinely richer than AniList here.
 4. **No adult-content flag.** AniList exposes `isAdult` directly; RanobeDB doesn't. Needs a heuristic (§5).
-5. **Score lives on books, not series.** If MALAS wants a series-level score from RanobeDB, it has to be derived (e.g. average across `books[].rating.score`), not read directly.
+5. **Score lives on books, not series.** If Malas wants a series-level score from RanobeDB, it has to be derived (e.g. average across `books[].rating.score`), not read directly.
 6. **Self-enforced rate limit.** AniList integration has no explicit throttling; this one needs a real one (60 req/min ask).
-7. **Non-commercial license clause.** Not a blocker for MALAS as-is, but worth a one-line note in `StorageSettingsService`/wherever covers get attributed, in case this ever gets productized.
+7. **Non-commercial license clause.** Not a blocker for Malas as-is, but worth a one-line note in `StorageSettingsService`/wherever covers get attributed, in case this ever gets productized.
 
 ---
 
@@ -105,8 +105,8 @@ Worth internalizing before writing code, since a few assumptions baked into `Ani
 - **Author/Illustrator split:** add a new `illustrators` json column on `series`, or keep dumping both into `authors`? Recommend adding the column — it's a small migration and RanobeDB hands it over for free.
 - **Per-volume import depth:** on import, auto-create `Volume` rows from `series.books[]` (populating real `isbn`/`published_at`/`type` for the first time), or keep volumes purely admin/user-managed like today and only import series-level metadata? Recommend: auto-create volumes on import (opt-in toggle, like the existing "Generate" button for AniList series with `total_volumes` set), since this is the actual capability upgrade RanobeDB brings.
 - **Print vs digital release when a book has both:** pick one canonical release for `Volume.isbn`/`published_at` (recommend: prefer `print`, since that's what a physical-collector app cares about most), or store both — probably not both, keep it simple.
-- **`publication_status` mapping:** RanobeDB's `stalled`/`cancelled` don't map cleanly onto MALAS's `discontinued`. Proposed mapping:
-  | RanobeDB | MALAS |
+- **`publication_status` mapping:** RanobeDB's `stalled`/`cancelled` don't map cleanly onto Malas's `discontinued`. Proposed mapping:
+  | RanobeDB | Malas |
   |---|---|
   | `ongoing` | `publishing` |
   | `completed` | `finished` |

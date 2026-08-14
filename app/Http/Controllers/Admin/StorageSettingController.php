@@ -101,7 +101,7 @@ class StorageSettingController extends Controller
         try {
             $disk = $this->storage->buildS3Disk($request->validated());
             $testPath = 'storage-test/'.uniqid('', true).'.txt';
-            $disk->put($testPath, 'MALAS storage connection test');
+            $disk->put($testPath, 'Malas storage connection test');
             $disk->delete($testPath);
 
             return response()->json([

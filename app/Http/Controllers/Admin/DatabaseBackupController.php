@@ -31,7 +31,7 @@ class DatabaseBackupController extends Controller
         $filename = 'malas-backup-'.now()->format('Y-m-d-His').'.sql';
 
         return response()->streamDownload(function () use ($tables): void {
-            echo "-- MALAS Database Backup\n";
+            echo "-- Malas Database Backup\n";
             echo '-- Generated : '.now()->toDateTimeString()."\n";
             echo '-- Tables    : '.implode(', ', $tables)."\n";
             echo "-- NOTE: Tabel 'users' tidak di-backup (dikelola via SSO)\n\n";
@@ -88,8 +88,10 @@ class DatabaseBackupController extends Controller
 
         $content = file_get_contents($request->file('backup_file')->getRealPath());
 
-        if (! str_starts_with($content, '-- MALAS Database Backup')) {
-            return back()->with('error', 'File bukan backup MALAS yang valid. Pastikan file yang diupload adalah hasil download dari halaman ini.');
+        // Terima signature lama (MALAS, sebelum rename ke title case) juga — backup lama yang
+        // sudah pernah di-download user jangan sampai ketolak cuma gara-gara ganti nama brand.
+        if (! str_starts_with($content, '-- Malas Database Backup') && ! str_starts_with($content, '-- MALAS Database Backup')) {
+            return back()->with('error', 'File bukan backup Malas yang valid. Pastikan file yang diupload adalah hasil download dari halaman ini.');
         }
 
         // Parse statement satu per satu

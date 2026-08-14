@@ -1,4 +1,4 @@
-# MALAS — Claude Code Rules
+# Malas — Claude Code Rules
 
 ## Meta Rules (BACA DULU SEBELUM APAPUN)
 

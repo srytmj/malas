@@ -253,7 +253,7 @@
         },
         "footer": {
             "tagline": "Built for manga and light novel collectors.",
-            "copyright": "© {{year}} MALAS — Manga Library Admin System."
+            "copyright": "© {{year}} Malas — Manga Library Admin System."
         }
     },
     "authFallback": {
@@ -276,7 +276,7 @@
         "cardDescription": "Choose the app's display language. Changes apply immediately."
     },
     "loginDialog": {
-        "title": "Log in to MALAS",
+        "title": "Log in to Malas",
         "description": "Choose how you want to log in.",
         "linkTitle": "Add Account",
         "linkDescription": "Log in to another account you want to link. You can switch between accounts without logging in again as long as you're in this browser.",

@@ -54,7 +54,7 @@ function SidebarContent({ menus, onNavClick, collapsed, onToggleCollapsed }: Sid
     return (
         <div className="flex h-full flex-col">
             <div className={cn('flex h-14 items-center border-b', collapsed ? 'justify-center px-2' : 'justify-between px-5')}>
-                {!collapsed && <span className="text-base font-bold tracking-tight">MALAS</span>}
+                {!collapsed && <span className="text-base font-bold tracking-tight">Malas</span>}
                 {onToggleCollapsed && (
                     <Tooltip>
                         <TooltipTrigger

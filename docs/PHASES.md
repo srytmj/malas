@@ -1,4 +1,4 @@
-# PHASES — MALAS v2 Implementation Plan
+# PHASES — Malas v2 Implementation Plan
 
 **Versi:** 2.7
 **Tanggal:** 2026-06-26 (Phase 0–10), diperbarui 2026-08-03 (Phase 11–18)

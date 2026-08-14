@@ -1,6 +1,6 @@
 # Changelog
 
-Semua perubahan penting pada MALAS dicatat di file ini. Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/), disederhanakan untuk histori internal (bukan rilis versi berpenomor).
+Semua perubahan penting pada Malas dicatat di file ini. Format mengikuti prinsip [Keep a Changelog](https://keepachangelog.com/), disederhanakan untuk histori internal (bukan rilis versi berpenomor).
 
 ---
 
@@ -117,7 +117,7 @@ Jalan darurat kalau whitearchive.id (SSO) benar-benar tidak bisa diakses (down/m
 - Package `resend/resend-php` (native Laravel `resend` mail transport, `config/mail.php` sudah punya stub bawaan Laravel 12).
 
 ### Landing Page Dirombak
-- Tambah header (brand MALAS, ganti bahasa, toggle dark/light mode, tombol Login) dan footer (tagline, copyright dinamis per tahun) — sebelumnya cuma hero + grid fitur tanpa navigasi.
+- Tambah header (brand Malas, ganti bahasa, toggle dark/light mode, tombol Login) dan footer (tagline, copyright dinamis per tahun) — sebelumnya cuma hero + grid fitur tanpa navigasi.
 - `LanguageSwitcher` dibikin guest-safe — kalau belum login, ganti bahasa cukup di client (`i18n.changeLanguage()`) tanpa panggil endpoint yang butuh sesi otentikasi.
 
 ---
@@ -161,7 +161,7 @@ Sisa halaman `Admin/**` (Series, Users, Announcements, Tickets, Menus, dll — l
 
 - Route `/u/{user}` (`profile.show`) dipindah keluar dari grup middleware `auth` — sekarang guest (belum login) bisa lihat profil publik seseorang tanpa perlu SSO login dulu.
 - `ProfileController::show()` dibikin null-safe untuk viewer tamu (`is_owner`/`is_following` tidak lagi crash), plus flag baru `is_guest` dikirim ke frontend.
-- Guest dapat layout publik minimal (`PublicShell` — cuma header MALAS + tombol Login, tanpa sidebar), dan kartu koleksi di grid **tidak bisa diklik** untuk guest (karena `catalog.show` tetap butuh login) — cuma bisa lihat cover & judul.
+- Guest dapat layout publik minimal (`PublicShell` — cuma header Malas + tombol Login, tanpa sidebar), dan kartu koleksi di grid **tidak bisa diklik** untuk guest (karena `catalog.show` tetap butuh login) — cuma bisa lihat cover & judul.
 
 ### Provider AI Gratis via Puter.js
 

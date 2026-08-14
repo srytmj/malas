@@ -9,7 +9,7 @@
             <td align="center">
                 <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; padding:32px;">
                     <tr>
-                        <td style="font-size:20px; font-weight:700; color:#111827; padding-bottom:16px;">MALAS</td>
+                        <td style="font-size:20px; font-weight:700; color:#111827; padding-bottom:16px;">Malas</td>
                     </tr>
                     <tr>
                         <td style="font-size:14px; color:#374151; line-height:1.6; padding-bottom:8px;">
@@ -18,13 +18,13 @@
                     </tr>
                     <tr>
                         <td style="font-size:14px; color:#374151; line-height:1.6; padding-bottom:24px;">
-                            Ada permintaan login ke MALAS tanpa lewat SSO (whitearchive.id). Kalau ini kamu, klik tombol di bawah untuk masuk. Link ini cuma berlaku 15 menit dan cuma bisa dipakai sekali.
+                            Ada permintaan login ke Malas tanpa lewat SSO (whitearchive.id). Kalau ini kamu, klik tombol di bawah untuk masuk. Link ini cuma berlaku 15 menit dan cuma bisa dipakai sekali.
                         </td>
                     </tr>
                     <tr>
                         <td align="center" style="padding-bottom:24px;">
                             <a href="{{ $loginUrl }}" style="background:#111827; color:#ffffff; text-decoration:none; padding:12px 24px; border-radius:6px; font-size:14px; font-weight:600; display:inline-block;">
-                                Login ke MALAS
+                                Login ke Malas
                             </a>
                         </td>
                     </tr>

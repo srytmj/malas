@@ -2,7 +2,7 @@
     "dashboard": {
         "title": "Dashboard",
         "welcome": "Welcome, {{name}}.",
-        "subtitle": "MALAS system overview.",
+        "subtitle": "Malas system overview.",
         "totalSeries": "Total Series",
         "totalVolume": "Total Volumes",
         "totalCollection": "Total Collections",

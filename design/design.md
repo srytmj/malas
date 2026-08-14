@@ -1,6 +1,6 @@
 > ⚠️ **Legacy — tidak dipakai lagi.** Dokumen ini mendeskripsikan desain untuk stack lama (Blade + Alpine.js + TomSelect + Jikan API) dari sebelum rebuild ke React 19 + Inertia.js v2 + shadcn/ui (Base UI) yang jadi stack aktual sekarang (lihat [`docs/prd.md`](../docs/prd.md) §1). Desain sistem yang berlaku saat ini adalah token & komponen shadcn/ui default (Tailwind CSS v4) — bukan token custom TailAdmin/Kenmei di bawah ini. Dibiarkan sebagai referensi historis, jangan dipakai sebagai acuan implementasi baru.
 
-# Design System — MALAS Admin Panel (Legacy, Pra-Rebuild)
+# Design System — Malas Admin Panel (Legacy, Pra-Rebuild)
 
 > Referensi visual: **TailAdmin Free** (layout + komponen admin) + **Kenmei** (UX pattern + data density).  
 > Stack: Blade + Alpine.js + Tailwind CSS (kustom token TailAdmin).  
@@ -514,7 +514,7 @@ Kenmei nav: **logo kiri → nav links tengah → search + icons kanan**. White b
 ```html
 <nav class="flex h-12 items-center gap-6 border-b border-gray-100 bg-white px-4 dark:border-zinc-800 dark:bg-zinc-900">
   <!-- Logo -->
-  <a href="#" class="text-sm font-bold text-gray-900 dark:text-zinc-50">MALAS</a>
+  <a href="#" class="text-sm font-bold text-gray-900 dark:text-zinc-50">Malas</a>
   <!-- Nav links -->
   <div class="flex items-center gap-1">
     <a href="#" class="rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50">Dashboard</a>

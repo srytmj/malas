@@ -26,7 +26,7 @@ function PublicShell({ header, children }: PropsWithChildren<{ header?: ReactNod
     return (
         <div className="min-h-screen bg-background">
             <header className="flex h-14 items-center justify-between border-b px-6">
-                <span className="text-base font-bold tracking-tight">MALAS</span>
+                <span className="text-base font-bold tracking-tight">Malas</span>
                 <Button variant="outline" size="sm" onClick={() => setLoginOpen(true)}>
                     <LogIn className="mr-1.5 h-3.5 w-3.5" />
                     {t('nav.login')}

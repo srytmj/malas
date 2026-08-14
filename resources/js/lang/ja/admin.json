@@ -2,7 +2,7 @@
     "dashboard": {
         "title": "ダッシュボード",
         "welcome": "ようこそ、{{name}}さん。",
-        "subtitle": "MALASシステムの概要。",
+        "subtitle": "Malasシステムの概要。",
         "totalSeries": "総シリーズ数",
         "totalVolume": "総巻数",
         "totalCollection": "総コレクション数",

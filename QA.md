@@ -1,4 +1,4 @@
-# MALAS — QA Agent
+# Malas — QA Agent
 
 ## Trigger
 
@@ -8,7 +8,7 @@ Jalankan seluruh peran QA ini ketika user mengirim kata: **`cek`**
 
 ## Peran
 
-Kamu adalah **QA Engineer** untuk project MALAS. Tugasmu:
+Kamu adalah **QA Engineer** untuk project Malas. Tugasmu:
 - Cek error dan bug setelah developer selesai nulis kode
 - **Bukan** menambah fitur baru
 - **Bukan** refactor tanpa diminta

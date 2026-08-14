@@ -1,4 +1,4 @@
-# PRD — MALAS (Manga Library Admin System)
+# PRD — Malas (Manga Library Admin System)
 
 **Versi:** 2.6
 **Tanggal:** 2026-06-26, diperbarui 2026-08-03
@@ -10,7 +10,7 @@
 
 Kolektor manga fisik kesulitan melacak koleksi — volume mana yang dimiliki, kondisinya, dan siapa yang sedang meminjamnya. Pengelolaan manual via spreadsheet tidak skalabel dan tidak bisa diakses real-time.
 
-MALAS v2 adalah rebuild total dengan stack baru (React + Inertia) untuk UI yang lebih modern (terinspirasi MangaDex) dan lebih mudah di-maintain jangka panjang.
+Malas v2 adalah rebuild total dengan stack baru (React + Inertia) untuk UI yang lebih modern (terinspirasi MangaDex) dan lebih mudah di-maintain jangka panjang.
 
 **Perubahan dari v1:** Filament dihapus → diganti React 19 + Inertia.js v2 + shadcn/ui.
 
@@ -48,7 +48,7 @@ MALAS v2 adalah rebuild total dengan stack baru (React + Inertia) untuk UI yang 
 
 ### F-01 — Autentikasi
 - Login via SSO whitearchive.id (PKCE-based OAuth2) — tidak ada form register/login lokal
-- Semua akun (termasuk admin) dikelola di sisi SSO; MALAS hanya menyimpan `sso_id`, `name`, `username`, `email`, `avatar` dari klaim SSO
+- Semua akun (termasuk admin) dikelola di sisi SSO; Malas hanya menyimpan `sso_id`, `name`, `username`, `email`, `avatar` dari klaim SSO
 - Profil ditampilkan read-only di `/settings` (edit profil dilakukan di sisi SSO)
 - Session management via Laravel session standar setelah callback SSO sukses
 
@@ -174,7 +174,7 @@ User mencatat volume yang dipinjamkan dari koleksinya:
 
 - List, view profil, ban/unban, ganti role
 - Admin tidak bisa upgrade user ke/dari `super_admin`
-- Reset password tidak berlaku — password dikelola di sisi SSO, bukan di MALAS
+- Reset password tidak berlaku — password dikelola di sisi SSO, bukan di Malas
 
 ### F-10 — Dashboard
 
@@ -257,7 +257,7 @@ User mencatat volume yang dipinjamkan dari koleksinya:
 
 ### F-22 — Login dengan Email (Magic Link)
 
-- Opsi login setara SSO, dipilih dari modal "Masuk ke MALAS" (`LoginMethodDialog.tsx`) yang muncul begitu tombol Login di Landing page diklik — **bukan** cuma link kecil tersembunyi buat kondisi darurat lagi (awalnya dibangun sebagai fallback SSO-down, dipromosikan jadi opsi harian setelah mekanismenya terbukti aman)
+- Opsi login setara SSO, dipilih dari modal "Masuk ke Malas" (`LoginMethodDialog.tsx`) yang muncul begitu tombol Login di Landing page diklik — **bukan** cuma link kecil tersembunyi buat kondisi darurat lagi (awalnya dibangun sebagai fallback SSO-down, dipromosikan jadi opsi harian setelah mekanismenya terbukti aman)
 - Verifikasi identitas lewat kepemilikan inbox email yang sudah tersinkron dari SSO — **bukan** password lokal (tidak ada yang disimpan) dan **bukan** approval admin
 - Token (`sso_fallback_tokens`) tersimpan ter-hash, TTL 15 menit, single-use
 - Rate limit 5x/10 menit per endpoint request (dinaikkan dari 3x/15 menit setelah dipromosikan jadi opsi harian); response selalu pesan generik yang sama (anti email-enumeration, tidak membocorkan status akun)

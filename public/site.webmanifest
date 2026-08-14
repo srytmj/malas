@@ -1,6 +1,6 @@
 {
-    "name": "MALAS — Manga Library Admin System",
-    "short_name": "MALAS",
+    "name": "Malas — Manga Library Admin System",
+    "short_name": "Malas",
     "icons": [
         { "src": "/images/favicon/favicon-192.png", "sizes": "192x192", "type": "image/png" },
         { "src": "/images/favicon/favicon-512.png", "sizes": "512x512", "type": "image/png" }

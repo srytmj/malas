@@ -262,7 +262,7 @@ function MailTab({ mailSetting }: { mailSetting: MailSettingData }) {
                         <Label htmlFor="from_name">{t('settings.mail.fromName')}</Label>
                         <Input
                             id="from_name"
-                            placeholder="MALAS"
+                            placeholder="Malas"
                             {...register('from_name')}
                         />
                         <FieldError message={errors.from_name?.message} />
