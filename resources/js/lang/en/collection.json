@@ -104,6 +104,13 @@
             "deleting": "Deleting...",
             "delete": "Delete"
         },
+        "removeDialog": {
+            "title": "Remove from Group",
+            "confirmPrefix": "Are you sure you want to remove",
+            "confirmSuffix": "from this group? It will stay in your collection.",
+            "removing": "Removing...",
+            "remove": "Remove"
+        },
         "show": {
             "empty": {
                 "title": "This group is empty",

@@ -149,12 +149,10 @@
             "cardDescription": "ユーザーダッシュボードのジャンル傾向ファンファクト生成に使用します。APIキーは暗号化して保存され、保存後に再表示されることはありません。",
             "provider": "プロバイダー",
             "providers": {
-                "puter": "Puter（無料、APIキー不要）",
                 "gemini": "Google Gemini",
                 "openai": "OpenAI",
                 "claude": "Anthropic Claude"
             },
-            "puterHint": "Puterはユーザーのブラウザ上で直接動作するため、APIキーは不要で、サーバー側のクォータも消費しません。",
             "apiKey": "APIキー",
             "apiKeyPlaceholder": "既存のキーを維持する場合は空欄のままにしてください",
             "apiKeySaved": "APIキーはすでに保存されています。"

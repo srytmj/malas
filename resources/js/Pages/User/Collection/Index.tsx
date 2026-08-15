@@ -35,6 +35,7 @@ import { type SeriesStatus, type SeriesType } from '@/lib/types';
 interface CollectionRow {
     id: string;
     series_id: string;
+    slug: string;
     title_romaji: string;
     title_english: string | null;
     cover_url: string | null;
@@ -446,7 +447,7 @@ export default function CollectionIndex({ collections }: Props) {
                                 <div
                                     key={c.id}
                                     className="group flex flex-col overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-md cursor-pointer"
-                                    onClick={() => router.visit(route('collection.show', c.id))}
+                                    onClick={() => router.visit(route('collection.show', c.slug))}
                                 >
                                     <AdultBlurOverlay isAdult={c.is_adult} className="aspect-[2/3] w-full overflow-hidden bg-muted">
                                         {c.cover_url ? (
@@ -508,7 +509,7 @@ export default function CollectionIndex({ collections }: Props) {
                                     {filteredCollections.map((c) => (
                                         <ContextMenu key={c.id}>
                                             <ContextMenuTrigger
-                                                onClick={() => router.visit(route('collection.show', c.id))}
+                                                onClick={() => router.visit(route('collection.show', c.slug))}
                                                 render={<TableRow className="cursor-pointer" />}
                                             >
                                                 <TableCell>
@@ -521,7 +522,7 @@ export default function CollectionIndex({ collections }: Props) {
                                                 <TableCell onClick={(e) => e.stopPropagation()}>
                                                     <HoverCard>
                                                         <HoverCardTrigger
-                                                            render={<Link href={route('collection.show', c.id)} className="font-medium hover:underline" />}
+                                                            render={<Link href={route('collection.show', c.slug)} className="font-medium hover:underline" />}
                                                         >
                                                             {c.title_romaji}
                                                         </HoverCardTrigger>
@@ -571,7 +572,7 @@ export default function CollectionIndex({ collections }: Props) {
                                                 </TableCell>
                                             </ContextMenuTrigger>
                                             <ContextMenuContent>
-                                                <ContextMenuItem onClick={() => router.visit(route('collection.show', c.id))}>
+                                                <ContextMenuItem onClick={() => router.visit(route('collection.show', c.slug))}>
                                                     <Eye className="mr-2 h-4 w-4" />
                                                     {t('index.view')}
                                                 </ContextMenuItem>

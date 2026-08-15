@@ -164,6 +164,8 @@ return [
         'deleted' => 'Group deleted successfully.',
         'items_added' => ':count manga added to the group successfully.',
         'item_removed' => 'Manga removed from the group successfully.',
+        'item_restored' => 'Manga restored to the group.',
+        'item_restore_failed' => 'Could not restore the manga — the collection entry no longer exists.',
         'made_public' => 'Group is now public — it appears on your profile.',
         'made_private' => 'Group is now private.',
     ],

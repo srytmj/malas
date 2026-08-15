@@ -16,11 +16,11 @@ class AiSettingController extends Controller
         abort_unless(auth()->user()->isSuperAdmin(), 403);
 
         $data = $request->validate([
-            'provider' => ['required', Rule::in(['puter', 'gemini', 'openai', 'claude'])],
+            'provider' => ['required', Rule::in(['gemini', 'openai', 'claude'])],
             'api_key' => ['nullable', 'string'],
         ]);
 
-        $setting = AiSetting::first() ?? new AiSetting(['provider' => 'puter']);
+        $setting = AiSetting::first() ?? new AiSetting(['provider' => 'gemini']);
 
         // Keep the existing encrypted key if the admin left it blank (e.g. only switching provider).
         if (blank($data['api_key'] ?? null)) {

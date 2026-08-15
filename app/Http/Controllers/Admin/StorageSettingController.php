@@ -26,7 +26,7 @@ class StorageSettingController extends Controller
 
         $this->authorize('view', $setting);
 
-        $aiSetting = AiSetting::first() ?? new AiSetting(['provider' => 'puter']);
+        $aiSetting = AiSetting::first() ?? new AiSetting(['provider' => 'gemini']);
         $mailSetting = MailSetting::first() ?? new MailSetting(['provider' => 'resend']);
 
         return Inertia::render('Admin/Settings/Index', [

@@ -27,13 +27,13 @@ class SearchController extends Controller
 
         $collection = $request->user()
             ->collections()
-            ->with('series:id,title_romaji')
+            ->with('series:id,slug,title_romaji')
             ->whereHas('series', fn ($sub) => $sub->where('title_romaji', 'like', "%{$q}%")
                 ->orWhere('title_english', 'like', "%{$q}%")
             )
             ->limit(5)
             ->get()
-            ->map(fn ($c) => ['id' => $c->id, 'title' => $c->series->title_romaji]);
+            ->map(fn ($c) => ['id' => $c->id, 'slug' => $c->series->slug, 'title' => $c->series->title_romaji]);
 
         return response()->json([
             'catalog' => $catalog,

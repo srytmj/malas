@@ -14,9 +14,7 @@ class AiFunfactService
     {
         $setting = AiSetting::first();
 
-        // Provider 'puter' cuma bisa dipanggil dari browser (lihat lib/puter.ts) — server nggak
-        // pernah generate langsung untuknya, jadi jatuh ke fallback kalau somehow ke-panggil di sini.
-        if (! $setting || $setting->provider === 'puter' || blank($setting->api_key)) {
+        if (! $setting || blank($setting->api_key)) {
             return $this->fallbackText($context);
         }
 

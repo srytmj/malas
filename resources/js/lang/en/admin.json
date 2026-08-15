@@ -149,12 +149,10 @@
             "cardDescription": "Used to generate the genre-taste funfact on the user dashboard. The API key is stored encrypted and is never shown again after saving.",
             "provider": "Provider",
             "providers": {
-                "puter": "Puter (Free, no API key)",
                 "gemini": "Google Gemini",
                 "openai": "OpenAI",
                 "claude": "Anthropic Claude"
             },
-            "puterHint": "Puter runs directly in the user's browser — no API key needed and no server quota consumed.",
             "apiKey": "API Key",
             "apiKeyPlaceholder": "Leave blank to keep the existing key",
             "apiKeySaved": "API key is already saved."

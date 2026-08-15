@@ -32,8 +32,7 @@
         "loadingDetail": "Loading...",
         "noSeriesForGenre": "No series with genre \"{{genre}}\".",
         "ownedWithGenre": "Your collection with genre \"{{genre}}\"",
-        "recommendedWithGenre": "Recommendations for genre \"{{genre}}\"",
-        "generateFailed": "Failed to generate funfact. Try again later."
+        "recommendedWithGenre": "Recommendations for genre \"{{genre}}\""
     },
     "recommendations": {
         "title": "Recommended for You",

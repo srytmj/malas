@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
-import { Pagination } from '@/Components/app/Pagination';
+import { PublicShell } from '@/Components/app/PublicShell';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from '@/Components/ui/empty';
 import { AdultBlurOverlay } from '@/Components/app/AdultBlurOverlay';
 import { SeriesStatusBadge } from '@/Components/app/StatusBadge';
@@ -26,6 +26,7 @@ import { type PaginatedData, type SeriesStatus, type SeriesType } from '@/lib/ty
 
 interface GroupItem {
     id: string;
+    slug: string;
     title_romaji: string;
     title_english: string | null;
     cover_url: string | null;
@@ -46,12 +47,14 @@ interface Props extends PageProps {
     items: GroupItem[];
     available: PaginatedData<AvailableItem> | null;
     is_owner: boolean;
+    is_guest: boolean;
     filters: { q: string; type: string };
 }
 
-export default function CollectionGroupShow({ group, items, available, is_owner, filters }: Props) {
+export default function CollectionGroupShow({ group, items, available, is_owner, is_guest, filters }: Props) {
     const { t } = useTranslation('collection');
     const typeFilterOptions = useTypeFilterOptions();
+    const Layout = is_guest ? PublicShell : UserLayout;
     const [renameOpen, setRenameOpen] = useState(false);
     const [name, setName] = useState(group.name);
     const [renaming, setRenaming] = useState(false);
@@ -63,9 +66,13 @@ export default function CollectionGroupShow({ group, items, available, is_owner,
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [adding, setAdding] = useState(false);
     const [removingId, setRemovingId] = useState<string | null>(null);
+    const [removeConfirmItem, setRemoveConfirmItem] = useState<GroupItem | null>(null);
     const [savingVisibility, setSavingVisibility] = useState(false);
     const [loadingAvailable, setLoadingAvailable] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [accumulated, setAccumulated] = useState<AvailableItem[]>(available?.data ?? []);
     const skipNextFetch = useRef(true);
+    const appendModeRef = useRef(false);
 
     useEffect(() => {
         if (skipNextFetch.current) {
@@ -86,6 +93,44 @@ export default function CollectionGroupShow({ group, items, available, is_owner,
         return () => clearTimeout(handle);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search, typeFilter]);
+
+    useEffect(() => {
+        if (!available) {
+            setAccumulated([]);
+            return;
+        }
+
+        if (appendModeRef.current) {
+            setAccumulated((prev) => [...prev, ...available.data]);
+            appendModeRef.current = false;
+        } else {
+            setAccumulated(available.data);
+        }
+        setLoadingMore(false);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [available]);
+
+    function loadMore() {
+        if (!available || loadingAvailable || loadingMore || available.current_page >= available.last_page) return;
+
+        appendModeRef.current = true;
+        setLoadingMore(true);
+        router.get(route('collection.groups.show', group.slug), { q: search, type: typeFilter, page: available.current_page + 1 }, {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['available'],
+        });
+    }
+
+    // Plain scroll-position check instead of IntersectionObserver — simpler, and doesn't depend
+    // on the tab actively compositing frames (IntersectionObserver callbacks can be delayed or
+    // skipped entirely for backgrounded/non-visible tabs).
+    function handleAvailableScroll(e: React.UIEvent<HTMLDivElement>) {
+        const el = e.currentTarget;
+        if (el.scrollHeight - el.scrollTop - el.clientHeight < 300) {
+            loadMore();
+        }
+    }
 
     function handleRename(e: React.FormEvent) {
         e.preventDefault();
@@ -136,12 +181,18 @@ export default function CollectionGroupShow({ group, items, available, is_owner,
         });
     }
 
+    function handleConfirmRemove() {
+        if (!removeConfirmItem) return;
+        handleRemove(removeConfirmItem.id);
+        setRemoveConfirmItem(null);
+    }
+
     return (
-        <UserLayout
+        <Layout
             header={
                 <PageHeader
                     title={group.name}
-                    breadcrumbs={[
+                    breadcrumbs={is_guest ? [{ label: group.name }] : [
                         { label: t('groups.index.title'), href: route('collection.groups.index') },
                         { label: group.name },
                     ]}
@@ -161,7 +212,9 @@ export default function CollectionGroupShow({ group, items, available, is_owner,
                             </Button>
                         </div>
                     ) : (
-                        <Badge variant="outline">{t('groups.visibility.public')}</Badge>
+                        <Badge variant="outline">
+                            {group.is_public ? t('groups.visibility.public') : t('groups.visibility.private')}
+                        </Badge>
                     )}
                 />
             }
@@ -209,7 +262,7 @@ export default function CollectionGroupShow({ group, items, available, is_owner,
                     {items.map((item) => (
                         <div key={item.id} className="group flex flex-col overflow-hidden rounded-lg border bg-card">
                             <div className="relative">
-                                <Link href={route('collection.show', item.id)}>
+                                <Link href={route('collection.show', item.slug)}>
                                     <AdultBlurOverlay isAdult={item.is_adult} className="aspect-[2/3] w-full overflow-hidden bg-muted">
                                         {item.cover_url ? (
                                             <img
@@ -231,7 +284,7 @@ export default function CollectionGroupShow({ group, items, available, is_owner,
                                         size="icon"
                                         className="absolute right-1.5 top-1.5 h-7 w-7"
                                         disabled={removingId === item.id}
-                                        onClick={() => handleRemove(item.id)}
+                                        onClick={() => setRemoveConfirmItem(item)}
                                         aria-label={t('groups.removeManga')}
                                     >
                                         {removingId === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
@@ -297,6 +350,24 @@ export default function CollectionGroupShow({ group, items, available, is_owner,
                         </DialogContent>
                     </Dialog>
 
+                    {/* Remove Item Dialog */}
+                    <Dialog open={!!removeConfirmItem} onOpenChange={(open) => { if (!open) setRemoveConfirmItem(null); }}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>{t('groups.removeDialog.title')}</DialogTitle>
+                                <DialogDescription>
+                                    {t('groups.removeDialog.confirmPrefix')} <strong>{removeConfirmItem?.title_romaji}</strong> {t('groups.removeDialog.confirmSuffix')}
+                                </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setRemoveConfirmItem(null)}>{t('groups.createDialog.cancel')}</Button>
+                                <Button variant="destructive" disabled={removingId === removeConfirmItem?.id} onClick={handleConfirmRemove}>
+                                    {removingId === removeConfirmItem?.id ? t('groups.removeDialog.removing') : t('groups.removeDialog.remove')}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+
                     {/* Add Manga Dialog */}
                     <Dialog
                         open={addOpen}
@@ -305,13 +376,13 @@ export default function CollectionGroupShow({ group, items, available, is_owner,
                             if (!open) { setSelectedIds(new Set()); setSearch(''); setTypeFilter('all'); }
                         }}
                     >
-                        <DialogContent className="flex max-h-[85vh] max-w-5xl flex-col">
-                            <DialogHeader>
+                        <DialogContent className="flex max-h-[85vh] w-full max-w-7xl flex-col sm:max-w-7xl">
+                            <DialogHeader className="shrink-0">
                                 <DialogTitle>{t('groups.addDialog.title')}</DialogTitle>
                                 <DialogDescription>{t('groups.addDialog.description')}</DialogDescription>
                             </DialogHeader>
 
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                            <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center">
                                 <div className="relative flex-1">
                                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                     <Input
@@ -324,7 +395,7 @@ export default function CollectionGroupShow({ group, items, available, is_owner,
                                 </div>
                             </div>
 
-                            <div className="overflow-x-auto">
+                            <div className="shrink-0 overflow-x-auto">
                                 <ToggleGroup
                                     value={[typeFilter]}
                                     onValueChange={(vals) => setTypeFilter(vals[0] ?? 'all')}
@@ -339,20 +410,20 @@ export default function CollectionGroupShow({ group, items, available, is_owner,
                                 </ToggleGroup>
                             </div>
 
-                            <div className="min-h-[360px] flex-1 overflow-y-auto">
+                            <div className="min-h-0 flex-1 overflow-y-auto" onScroll={handleAvailableScroll}>
                                 {loadingAvailable ? (
                                     <div className="flex h-full items-center justify-center py-16">
                                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                                     </div>
-                                ) : !available || available.data.length === 0 ? (
+                                ) : accumulated.length === 0 ? (
                                     <p className="py-8 text-center text-sm text-muted-foreground">
                                         {available && available.total === 0 && !search && typeFilter === 'all'
                                             ? t('groups.addDialog.noneAvailable')
                                             : t('groups.addDialog.noResults')}
                                     </p>
                                 ) : (
-                                    <div className="grid grid-cols-3 gap-2 pb-1 sm:grid-cols-5 lg:grid-cols-7">
-                                        {available.data.map((s) => {
+                                    <div className="grid grid-cols-3 gap-2 pb-1 sm:grid-cols-5 lg:grid-cols-8">
+                                        {accumulated.map((s) => {
                                             const isSelected = selectedIds.has(s.id);
                                             return (
                                                 <button
@@ -391,13 +462,15 @@ export default function CollectionGroupShow({ group, items, available, is_owner,
                                         })}
                                     </div>
                                 )}
+
+                                {loadingMore && (
+                                    <div className="flex items-center justify-center py-4">
+                                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                                    </div>
+                                )}
                             </div>
 
-                            {available && available.total > 0 && (
-                                <Pagination data={available} />
-                            )}
-
-                            <DialogFooter className="items-center gap-2">
+                            <DialogFooter className="shrink-0 items-center gap-2">
                                 {selectedIds.size > 0 && (
                                     <p className="mr-auto text-sm text-muted-foreground">{t('groups.addDialog.selectedCount', { count: selectedIds.size })}</p>
                                 )}
@@ -410,6 +483,6 @@ export default function CollectionGroupShow({ group, items, available, is_owner,
                     </Dialog>
                 </>
             )}
-        </UserLayout>
+        </Layout>
     );
 }

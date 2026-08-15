@@ -149,12 +149,10 @@
             "cardDescription": "Dipakai untuk generate funfact selera genre di dashboard pengguna. API key disimpan terenkripsi, tidak pernah ditampilkan ulang setelah disimpan.",
             "provider": "Provider",
             "providers": {
-                "puter": "Puter (Gratis, tanpa API key)",
                 "gemini": "Google Gemini",
                 "openai": "OpenAI",
                 "claude": "Anthropic Claude"
             },
-            "puterHint": "Puter jalan langsung dari browser pengguna, tidak butuh API key dan tidak kena kuota server manapun.",
             "apiKey": "API Key",
             "apiKeyPlaceholder": "Biarkan kosong untuk tetap pakai yang lama",
             "apiKeySaved": "API key sudah tersimpan."

@@ -68,6 +68,7 @@ class CollectionGroupController extends Controller
             ->get()
             ->map(fn ($c) => [
                 'id' => $c->id,
+                'slug' => $c->series->slug,
                 'title_romaji' => $c->series->title_romaji,
                 'title_english' => $c->series->title_english,
                 'cover_url' => $this->storage->url($c->series->cover_path),
@@ -111,6 +112,7 @@ class CollectionGroupController extends Controller
             'items' => $items,
             'available' => $available,
             'is_owner' => $isOwner,
+            'is_guest' => $viewer === null,
             'filters' => ['q' => $search, 'type' => $type],
         ]);
     }
@@ -200,6 +202,36 @@ class CollectionGroupController extends Controller
             $group,
         );
 
-        return redirect()->back()->with('success', __('flash.collection_groups.item_removed'));
+        return redirect()->back()->with([
+            'success' => __('flash.collection_groups.item_removed'),
+            // Cuma detach pivot (bukan hard-delete Collection-nya), jadi undo-nya simpel: re-attach.
+            'undo_url' => route('collection.groups.items.undoRemove', $group->slug),
+            'undo_payload' => ['collection_id' => $collection->id],
+        ]);
+    }
+
+    public function undoRemoveItem(Request $request, CollectionGroup $group): RedirectResponse
+    {
+        $this->authorize('update', $group);
+
+        $request->validate([
+            'collection_id' => ['required', 'uuid'],
+        ]);
+
+        $validId = auth()->user()->collections()->where('id', $request->collection_id)->value('id');
+
+        if (! $validId) {
+            return redirect()->back()->with('error', __('flash.collection_groups.item_restore_failed'));
+        }
+
+        $group->collections()->syncWithoutDetaching([$validId]);
+
+        ActivityLog::record(
+            'collection_group.undo_remove_item',
+            auth()->user()->name." membatalkan penghapusan manga dari grup \"{$group->name}\".",
+            $group,
+        );
+
+        return redirect()->back()->with('success', __('flash.collection_groups.item_restored'));
     }
 }

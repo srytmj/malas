@@ -27,6 +27,7 @@ interface VolumeRow {
 
 interface SeriesData {
     id: string;
+    slug: string;
     anilist_id: number | null;
     title_romaji: string;
     title_english: string | null;
@@ -123,7 +124,7 @@ export default function CatalogShow({ series, volumes, media, collection, wishli
                             </Link>
                             {collection ? (
                                 <Link
-                                    href={route('collection.show', collection.id)}
+                                    href={route('collection.show', series.slug)}
                                     className={cn(buttonVariants({ variant: 'outline' }))}
                                 >
                                     <Library className="mr-1.5 h-4 w-4" />

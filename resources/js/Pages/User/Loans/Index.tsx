@@ -15,6 +15,7 @@ import { type PaginatedData } from '@/lib/types';
 interface LoanRow {
     id: string;
     collection_id: string;
+    series_slug: string;
     series_title: string;
     volume_number: number | null;
     borrower_name: string;
@@ -83,7 +84,7 @@ export default function LoansIndex({ loans }: Props) {
                                     <TableRow key={loan.id} className={loan.is_overdue ? 'bg-destructive/5' : ''}>
                                         <TableCell>
                                             <Link
-                                                href={route('collection.show', loan.collection_id)}
+                                                href={route('collection.show', loan.series_slug)}
                                                 className="font-medium hover:underline"
                                             >
                                                 {loan.series_title}

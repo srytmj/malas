@@ -104,6 +104,13 @@
             "deleting": "Menghapus...",
             "delete": "Hapus"
         },
+        "removeDialog": {
+            "title": "Hapus dari Grup",
+            "confirmPrefix": "Yakin ingin menghapus",
+            "confirmSuffix": "dari grup ini? Manga-nya tetap ada di koleksimu.",
+            "removing": "Menghapus...",
+            "remove": "Hapus"
+        },
         "show": {
             "empty": {
                 "title": "Grup ini masih kosong",

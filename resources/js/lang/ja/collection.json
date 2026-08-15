@@ -104,6 +104,13 @@
             "deleting": "削除中...",
             "delete": "削除"
         },
+        "removeDialog": {
+            "title": "グループから削除",
+            "confirmPrefix": "",
+            "confirmSuffix": "をこのグループから削除しますか？コレクションにはそのまま残ります。",
+            "removing": "削除中...",
+            "remove": "削除"
+        },
         "show": {
             "empty": {
                 "title": "このグループはまだ空です",

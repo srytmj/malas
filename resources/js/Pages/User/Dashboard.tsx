@@ -1,8 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { generateWithPuter } from '@/lib/puter';
 import { Bar, BarChart, CartesianGrid, XAxis } from 'recharts';
 import Autoplay from 'embla-carousel-autoplay';
 import UserLayout from '@/Layouts/UserLayout';
@@ -64,13 +62,11 @@ interface FunfactData {
     generated_at: string | null;
     quota_remaining: number;
     quota_max: number;
-    provider: 'puter' | 'gemini' | 'openai' | 'claude';
-    needs_auto_generate: boolean;
-    prompt: string | null;
 }
 
 interface ContinueReadingItem {
     collection_id: string;
+    series_slug: string;
     series_title: string;
     cover_url: string | null;
     next_volume: number;
@@ -239,68 +235,13 @@ function GenreFunfactCard({ genreDistribution, funfact }: { genreDistribution: G
     const { t } = useTranslation('dashboard');
     const [regenerating, setRegenerating] = useState(false);
     const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
-    const autoGenerateAttempted = useRef(false);
 
     function toggleGenre(genre: string) {
         setSelectedGenre((prev) => (prev === genre ? null : genre));
     }
 
-    // Auto-generate untuk provider Puter jalan di browser (bukan server) — silent, di background,
-    // begitu dashboard dimuat dan server bilang funfact-nya perlu di-refresh.
-    useEffect(() => {
-        if (autoGenerateAttempted.current) return;
-        if (funfact.provider !== 'puter' || !funfact.needs_auto_generate || !funfact.prompt) return;
-
-        autoGenerateAttempted.current = true;
-
-        generateWithPuter(funfact.prompt)
-            .then((content) => {
-                router.post(route('dashboard.funfact.auto-save'), { content }, {
-                    preserveScroll: true,
-                    preserveState: true,
-                    only: ['funfact'],
-                });
-            })
-            .catch((err: unknown) => {
-                const message = err instanceof Error ? err.message : t('funfact.generateFailed');
-                router.post(route('dashboard.funfact.report-error'), { context: 'auto', message }, {
-                    preserveScroll: true,
-                    preserveState: true,
-                    only: ['funfact'],
-                });
-            });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
     function handleRegenerate() {
         setRegenerating(true);
-
-        if (funfact.provider === 'puter') {
-            if (!funfact.prompt) {
-                toast.error(t('funfact.generateFailed'));
-                setRegenerating(false);
-                return;
-            }
-
-            generateWithPuter(funfact.prompt)
-                .then((content) => {
-                    router.post(route('dashboard.funfact.regenerate'), { content }, {
-                        preserveScroll: true,
-                        onFinish: () => setRegenerating(false),
-                    });
-                })
-                .catch((err: unknown) => {
-                    const message = err instanceof Error ? err.message : t('funfact.generateFailed');
-                    toast.error(t('funfact.generateFailed'));
-                    router.post(route('dashboard.funfact.report-error'), { context: 'manual', message }, {
-                        preserveScroll: true,
-                        preserveState: true,
-                        only: ['funfact'],
-                    });
-                    setRegenerating(false);
-                });
-            return;
-        }
 
         router.post(route('dashboard.funfact.regenerate'), {}, {
             preserveScroll: true,
@@ -373,7 +314,7 @@ function ContinueReadingCard({ items }: { items: ContinueReadingItem[] }) {
                     {items.map((item) => (
                         <Link
                             key={item.collection_id}
-                            href={route('collection.show', item.collection_id)}
+                            href={route('collection.show', item.series_slug)}
                             className="group flex flex-col overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-sm"
                         >
                             <div className="aspect-[2/3] overflow-hidden bg-muted">

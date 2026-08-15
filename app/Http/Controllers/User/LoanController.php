@@ -28,6 +28,7 @@ class LoanController extends Controller
             ->through(fn ($l) => [
                 'id' => $l->id,
                 'collection_id' => $l->collection_id,
+                'series_slug' => $l->collection->series->slug,
                 'series_title' => $l->collection->series->title_romaji,
                 'volume_number' => $l->collectionVolume?->volume_number,
                 'borrower_name' => $l->borrower_name,

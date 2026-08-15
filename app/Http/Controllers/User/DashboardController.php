@@ -4,7 +4,6 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
-use App\Models\AiSetting;
 use App\Models\Collection;
 use App\Models\GenreFunfact;
 use App\Models\Loan;
@@ -76,19 +75,11 @@ class DashboardController extends Controller
         $ownedGenreCounts = $this->ownedGenreCounts($user);
         $collectionsCount = $collectionIds->count();
         $eligible = $collectionsCount >= self::FUNFACT_ELIGIBLE_THRESHOLD;
-        $provider = AiSetting::first()?->provider ?? 'puter';
 
         $funfact = GenreFunfact::where('user_id', $user->id)->first();
-        $needsAutoGenerate = false;
 
         if ($eligible) {
-            if ($provider === 'puter') {
-                // Puter cuma bisa dipanggil dari browser — server nggak generate, cuma kasih tahu
-                // frontend kalau perlu auto-generate, plus prompt yang sudah jadi buat dipakai client.
-                $needsAutoGenerate = $this->needsAutoGenerate($funfact, $collectionsCount);
-            } else {
-                $funfact = $this->maybeAutoGenerateFunfact($user, $funfact, $ownedGenreCounts, $collectionsCount);
-            }
+            $funfact = $this->maybeAutoGenerateFunfact($user, $funfact, $ownedGenreCounts, $collectionsCount);
         }
 
         return Inertia::render('User/Dashboard', [
@@ -113,11 +104,6 @@ class DashboardController extends Controller
                 'generated_at' => $funfact?->generated_at?->toIso8601String(),
                 'quota_remaining' => $this->quotaRemaining($funfact),
                 'quota_max' => $funfact?->quota_override ?? GenreFunfact::DEFAULT_MANUAL_QUOTA,
-                'provider' => $provider,
-                'needs_auto_generate' => $needsAutoGenerate,
-                'prompt' => $provider === 'puter' && $eligible
-                    ? $this->aiFunfact->buildPrompt($this->buildFunfactContext($ownedGenreCounts))
-                    : null,
             ],
         ]);
     }
@@ -138,46 +124,36 @@ class DashboardController extends Controller
             return redirect()->back()->with('error', __('flash.dashboard.funfact_quota_reached', ['max' => $quotaMax]));
         }
 
-        $usesPuter = AiSetting::first()?->provider === 'puter';
+        $ownedGenreCounts = $this->ownedGenreCounts($user);
 
-        if ($usesPuter) {
-            // Puter sudah di-generate di browser — server tinggal validasi kuota & simpan.
-            if (blank($request->content)) {
-                return redirect()->back()->with('error', __('flash.dashboard.funfact_failed'));
-            }
-            $content = $request->string('content')->toString();
-        } else {
-            $ownedGenreCounts = $this->ownedGenreCounts($user);
+        try {
+            $content = $this->aiFunfact->generate($this->buildFunfactContext($ownedGenreCounts));
+        } catch (AiRateLimitException $e) {
+            // Free-tier provider lagi kena limit — tetap tampilkan sesuatu (fallback), nggak motong kuota.
+            report($e);
+            ActivityLog::record(
+                'ai.funfact.rate_limited',
+                "Rate limit AI saat generate funfact untuk {$user->name}: {$e->getMessage()}",
+                $user,
+            );
 
-            try {
-                $content = $this->aiFunfact->generate($this->buildFunfactContext($ownedGenreCounts));
-            } catch (AiRateLimitException $e) {
-                // Free-tier provider lagi kena limit — tetap tampilkan sesuatu (fallback), nggak motong kuota.
-                report($e);
-                ActivityLog::record(
-                    'ai.funfact.rate_limited',
-                    "Rate limit AI saat generate funfact untuk {$user->name}: {$e->getMessage()}",
-                    $user,
-                );
+            $content = $this->aiFunfact->fallbackText($this->buildFunfactContext($ownedGenreCounts));
+            $funfact->content = $content;
+            $funfact->generated_at = now();
+            $funfact->collections_count_at_generation = $user->collections()->count();
+            $funfact->save();
 
-                $content = $this->aiFunfact->fallbackText($this->buildFunfactContext($ownedGenreCounts));
-                $funfact->content = $content;
-                $funfact->generated_at = now();
-                $funfact->collections_count_at_generation = $user->collections()->count();
-                $funfact->save();
+            return redirect()->back()->with('info', __('flash.dashboard.funfact_rate_limited'));
+        } catch (\Throwable $e) {
+            // Percobaan gagal tidak memotong kuota — funfact lama (kalau ada) tetap dipertahankan.
+            report($e);
+            ActivityLog::record(
+                'ai.funfact.error',
+                "Generate funfact gagal untuk {$user->name}: {$e->getMessage()}",
+                $user,
+            );
 
-                return redirect()->back()->with('info', __('flash.dashboard.funfact_rate_limited'));
-            } catch (\Throwable $e) {
-                // Percobaan gagal tidak memotong kuota — funfact lama (kalau ada) tetap dipertahankan.
-                report($e);
-                ActivityLog::record(
-                    'ai.funfact.error',
-                    "Generate funfact gagal untuk {$user->name}: {$e->getMessage()}",
-                    $user,
-                );
-
-                return redirect()->back()->with('error', __('flash.dashboard.funfact_failed'));
-            }
+            return redirect()->back()->with('error', __('flash.dashboard.funfact_failed'));
         }
 
         $funfact->content = $content;
@@ -190,47 +166,6 @@ class DashboardController extends Controller
         ActivityLog::record('ai.funfact.generate', "Generate ulang funfact oleh {$user->name}.", $user);
 
         return redirect()->back()->with('success', __('flash.dashboard.funfact_regenerated'));
-    }
-
-    public function saveAutoGeneratedFunfact(Request $request): RedirectResponse
-    {
-        $user = $request->user();
-
-        $request->validate([
-            'content' => ['required', 'string', 'max:1000'],
-        ]);
-
-        $collectionsCount = $user->collections()->count();
-        if ($collectionsCount < self::FUNFACT_ELIGIBLE_THRESHOLD) {
-            return redirect()->back();
-        }
-
-        $funfact = GenreFunfact::firstOrNew(['user_id' => $user->id]);
-        $funfact->content = $request->string('content')->toString();
-        $funfact->generated_at = now();
-        $funfact->collections_count_at_generation = $collectionsCount;
-        $funfact->save();
-
-        ActivityLog::record('ai.funfact.auto_generate', "Auto-generate funfact untuk {$user->name}.", $user);
-
-        return redirect()->back();
-    }
-
-    public function reportFunfactError(Request $request): RedirectResponse
-    {
-        $user = $request->user();
-
-        $data = $request->validate([
-            'context' => ['required', 'in:manual,auto'],
-            'message' => ['required', 'string', 'max:1000'],
-        ]);
-
-        $action = $data['context'] === 'auto' ? 'ai.funfact.auto_generate_error' : 'ai.funfact.error';
-        $prefix = $data['context'] === 'auto' ? 'Auto-generate' : 'Generate';
-
-        ActivityLog::record($action, "{$prefix} funfact gagal (Puter) untuk {$user->name}: {$data['message']}", $user);
-
-        return redirect()->back();
     }
 
     public function surpriseMe(Request $request): JsonResponse
@@ -346,12 +281,12 @@ class DashboardController extends Controller
      * Series the user has started reading (at least one read volume) but hasn't
      * finished (there's an unread volume after the last one they read).
      *
-     * @return array<int, array{collection_id: string, series_title: string, cover_url: string|null, next_volume: int}>
+     * @return array<int, array{collection_id: string, series_slug: string, series_title: string, cover_url: string|null, next_volume: int}>
      */
     private function continueReading(User $user): array
     {
         return $user->collections()
-            ->with(['series:id,title_romaji,cover_path', 'collectionVolumes'])
+            ->with(['series:id,slug,title_romaji,cover_path', 'collectionVolumes'])
             ->get()
             ->map(function (Collection $c) {
                 $readVolumes = $c->collectionVolumes->whereNotNull('read_at');
@@ -375,6 +310,7 @@ class DashboardController extends Controller
 
                 return [
                     'collection_id' => $c->id,
+                    'series_slug' => $c->series->slug,
                     'series_title' => $c->series->title_romaji,
                     'cover_url' => $this->storage->url($c->series->cover_path),
                     'next_volume' => $nextUnread->volume_number,

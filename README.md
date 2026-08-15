@@ -13,50 +13,50 @@
   [![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](#license)
 
-  **Language:** 🇬🇧 English (you're here) · [🇮🇩 Bahasa Indonesia](README.id.md)
+  **Language:** English (you're here) · [Bahasa Indonesia](README.id.md)
 </div>
 
 ---
 
 > Built for collectors who need to track which volumes they own, their condition, and who's borrowing what — no manual spreadsheets, no monthly subscription, and your data stays yours.
 
-## ✨ Key Features
+## Key Features
 
 <table>
 <tr><td width="50%" valign="top">
 
 **Collection & Catalog**
-- 📚 Catalog + personal collection, add volumes via range syntax (`1,2,5-9,11,12`)
-- 👁️ Per-volume read tracking — mark read/unread, auto progress in the collection table
-- ➕ Quick read-progress and per-format volume-count steppers — available from the collection list itself, no need to open a detail page
-- 🗂️ Custom collection groups (MDList/MangaDex-style) — create named lists (e.g. "RomCom") and add manga from your collection to them, one manga can belong to multiple groups
-- ⭐ Personal review & rating (-10 to +10, MyAnimeList-style)
-- 💌 Wishlist — series you want to read but haven't collected yet
-- 🔁 Volume lending — who borrowed it, due date, automatic overdue status
+- Catalog + personal collection, add volumes via range syntax (`1,2,5-9,11,12`)
+- Per-volume read tracking — mark read/unread, auto progress in the collection table
+- Quick read-progress and per-format volume-count steppers — available from the collection list itself, no need to open a detail page
+- Custom collection groups (MDList/MangaDex-style) — create named lists (e.g. "RomCom") and add manga from your collection to them, one manga can belong to multiple groups; groups can be public (shown on your profile) or private
+- Personal review & rating (-10 to +10, MyAnimeList-style)
+- Wishlist — series you want to read but haven't collected yet
+- Volume lending — who borrowed it, due date, automatic overdue status
 
 **Import & Data**
-- 🔎 Import metadata from [AniList](https://anilist.co) (GraphQL) — title, synopsis, genres, authors, score
-- 📖 Import light novels from RanobeDB — author/illustrator natively split
-- ⚡ Batch import: filter by genre + year + sort by popularity, multi-select import
-- 🔍 Searchable, multi-select genre filter on the Catalog page (OR-match)
+- Import metadata from [AniList](https://anilist.co) (GraphQL) — title, synopsis, genres, authors, score
+- Import light novels from RanobeDB — author/illustrator natively split
+- Batch import: filter by genre + year + sort by popularity, multi-select import
+- Searchable, multi-select genre filter on the Catalog page (OR-match)
 
 </td><td width="50%" valign="top">
 
 **User Experience**
-- 🎲 Recommendations & "Surprise Me" based on genre overlap with your collection
-- ⌘K Global search / Command Palette — instant navigation
-- 📊 Dashboard with charts (Recharts), not just raw numbers
-- 🧵 "Genre Taste" word cloud + AI funfact (free via Puter.js, or bring your own Gemini/OpenAI/Claude)
-- 👥 Opt-in public profile + follow + user directory
-- 🔀 Multi-account switching — link and quick-switch between accounts in the same browser session
-- ↩️ Undo button on toasts for reversible actions
-- 🌗 Light/Dark/System theme, 🌐 three languages (id/en/ja) — UI, validation messages, *and* controller flash messages are all fully translated
+- Recommendations & "Surprise Me" based on genre overlap with your collection
+- Global search / Command Palette (Cmd/Ctrl+K) — instant navigation
+- Dashboard with charts (Recharts), not just raw numbers
+- "Genre Taste" word cloud + AI funfact (bring your own Gemini/OpenAI/Claude API key, configured by the admin)
+- Opt-in public profile + follow + user directory
+- Multi-account switching — link and quick-switch between accounts in the same browser session
+- Undo button on toasts for reversible actions
+- Light/Dark/System theme, three languages (id/en/ja) — UI, validation messages, *and* controller flash messages are all fully translated
 
 **Admin & Infrastructure**
-- 🔐 SSO login (PKCE OAuth2) *or* email magic link — two peer login methods
-- 🗄️ Flexible storage (Local / S3-compatible) configured from the UI, no `.env` editing
-- 💾 Database backup & restore from the admin UI
-- 🧑‍✈️ `super_admin` > `admin` > `user` roles, database-driven drag-and-drop menus
+- SSO login (PKCE OAuth2) *or* email magic link — two peer login methods
+- Flexible storage (Local / S3-compatible) configured from the UI, no `.env` editing
+- Database backup & restore from the admin UI
+- `super_admin` > `admin` > `user` roles, database-driven drag-and-drop menus
 
 </td></tr>
 </table>
@@ -65,7 +65,7 @@ Full feature list in [`CLAUDE.md`](CLAUDE.md) under "Fitur yang Sudah Ada" (Indo
 
 ---
 
-## 🧱 Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
@@ -79,7 +79,7 @@ Full feature list in [`CLAUDE.md`](CLAUDE.md) under "Fitur yang Sudah Ada" (Indo
 | Auth/Roles | Spatie Laravel Permission |
 | SSO Auth | whitearchive.id (PKCE OAuth2) |
 | External APIs | AniList GraphQL, RanobeDB REST |
-| AI (client-side) | Puter.js (default, free) — or Gemini/OpenAI/Claude via admin UI |
+| AI | Gemini/OpenAI/Claude, API key configured via admin UI |
 | Email | Resend (configured via admin UI, not `.env`) |
 | Localization | react-i18next (id/en/ja) |
 | Drag & drop | @dnd-kit |
@@ -96,7 +96,7 @@ Access is gated on two layers: Spatie Role (resource level) + `CheckMenuAccess` 
 
 ---
 
-## 🚀 Local Setup (Development)
+## Local Setup (Development)
 
 Requirements: **PHP 8.2+**, **Composer**, **Node.js 20+**, **npm**.
 
@@ -130,7 +130,7 @@ SSO_CLIENT_SECRET=
 SSO_REDIRECT_URI=http://localhost:8000/auth/callback
 ```
 
-Don't want to set up SSO yet? Use the CLI emergency-access path (see [Troubleshooting](#-troubleshooting)) to log in directly as `super_admin`.
+Don't want to set up SSO yet? Use the CLI emergency-access path (see [Troubleshooting](#troubleshooting)) to log in directly as `super_admin`.
 
 ### Storage during development
 
@@ -138,7 +138,7 @@ The default `local` driver works out of the box with no extra configuration. To 
 
 ---
 
-## 📦 Production Deployment
+## Production Deployment
 
 Two methods available — automated via `deploy.sh` or manual step-by-step. Full guide including AWS EC2, Azure VM, and bare-metal/VPS setup: **[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)**.
 
@@ -152,7 +152,7 @@ This script runs `git pull`, rebuilds dependencies/frontend only when needed, ru
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ```bash
 php artisan test
@@ -161,7 +161,7 @@ npx tsc --noEmit
 
 ---
 
-## 🆘 Troubleshooting
+## Troubleshooting
 
 **Can't log in at all / whitearchive.id (SSO) is down?**
 
@@ -177,7 +177,7 @@ Fuller troubleshooting guide (Nginx 502s, failed migrations, storage permissions
 
 ---
 
-## 🗺️ Known Gaps (Backlog)
+## Known Gaps (Backlog)
 
 Being upfront about what's *not* there yet, so nothing catches you off guard:
 
@@ -190,7 +190,7 @@ See [`CLAUDE.md`](CLAUDE.md) under "Belum dikerjakan (backlog)" and [`docs/PHASE
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 | Document | Contents |
 |---------|-----|
@@ -202,8 +202,8 @@ See [`CLAUDE.md`](CLAUDE.md) under "Belum dikerjakan (backlog)" and [`docs/PHASE
 | [`docs/RANOBEDB_INTEGRATION.md`](docs/RANOBEDB_INTEGRATION.md) | API research + development plan for RanobeDB light novel import |
 | [`CHANGELOG.md`](CHANGELOG.md) | Notable changes, by date |
 
-## 📄 License
+## License
 
 MIT
 
-<div align="right"><a href="#malas">⬆ back to top</a></div>
+<div align="right"><a href="#malas">Back to top</a></div>

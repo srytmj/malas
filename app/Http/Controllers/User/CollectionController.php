@@ -31,6 +31,7 @@ class CollectionController extends Controller
             ->map(fn ($c) => [
                 'id' => $c->id,
                 'series_id' => $c->series_id,
+                'slug' => $c->series->slug,
                 'title_romaji' => $c->series->title_romaji,
                 'title_english' => $c->series->title_english,
                 'cover_url' => $this->storage->url($c->series->cover_path),

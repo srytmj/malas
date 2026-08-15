@@ -670,6 +670,68 @@ Keputusan desain (hasil diskusi sebelum implementasi): bukan sistem approval adm
 
 ---
 
+## Phase 29 — Fix: Blank Screen Buka Grup Koleksi (Slug Kosong + Guest Crash), README Bebas Emoji ✅
+
+**Goal:** Bug report langsung ("cuma blackscreen") — user nggak bisa akses grup koleksi sama sekali. Sekalian sama permintaan lain di pesan yang sama: README dirombak biar bebas emoji ("jangan gunakan emoji berlebih, lebih baik tidak ada sekalian").
+
+1. **Bug #1, root cause asli & utama**: user punya grup koleksi nyata ("RomCom") yang dibuat SEBELUM migration slug (Phase 28) dijalankan. Migration itu nambah kolom `slug` sebagai `nullable()` (biar nggak gagal di data lama) tapi **lupa backfill** — jadi grup lama itu kesimpen dengan `slug = NULL` permanen. Begitu `Index.tsx`/`Show.tsx` mulai generate semua link pakai `group.slug` (bukan `group.id` lagi), link ke grup ini rusak (`route('collection.groups.show', null)`) — inilah yang bikin user nggak bisa akses grupnya sama sekali, blank screen di halaman manapun yang nyoba render link itu. Ini ditemukan lewat pengecekan langsung `CollectionGroup::whereNull('slug')->count()` di database dev — ketemu 1 baris NULL, punya user asli (bukan data uji coba).
+   - **Fix**: migration baru `2026_08_15_090000_backfill_collection_groups_slug.php` — backfill semua `slug` yang masih NULL pakai `CollectionGroup::generateUniqueSlug()`, pola identik dengan backfill slug Series (`2026_08_02_090000_add_slug_to_series_table.php`, pola yang sudah ada di codebase, cuma nggak diikuti pas Phase 28). Diverifikasi: grup "RomCom" dapet slug `sehnauoi-romcom`, Index dan Show dua-duanya ke-render normal — link `href` di Index Sekarang beneran ngarah ke slug yang benar, klik masuk ke detail sukses tanpa error.
+2. **Bug #2, terpisah**: `CollectionGroups/Show.tsx` selalu render lewat `UserLayout`, yang berasumsi ada sesi login — `AccountSwitcher.tsx` akses `auth.user!` (non-null assertion). Untuk guest yang buka grup **publik** (fitur intentional dari Phase 28), `auth.user` beneran `null`, jadi React crash pas coba render sidebar/account switcher. Beda dari Bug #1 (yang kena siapa aja termasuk owner login), Bug #2 cuma kena guest.
+   - **Fix**: `CollectionGroupController::show()` kirim prop baru `is_guest` (`$viewer === null`). `Show.tsx` pakai `const Layout = is_guest ? PublicShell : UserLayout` — pola yang sama persis dengan `Profile/Show.tsx`. Breadcrumb ke `/collection-groups` (route auth-only) disembunyikan buat guest. Badge visibilitas di header non-owner sekarang baca `group.is_public` asli, bukan selalu nampilin "Publik" (kena kasus admin liat grup privat orang lain).
+3. Kenapa dua-duanya nggak ketangkep pas verifikasi Phase 27/28: verifikasi waktu itu cuma ngecek response JSON Inertia lewat curl (props yang dikirim server benar), bukan benar-benar render React di browser dengan data lama yang sudah ada — jadi baik slug NULL di data existing maupun crash client-side lolos dari deteksi.
+4. **README.md & README.id.md**: semua emoji dicopot (badge, heading section, bullet fitur/troubleshooting/backlog, tombol "back to top"). Anchor link internal (`#troubleshooting`, dll) disesuaikan karena GitHub generate slug heading beda begitu emoji dicopot dari judul section.
+
+### Done Criteria
+- [x] `npx tsc --noEmit` → 0 errors, `php -l` clean di file yang disentuh
+- [x] `CollectionGroup::whereNull('slug')->count()` → 0 setelah migration backfill jalan
+- [x] Verifikasi Browser (render React beneran, bukan curl doang) sebagai user pemilik grup asli: Index → klik card grup → Show ke-render tanpa error, link href pakai slug yang benar
+- [x] Verifikasi Browser: guest buka grup publik → nggak crash, `PublicShell` + tombol Login muncul, konten grup ke-render
+- [x] `README.md`/`README.id.md` dicek nol emoji tersisa (badge shields.io tetap dipertahankan karena itu gambar, bukan emoji teks), anchor link internal nggak ada yang putus
+- [x] Data uji coba tambahan (user, series, koleksi, grup, token) dibersihkan dari database dev setelah verifikasi — data asli user (grup "RomCom") dibiarkan, cuma di-backfill slug-nya
+
+---
+
+## Phase 30 — Modal "Tambah Manga" Lebih Lebar + Infinite Scroll ✅
+
+**Goal:** Request langsung — "bikin modal add manga to group lebih lebar, dan infinite scrolling bukan pake paginate".
+
+1. **Bug ketemu**: `max-w-7xl` yang dipasang di Phase 28 buat modal "Tambah Manga" nggak pernah beneran kepakai — `DialogContent` (`ui/dialog.tsx`) punya base style `sm:max-w-sm`, dan class override TANPA prefix `sm:` kalah di cascade Tailwind begitu viewport ≥640px (aturan media-query `sm:` posisinya lebih akhir di stylesheet generated, menang di source order lawan base utility non-prefixed dengan specificity sama). Modal diam-diam tetap 384px dari awal Phase 28, meski kodenya udah "benar" ngasih `max-w-7xl`. Fix: `sm:max-w-7xl`. Diverifikasi lewat `getComputedStyle` di Browser tool: sebelum fix `384px`, sesudah fix `1280px`.
+2. **Ganti `<Pagination>` jadi infinite scroll**: list koleksi di modal sekarang accumulate hasil tiap halaman ke state lokal (`accumulated`), auto-fetch halaman berikutnya pas discroll mendekati bawah kontainer.
+   - Percobaan pertama pakai `IntersectionObserver` di dalam `useEffect` — gagal, karena effect jalan sebelum DOM sentinel-nya ke-mount (Dialog content Base UI mount satu tick setelah `addOpen` true) dan dependency array nggak retrigger begitu ref-nya kepasang.
+   - Percobaan kedua pindah ke ref-callback pattern (observer dibikin persis pas node sentinel mount) — masih nggak fire sama sekali di lingkungan Browser tool ini, bahkan `observe(document.body)` polos juga nggak pernah callback, kemungkinan karena tab nggak compositing frame aktif (lihat error "Browser pane is not displayed" pas nyoba screenshot).
+   - **Solusi final**: `onScroll` handler biasa (`scrollHeight - scrollTop - clientHeight < 300`) — nggak bergantung rendering/compositing pipeline sama sekali, dan gampang diverifikasi manual (`dispatchEvent(new Event('scroll'))`). Diverifikasi: 50 item dummy ke-load 24 → 48 → 50 lewat dua kali scroll, masing-masing ngirim persis satu request (`page=2`, `page=3`), nol request duplikat/berlebih.
+3. **Bug sejenis kemungkinan ada di dialog lain** — `Admin/Series/Edit.tsx` (`max-w-3xl`) dan `User/Collection/Index.tsx` (`max-w-4xl`) sama-sama pakai `max-w-*` tanpa prefix `sm:`. Belum diverifikasi/di-fix di Phase ini (di luar scope task), di-flag sebagai task terpisah. `Admin/ActivityLog/Index.tsx` udah bener dari awal (`sm:max-w-2xl`).
+4. `CLAUDE.md` bagian "React Components" ditambah aturan eksplisit: override lebar `DialogContent` WAJIB pakai prefix `sm:`.
+
+### Done Criteria
+- [x] `npx tsc --noEmit` → 0 errors di file yang disentuh
+- [x] Verifikasi Browser: `getComputedStyle(dialog).maxWidth` = `1280px` (bukan `384px`) setelah dialog dibuka
+- [x] Verifikasi Browser: 50 koleksi dummy, scroll ke bawah dua kali → item bertambah 24→48→50, network request `page=2` lalu `page=3` masing-masing cuma sekali
+- [x] Verifikasi Browser: setelah semua halaman abis, scroll lanjut nggak ngirim request baru (no-op, dijaga guard `current_page >= last_page`)
+- [x] Data uji coba (user, series, koleksi, grup, token) dibersihkan dari database dev setelah verifikasi
+
+---
+
+## Phase 31 — Fix Layout Modal, URL Koleksi Pakai Judul, Konfirmasi+Undo Hapus dari Grup, Hapus Puter.js ✅
+
+**Goal:** Empat item langsung dari user dalam satu pesan (bukan diskusi): modal filter ketutupan + ikut nge-scroll, URL `/my-collection` masih UUID bukan judul, hapus manga dari grup nggak ada konfirmasi/undo, dan hapus total integrasi Puter.js.
+
+1. **Fix layout modal**: root cause-nya klasik flexbox — div list item (`min-h-[360px] flex-1 overflow-y-auto`) punya floor tinggi 360px yang bisa lebih gede dari sisa ruang yang dialokasikan flexbox di dalam `max-h-[85vh]`, jadi begitu grid item panjang, seluruh `DialogContent` (bukan cuma div list-nya) yang kepaksa melebihi tinggi maksimal — filter ke-dorong keluar viewport. Fix: `min-h-[360px]` → `min-h-0`, plus `shrink-0` eksplisit di header/search/filter/footer biar nggak ikut kekompres kalau ruang tipis.
+2. **URL koleksi pakai judul series** — `Collection::resolveRouteBinding()` baru, cocokkan lewat slug Series-nya, **dibatasi ke koleksi milik user yang login** (dua user beda bisa sama-sama koleksi series yang sama). Nggak nambah kolom `slug` baru di tabel `collections` — reuse `series.slug` yang udah unik global, jadi nggak ada risiko lupa-backfill kayak Phase 28/29. Enam file diupdate: `SearchController`/`GlobalSearch.tsx`, `Catalog/Show.tsx`, `CollectionController::index()`/`Collection/Index.tsx`, `CollectionGroupController::show()`/`CollectionGroups/Show.tsx`, `DashboardController::continueReading()`/`Dashboard.tsx`, `LoanController::index()`/`Loans/Index.tsx`. Endpoint aksi (PATCH/POST/DELETE, bukan navigasi) sengaja tetap pakai `collection.id` mentah.
+3. **Konfirmasi + Undo hapus dari grup** — dialog konfirmasi baru sebelum `handleRemove()` beneran jalan (pola sama dengan dialog Hapus Grup), dan `CollectionGroupController::removeItem()` sekarang kirim `undo_url`/`undo_payload`. Route PATCH baru `collection.groups.items.undoRemove` — re-attach pivot, undo-nya simpel karena cuma detach (bukan hard-delete kayak `CollectionController::destroy()`).
+4. **Puter.js dihapus total** — `lib/puter.ts` dihapus, tag `<script src="https://js.puter.com/v2/">` dicopot dari `app.blade.php`, opsi provider "Puter" dicopot dari admin AI settings + validasi backend. Default provider baru `gemini` (butuh API key — fallback ke teks statis kalau kosong, `AiFunfactService::fallbackText()` udah ada dari awal). Endpoint yang cuma dipakai flow client-side Puter (`dashboard.funfact.auto-save`, `dashboard.funfact.report-error`) jadi dead code total, ikut dihapus. Migration normalisasi baris `ai_settings.provider = 'puter'` lama ke `'gemini'`.
+
+### Done Criteria
+- [x] `npx tsc --noEmit` → 0 errors, `php -l` clean di semua file yang disentuh
+- [x] Verifikasi Browser: filter tipe kelihatan penuh di modal, cuma grid item yang scroll (bukan seluruh dialog)
+- [x] Verifikasi Browser: klik card koleksi/item grup → navigate ke `/my-collection/{judul-series-slug}`, bukan UUID
+- [x] Verifikasi Browser: klik hapus dari grup → dialog konfirmasi muncul dulu; konfirmasi → toast sukses dengan tombol Undo; klik Undo → item balik ke grup
+- [x] Verifikasi Browser: tab AI di admin settings cuma nampilin Gemini/OpenAI/Claude (Puter nggak ada); tombol "Generate Ulang" funfact tetap jalan normal lewat jalur server biasa (nggak crash referencing Puter)
+- [x] Sweep `grep -rli puter` di seluruh `resources/js`, `app`, `resources/views` → nol hasil nyata (cuma false-positive substring di `InputError.tsx`)
+- [x] Data uji coba (user, series, koleksi, grup, token, funfact) dibersihkan dari database dev setelah verifikasi
+
+---
+
 ## Summary Tabel
 
 | Phase | Nama | Status |
@@ -703,5 +765,8 @@ Keputusan desain (hasil diskusi sebelum implementasi): bukan sistem approval adm
 | 26 | Fix: Link Login (CLI/Email) Override Akun Aktif Alih-Alih Nambah | ✅ |
 | 27 | Grup Koleksi Dirombak Total (ala MDList MangaDex) | ✅ |
 | 28 | Grup Koleksi: Modal Diperbesar + Paginasi, Filter Tipe, Slug URL, Publik/Privat | ✅ |
+| 29 | Fix: Blank Screen Buka Grup Koleksi (Slug Kosong + Guest Crash), README Bebas Emoji | ✅ |
+| 30 | Modal "Tambah Manga" Lebih Lebar + Infinite Scroll | ✅ |
+| 31 | Fix Layout Modal, URL Koleksi Pakai Judul, Konfirmasi+Undo Hapus dari Grup, Hapus Puter.js | ✅ |
 
-**QA pass: 2026-07-03** — Phase 11–18 dikerjakan iteratif sesudahnya, lihat [`CHANGELOG.md`](../CHANGELOG.md) untuk detail per-perubahan. Gap yang masih terdokumentasi: Phase 18 butuh satu kali manual click-through di dev environment normal buat verifikasi visual modal login (satu-satunya gap tersisa dari sekian phase post-launch). Phase 19–28 (2026-08-14) semua sudah diverifikasi lewat HTTP request langsung ke server dev — enam bug nyata ketemu & diperbaiki selama proses (Phase 20 poin 3, Phase 23 poin 3, Phase 25 poin 3, Phase 26, Phase 27 poin 2, Phase 28 poin 5 — masing-masing sebelum phase berikutnya berjalan lolos verifikasi tanpa bug baru). Flash message controller kini sudah multi-bahasa penuh (Phase 25) — backlog lama yang tercatat di CLAUDE.md sudah diselesaikan. Grouping koleksi (Phase 25) dirombak total jadi desain many-to-many ala MDList MangaDex (Phase 27), lalu diperluas dengan paginasi/filter/slug URL/visibilitas publik (Phase 28).
+**QA pass: 2026-07-03** — Phase 11–18 dikerjakan iteratif sesudahnya, lihat [`CHANGELOG.md`](../CHANGELOG.md) untuk detail per-perubahan. Gap yang masih terdokumentasi: Phase 18 butuh satu kali manual click-through di dev environment normal buat verifikasi visual modal login (satu-satunya gap tersisa dari sekian phase post-launch). Phase 19–31 (2026-08-14 s/d 2026-08-15) semua sudah diverifikasi — sembilan bug nyata ketemu & diperbaiki selama proses (Phase 20 poin 3, Phase 23 poin 3, Phase 25 poin 3, Phase 26, Phase 27 poin 2, Phase 28 poin 5, Phase 29, Phase 30 poin 1, Phase 31 poin 1 — masing-masing sebelum phase berikutnya berjalan lolos verifikasi tanpa bug baru). Flash message controller kini sudah multi-bahasa penuh (Phase 25) — backlog lama yang tercatat di CLAUDE.md sudah diselesaikan. Grouping koleksi (Phase 25) dirombak total jadi desain many-to-many ala MDList MangaDex (Phase 27), diperluas dengan paginasi/filter/slug URL/visibilitas publik (Phase 28) lalu modal lebar + infinite scroll (Phase 30); dua bug flexbox/layout berturut-turut (Phase 30 `sm:` prefix Tailwind, Phase 31 `min-h` floor height) jadi pengingat kalau verifikasi HTTP/JSON doang nggak cukup buat nangkep bug rendering/CSS/JS client-side, perlu render beneran di browser. Integrasi Puter.js (AI provider gratis client-side) dihapus total di Phase 31 atas permintaan user.

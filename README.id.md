@@ -13,50 +13,50 @@
   [![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](#lisensi)
 
-  **Bahasa:** [🇬🇧 English](README.md) · 🇮🇩 Bahasa Indonesia (kamu di sini)
+  **Bahasa:** [English](README.md) · Bahasa Indonesia (kamu di sini)
 </div>
 
 ---
 
 > Dibuat untuk kolektor yang perlu melacak volume mana yang dimiliki, kondisinya, dan siapa yang sedang meminjam — tanpa spreadsheet manual, tanpa langganan bulanan, dan datanya tetap punya kamu sendiri.
 
-## ✨ Fitur Utama
+## Fitur Utama
 
 <table>
 <tr><td width="50%" valign="top">
 
 **Koleksi & Katalog**
-- 📚 Katalog + koleksi pribadi, input volume dengan syntax range (`1,2,5-9,11,12`)
-- 👁️ Tracking baca per volume — tandai sudah/belum, progres otomatis di datatable
-- ➕ Stepper cepat progres-baca & jumlah volume per format — bisa langsung dari daftar koleksi, nggak perlu buka halaman detail
-- 🗂️ Grup koleksi custom ala MDList/MangaDex — bikin daftar bernama (mis. "RomCom"), isi dengan manga dari koleksi, satu manga bisa masuk beberapa grup
-- ⭐ Review & rating pribadi (-10 s/d +10, gaya MyAnimeList)
-- 💌 Wishlist — series yang ingin dibaca tapi belum dikoleksi
-- 🔁 Peminjaman volume — siapa pinjam, jatuh tempo, status terlambat otomatis
+- Katalog + koleksi pribadi, input volume dengan syntax range (`1,2,5-9,11,12`)
+- Tracking baca per volume — tandai sudah/belum, progres otomatis di datatable
+- Stepper cepat progres-baca & jumlah volume per format — bisa langsung dari daftar koleksi, nggak perlu buka halaman detail
+- Grup koleksi custom ala MDList/MangaDex — bikin daftar bernama (mis. "RomCom"), isi dengan manga dari koleksi, satu manga bisa masuk beberapa grup; grup bisa diset publik (muncul di profilmu) atau privat
+- Review & rating pribadi (-10 s/d +10, gaya MyAnimeList)
+- Wishlist — series yang ingin dibaca tapi belum dikoleksi
+- Peminjaman volume — siapa pinjam, jatuh tempo, status terlambat otomatis
 
 **Import & Data**
-- 🔎 Import metadata dari [AniList](https://anilist.co) (GraphQL) — judul, sinopsis, genre, author, skor
-- 📖 Import light novel dari RanobeDB — author/illustrator ter-split native
-- ⚡ Batch import: filter genre + tahun + sort popularitas, multi-select sekaligus
-- 🔍 Filter genre searchable multi-select di halaman Katalog (OR-match)
+- Import metadata dari [AniList](https://anilist.co) (GraphQL) — judul, sinopsis, genre, author, skor
+- Import light novel dari RanobeDB — author/illustrator ter-split native
+- Batch import: filter genre + tahun + sort popularitas, multi-select sekaligus
+- Filter genre searchable multi-select di halaman Katalog (OR-match)
 
 </td><td width="50%" valign="top">
 
 **Pengalaman Pengguna**
-- 🎲 Rekomendasi & "Surprise Me" berbasis overlap genre koleksi
-- ⌘K Global search / Command Palette — navigasi instan
-- 📊 Dashboard dengan chart (Recharts), bukan cuma angka
-- 🧵 Word cloud "Selera Genre" + funfact AI (gratis via Puter.js, atau BYO Gemini/OpenAI/Claude)
-- 👥 Profil publik opt-in + follow + direktori pengguna
-- 🔀 Multi-account switching — sambungin & switch cepat antar akun di sesi browser yang sama
-- ↩️ Undo di toast untuk aksi reversible
-- 🌗 Tema Light/Dark/System, 🌐 tiga bahasa (id/en/ja) — UI, pesan validasi, *dan* flash message controller semuanya sudah full diterjemahkan
+- Rekomendasi & "Surprise Me" berbasis overlap genre koleksi
+- Global search / Command Palette (Cmd/Ctrl+K) — navigasi instan
+- Dashboard dengan chart (Recharts), bukan cuma angka
+- Word cloud "Selera Genre" + funfact AI (BYO API key Gemini/OpenAI/Claude, dikonfigurasi admin)
+- Profil publik opt-in + follow + direktori pengguna
+- Multi-account switching — sambungin & switch cepat antar akun di sesi browser yang sama
+- Undo di toast untuk aksi reversible
+- Tema Light/Dark/System, tiga bahasa (id/en/ja) — UI, pesan validasi, *dan* flash message controller semuanya sudah full diterjemahkan
 
 **Admin & Infrastruktur**
-- 🔐 Login SSO (PKCE OAuth2) *atau* magic link email — dua jalur setara
-- 🗄️ Storage fleksibel (Local / S3-compatible) dari UI, tanpa sentuh `.env`
-- 💾 Backup & restore database dari UI admin
-- 🧑‍✈️ Role `super_admin` > `admin` > `user`, menu dinamis drag-and-drop
+- Login SSO (PKCE OAuth2) *atau* magic link email — dua jalur setara
+- Storage fleksibel (Local / S3-compatible) dari UI, tanpa sentuh `.env`
+- Backup & restore database dari UI admin
+- Role `super_admin` > `admin` > `user`, menu dinamis drag-and-drop
 
 </td></tr>
 </table>
@@ -65,7 +65,7 @@ Detail lengkap tiap fitur ada di [`CLAUDE.md`](CLAUDE.md) bagian "Fitur yang Sud
 
 ---
 
-## 🧱 Tech Stack
+## Tech Stack
 
 | Layer | Teknologi |
 |-------|-----------|
@@ -79,7 +79,7 @@ Detail lengkap tiap fitur ada di [`CLAUDE.md`](CLAUDE.md) bagian "Fitur yang Sud
 | Auth/Role | Spatie Laravel Permission |
 | Auth SSO | whitearchive.id (PKCE OAuth2) |
 | API eksternal | AniList GraphQL, RanobeDB REST |
-| AI (client-side) | Puter.js (default, gratis) — atau Gemini/OpenAI/Claude via UI admin |
+| AI | Gemini/OpenAI/Claude, API key dikonfigurasi via UI admin |
 | Email | Resend (dikonfigurasi via UI admin, bukan `.env`) |
 | Multi-bahasa | react-i18next (id/en/ja) |
 | Drag & drop | @dnd-kit |
@@ -96,7 +96,7 @@ Akses dikontrol dua lapis: Spatie Role (resource level) + `CheckMenuAccess` midd
 
 ---
 
-## 🚀 Setup Lokal (Development)
+## Setup Lokal (Development)
 
 Prasyarat: **PHP 8.2+**, **Composer**, **Node.js 20+**, **npm**.
 
@@ -130,7 +130,7 @@ SSO_CLIENT_SECRET=
 SSO_REDIRECT_URI=http://localhost:8000/auth/callback
 ```
 
-Tidak mau setup SSO dulu? Pakai jalur darurat CLI (lihat [Troubleshooting](#-troubleshooting)) untuk langsung masuk sebagai `super_admin`.
+Tidak mau setup SSO dulu? Pakai jalur darurat CLI (lihat [Troubleshooting](#troubleshooting)) untuk langsung masuk sebagai `super_admin`.
 
 ### Storage saat development
 
@@ -138,7 +138,7 @@ Default driver `local` langsung jalan tanpa konfigurasi tambahan. Untuk switch k
 
 ---
 
-## 📦 Deployment ke Production
+## Deployment ke Production
 
 Dua metode tersedia — otomatis via `deploy.sh` atau manual step-by-step. Panduan lengkap termasuk setup AWS EC2, Azure VM, dan Local Server (VPS/bare metal): **[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)**.
 
@@ -152,7 +152,7 @@ Script ini melakukan `git pull`, rebuild dependencies/frontend hanya jika perlu,
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ```bash
 php artisan test
@@ -161,7 +161,7 @@ npx tsc --noEmit
 
 ---
 
-## 🆘 Troubleshooting
+## Troubleshooting
 
 **Nggak bisa login sama sekali / whitearchive.id (SSO) down?**
 
@@ -177,7 +177,7 @@ Panduan troubleshooting lebih lengkap (Nginx 502, migration gagal, storage permi
 
 ---
 
-## 🗺️ Belum Selesai (Backlog)
+## Belum Selesai (Backlog)
 
 Jujur soal apa yang belum ada, biar nggak ada yang kaget:
 
@@ -190,7 +190,7 @@ Lihat [`CLAUDE.md`](CLAUDE.md) bagian "Belum dikerjakan (backlog)" dan [`docs/PH
 
 ---
 
-## 📚 Dokumentasi
+## Dokumentasi
 
 | Dokumen | Isi |
 |---------|-----|
@@ -202,8 +202,8 @@ Lihat [`CLAUDE.md`](CLAUDE.md) bagian "Belum dikerjakan (backlog)" dan [`docs/PH
 | [`docs/RANOBEDB_INTEGRATION.md`](docs/RANOBEDB_INTEGRATION.md) | Riset API + rencana development import light novel dari RanobeDB |
 | [`CHANGELOG.md`](CHANGELOG.md) | Histori perubahan penting per tanggal |
 
-## 📄 Lisensi
+## Lisensi
 
 MIT
 
-<div align="right"><a href="#malas">⬆ kembali ke atas</a></div>
+<div align="right"><a href="#malas">Kembali ke atas</a></div>

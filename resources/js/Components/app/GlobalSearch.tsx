@@ -116,7 +116,7 @@ export function GlobalSearch() {
                                 <CommandItem
                                     key={`collection-${r.id}`}
                                     value={`collection-${r.id}`}
-                                    onSelect={() => go('collection.show', r.id)}
+                                    onSelect={() => go('collection.show', r.slug ?? r.id)}
                                 >
                                     <Library />
                                     {r.title}

@@ -164,6 +164,8 @@ return [
         'deleted' => 'Grup berhasil dihapus.',
         'items_added' => ':count manga berhasil ditambahkan ke grup.',
         'item_removed' => 'Manga berhasil dihapus dari grup.',
+        'item_restored' => 'Manga dikembalikan ke grup.',
+        'item_restore_failed' => 'Gagal mengembalikan manga — koleksinya sudah tidak ada.',
         'made_public' => 'Grup sekarang publik — muncul di profilmu.',
         'made_private' => 'Grup sekarang privat.',
     ],

@@ -36,7 +36,7 @@ interface StorageSettingData {
 }
 
 interface AiSettingData {
-    provider: 'puter' | 'gemini' | 'openai' | 'claude';
+    provider: 'gemini' | 'openai' | 'claude';
     has_key: boolean;
 }
 
@@ -65,7 +65,7 @@ const storageSchema = z.object({
 type StorageFormValues = z.infer<typeof storageSchema>;
 
 const aiSchema = z.object({
-    provider: z.enum(['puter', 'gemini', 'openai', 'claude']),
+    provider: z.enum(['gemini', 'openai', 'claude']),
     api_key: z.string().optional(),
 });
 type AiFormValues = z.infer<typeof aiSchema>;
@@ -88,14 +88,13 @@ function AiTab({ aiSetting }: { aiSetting: AiSettingData }) {
     const [submitting, setSubmitting] = useState(false);
 
     const AI_PROVIDER_LABELS: Record<AiFormValues['provider'], string> = {
-        puter: t('settings.ai.providers.puter'),
         gemini: t('settings.ai.providers.gemini'),
         openai: t('settings.ai.providers.openai'),
         claude: t('settings.ai.providers.claude'),
     };
 
     const {
-        register, control, handleSubmit, setError, watch,
+        register, control, handleSubmit, setError,
         formState: { errors },
     } = useForm<AiFormValues>({
         resolver: zodResolver(aiSchema),
@@ -104,9 +103,6 @@ function AiTab({ aiSetting }: { aiSetting: AiSettingData }) {
             api_key: '',
         },
     });
-
-    const provider = watch('provider');
-    const usesPuter = provider === 'puter';
 
     function onSubmit(values: AiFormValues) {
         setSubmitting(true);
@@ -146,7 +142,6 @@ function AiTab({ aiSetting }: { aiSetting: AiSettingData }) {
                                         </SelectValue>
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="puter">{AI_PROVIDER_LABELS.puter}</SelectItem>
                                         <SelectItem value="gemini">{AI_PROVIDER_LABELS.gemini}</SelectItem>
                                         <SelectItem value="openai">{AI_PROVIDER_LABELS.openai}</SelectItem>
                                         <SelectItem value="claude">{AI_PROVIDER_LABELS.claude}</SelectItem>
@@ -154,30 +149,23 @@ function AiTab({ aiSetting }: { aiSetting: AiSettingData }) {
                                 </Select>
                             )}
                         />
-                        {usesPuter && (
-                            <p className="text-xs text-muted-foreground">
-                                {t('settings.ai.puterHint')}
-                            </p>
-                        )}
                     </div>
 
-                    {!usesPuter && (
-                        <div className="space-y-1.5">
-                            <Label htmlFor="api_key">
-                                {t('settings.ai.apiKey')} {!aiSetting.has_key && <span className="text-destructive">*</span>}
-                            </Label>
-                            <Input
-                                id="api_key"
-                                type="password"
-                                placeholder={aiSetting.has_key ? t('settings.ai.apiKeyPlaceholder') : ''}
-                                {...register('api_key')}
-                            />
-                            <FieldError message={errors.api_key?.message} />
-                            {aiSetting.has_key && (
-                                <p className="text-xs text-muted-foreground">{t('settings.ai.apiKeySaved')}</p>
-                            )}
-                        </div>
-                    )}
+                    <div className="space-y-1.5">
+                        <Label htmlFor="api_key">
+                            {t('settings.ai.apiKey')} {!aiSetting.has_key && <span className="text-destructive">*</span>}
+                        </Label>
+                        <Input
+                            id="api_key"
+                            type="password"
+                            placeholder={aiSetting.has_key ? t('settings.ai.apiKeyPlaceholder') : ''}
+                            {...register('api_key')}
+                        />
+                        <FieldError message={errors.api_key?.message} />
+                        {aiSetting.has_key && (
+                            <p className="text-xs text-muted-foreground">{t('settings.ai.apiKeySaved')}</p>
+                        )}
+                    </div>
 
                     <Button type="submit" disabled={submitting}>
                         <Save className="mr-1.5 h-3.5 w-3.5" />

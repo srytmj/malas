@@ -32,8 +32,7 @@
         "loadingDetail": "Memuat...",
         "noSeriesForGenre": "Tidak ada series dengan genre \"{{genre}}\".",
         "ownedWithGenre": "Koleksimu dengan genre \"{{genre}}\"",
-        "recommendedWithGenre": "Rekomendasi genre \"{{genre}}\"",
-        "generateFailed": "Gagal generate funfact. Coba lagi nanti."
+        "recommendedWithGenre": "Rekomendasi genre \"{{genre}}\""
     },
     "recommendations": {
         "title": "Rekomendasi untukmu",
