@@ -6,12 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Collection;
 use App\Models\CollectionVolume;
+use App\Models\Series;
 use App\Services\StorageSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CollectionController extends Controller
 {
@@ -49,6 +52,165 @@ class CollectionController extends Controller
         return Inertia::render('User/Collection/Index', [
             'collections' => $collections,
         ]);
+    }
+
+    public function export(): StreamedResponse
+    {
+        $user = auth()->user();
+
+        $collections = $user->collections()
+            ->with(['series', 'collectionVolumes'])
+            ->get()
+            ->map(fn ($c) => [
+                // Identifier series buat matching pas import — dikirim semuanya (bukan cuma satu)
+                // biar import tetap bisa cocok walau salah satu ID berubah/kosong.
+                'series' => [
+                    'anilist_id' => $c->series->anilist_id,
+                    'ranobedb_id' => $c->series->ranobedb_id,
+                    'mal_id' => $c->series->mal_id,
+                    'slug' => $c->series->slug,
+                    'title_romaji' => $c->series->title_romaji,
+                ],
+                'condition' => $c->condition,
+                'acquired_at' => $c->acquired_at?->toDateString(),
+                'notes' => $c->notes,
+                'personal_rating' => $c->personal_rating,
+                'personal_review' => $c->personal_review,
+                'volumes' => $c->collectionVolumes->map(fn ($v) => [
+                    'volume_number' => $v->volume_number,
+                    'format' => $v->format,
+                    'ebook_source' => $v->ebook_source,
+                    'language' => $v->language,
+                    'read_at' => $v->read_at?->toIso8601String(),
+                ])->all(),
+            ]);
+
+        $payload = [
+            'version' => 1,
+            'exported_at' => now()->toIso8601String(),
+            'exported_by' => $user->username ?? $user->name,
+            'collections' => $collections,
+        ];
+
+        $filename = 'malas-koleksi-'.($user->username ?? 'user').'-'.now()->format('Y-m-d-His').'.json';
+
+        return response()->streamDownload(function () use ($payload) {
+            echo json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }, $filename, ['Content-Type' => 'application/json']);
+    }
+
+    public function import(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'collection_file' => ['required', 'file', 'max:10240'],
+        ]);
+
+        $content = file_get_contents($request->file('collection_file')->getRealPath());
+        $data = json_decode($content, true);
+
+        if (! is_array($data) || ! isset($data['version'], $data['collections']) || ! is_array($data['collections'])) {
+            return redirect()->back()->with('error', __('flash.collections.import_invalid'));
+        }
+
+        $user = auth()->user();
+        $ownedSeriesIds = $user->collections()->pluck('series_id')->all();
+
+        $imported = 0;
+        $skippedExisting = 0;
+        $skippedNotFound = 0;
+
+        DB::beginTransaction();
+
+        try {
+            foreach ($data['collections'] as $entry) {
+                $series = $this->matchSeriesForImport($entry['series'] ?? []);
+
+                if (! $series) {
+                    $skippedNotFound++;
+
+                    continue;
+                }
+
+                if (in_array($series->id, $ownedSeriesIds, true)) {
+                    $skippedExisting++;
+
+                    continue;
+                }
+
+                $collection = $user->collections()->create([
+                    'series_id' => $series->id,
+                    'condition' => $this->sanitizeEnum($entry['condition'] ?? null, ['mint', 'good', 'fair', 'poor'], 'good'),
+                    'acquired_at' => $entry['acquired_at'] ?? null,
+                    'notes' => is_string($entry['notes'] ?? null) ? $entry['notes'] : null,
+                    'personal_rating' => is_numeric($entry['personal_rating'] ?? null) ? (int) $entry['personal_rating'] : null,
+                    'personal_review' => is_string($entry['personal_review'] ?? null) ? $entry['personal_review'] : null,
+                ]);
+
+                $seenVolumeNumbers = [];
+
+                foreach (($entry['volumes'] ?? []) as $volumeData) {
+                    $volumeNumber = $volumeData['volume_number'] ?? null;
+
+                    if (! is_numeric($volumeNumber) || in_array((int) $volumeNumber, $seenVolumeNumbers, true)) {
+                        continue;
+                    }
+
+                    $seenVolumeNumbers[] = (int) $volumeNumber;
+
+                    $collection->collectionVolumes()->create([
+                        'volume_number' => (int) $volumeNumber,
+                        'format' => $this->sanitizeEnum($volumeData['format'] ?? null, ['physical', 'ebook', 'online', 'webtoon'], 'physical'),
+                        'ebook_source' => $this->sanitizeEnum($volumeData['ebook_source'] ?? null, ['bookwalker', 'amazon', 'local_epub'], null),
+                        'language' => $this->sanitizeEnum($volumeData['language'] ?? null, ['id', 'en', 'ja', 'other'], null),
+                        'read_at' => is_string($volumeData['read_at'] ?? null) ? $volumeData['read_at'] : null,
+                    ]);
+                }
+
+                $ownedSeriesIds[] = $series->id;
+                $imported++;
+            }
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            report($e);
+
+            return redirect()->back()->with('error', __('flash.collections.import_failed'));
+        }
+
+        ActivityLog::record(
+            'collection.import',
+            "{$user->name} mengimpor {$imported} series ke koleksi (lewati {$skippedExisting} sudah dimiliki, {$skippedNotFound} tidak ada di katalog).",
+            $user,
+        );
+
+        return redirect()->back()->with('success', __('flash.collections.imported', [
+            'count' => $imported,
+            'skipped' => $skippedExisting + $skippedNotFound,
+        ]));
+    }
+
+    private function matchSeriesForImport(array $seriesData): ?Series
+    {
+        foreach (['anilist_id', 'ranobedb_id', 'mal_id'] as $key) {
+            if (! empty($seriesData[$key])) {
+                $series = Series::where($key, $seriesData[$key])->first();
+                if ($series) {
+                    return $series;
+                }
+            }
+        }
+
+        if (! empty($seriesData['slug'])) {
+            return Series::where('slug', $seriesData['slug'])->first();
+        }
+
+        return null;
+    }
+
+    private function sanitizeEnum(mixed $value, array $allowed, ?string $default): ?string
+    {
+        return in_array($value, $allowed, true) ? $value : $default;
     }
 
     public function store(Request $request): RedirectResponse

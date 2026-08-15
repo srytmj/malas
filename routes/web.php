@@ -103,6 +103,8 @@ Route::middleware(['auth', 'not_banned', 'check.menu'])->group(function () {
     Route::post('/my-collection', [CollectionController::class, 'store'])->name('collection.store');
     Route::patch('/my-collection/undo-store', [CollectionController::class, 'undoStore'])->name('collection.undo-store');
     Route::patch('/my-collection/undo-destroy', [CollectionController::class, 'undoDestroy'])->name('collection.undo-destroy');
+    Route::get('/my-collection/export', [CollectionController::class, 'export'])->name('collection.export');
+    Route::post('/my-collection/import', [CollectionController::class, 'import'])->name('collection.import');
     Route::get('/my-collection/{collection}', [CollectionController::class, 'show'])->name('collection.show');
     Route::delete('/my-collection/{collection}', [CollectionController::class, 'destroy'])->name('collection.destroy');
     Route::patch('/my-collection/{collection}/condition', [CollectionController::class, 'updateCondition'])->name('collection.condition.update');

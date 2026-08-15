@@ -114,6 +114,9 @@ return [
         'restored' => 'Collection restored successfully.',
         'condition_updated' => 'Collection condition updated successfully.',
         'review_saved' => 'Review saved successfully.',
+        'imported' => ':count series imported into your collection (:skipped skipped — already owned or not in the catalog).',
+        'import_invalid' => 'Invalid file. Make sure it\'s a Malas collection export file.',
+        'import_failed' => 'Failed to import the collection. Try again later.',
 
         'volumes_invalid_number' => 'Enter at least one valid volume number.',
         'volumes_too_many' => 'Maximum 100 volumes at once.',

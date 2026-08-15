@@ -732,6 +732,27 @@ Keputusan desain (hasil diskusi sebelum implementasi): bukan sistem approval adm
 
 ---
 
+## Phase 32 — Nonaktifkan Sementara Generate Funfact AI, Export/Import Koleksi ✅
+
+**Goal:** Dua item dari user di pesan terpisah: (1) nonaktifkan sementara fitur generate funfact AI, (2) fitur baru export/import koleksi pribadi (backup) — user konfirmasi format JSON dan mode import append-only (skip yang udah ada, bukan overwrite).
+
+1. **Nonaktifkan funfact AI**: konstanta `DashboardController::FUNFACT_GENERATION_ENABLED = false` — skip auto-generate di `index()` dan guard 404 defensif di `regenerateFunfact()`. Word cloud genre (bagian non-AI dari kartu yang sama) tetap tampil normal, cuma tombol "Generate Ulang" + teks funfact AI-nya yang disembunyikan (`Dashboard.tsx` cek `funfact.generation_enabled`). Reversible total — tinggal balikin konstanta ke `true`, nggak ada data yang perlu di-restore.
+2. **Export koleksi**: `CollectionController::export()`, `response()->streamDownload()` (pola sama `DatabaseBackupController::download()`). File JSON berisi identifier series (`anilist_id`/`ranobedb_id`/`mal_id`/`slug` — semua dikirim sekaligus, bukan cuma satu, biar import tetap match walau salah satu field berubah), condition/acquired_at/notes/rating/review, dan full volume list (nomor, format, ebook_source, language, read_at).
+3. **Import koleksi**: `CollectionController::import()`, upload file JSON tervalidasi struktur (`version`+`collections`), transaksi DB. Matching series berurutan `anilist_id` → `ranobedb_id` → `mal_id` → `slug` terhadap katalog **lokal** — sengaja **tidak** auto-fetch dari AniList kalau series belum ada di katalog (skip + dihitung, bukan duplikasi logic `AniListController::import()`). Series yang udah dimiliki user di-skip juga (append-only sesuai konfirmasi user). Semua field enum (`condition`, `format`, `ebook_source`, `language`) di-whitelist lewat `sanitizeEnum()` sebelum insert — nggak percaya file upload mentah-mentah.
+4. UI: tombol "Export"/"Import" di header `Collection/Index.tsx`, dialog import pakai file-input pattern yang sama dengan `DatabaseTab` di `Admin/Settings/Index.tsx`.
+5. Verifikasi kali ini pakai HTTP request langsung (curl + cookie jar + CSRF token), bukan Browser tool — ada gangguan tool browser pane di sesi ini (navigasi ke origin server ad-hoc gagal terus meski server-nya sendiri konfirmasi hidup lewat curl). Tetap end-to-end lewat request HTTP asli (bukan cuma unit-level), termasuk multipart file upload beneran.
+
+### Done Criteria
+- [x] `npx tsc --noEmit` → 0 errors, `php -l` clean di semua file yang disentuh
+- [x] Verifikasi (curl+cookie jar, live server): funfact card cuma nampilin word cloud, tombol/teks AI-nya hilang
+- [x] Verifikasi: export user A (2 koleksi, salah satunya ada rating/review/2 volume) → JSON lengkap & akurat field-per-field
+- [x] Verifikasi: import file itu ke user B yang udah punya 1 dari 2 series → cuma 1 series baru ke-import, yang lama nggak ke-duplikat, flash report "1 diimpor, 1 dilewati" benar
+- [x] Verifikasi: entry dengan series yang nggak ada di katalog lokal → di-skip graceful (nggak crash), dihitung di laporan
+- [x] Verifikasi: file JSON invalid/rusak → ditolak dengan flash error, bukan 500
+- [x] Data uji coba (user, series, koleksi, volume, token) dibersihkan dari database dev setelah verifikasi
+
+---
+
 ## Summary Tabel
 
 | Phase | Nama | Status |
@@ -768,5 +789,6 @@ Keputusan desain (hasil diskusi sebelum implementasi): bukan sistem approval adm
 | 29 | Fix: Blank Screen Buka Grup Koleksi (Slug Kosong + Guest Crash), README Bebas Emoji | ✅ |
 | 30 | Modal "Tambah Manga" Lebih Lebar + Infinite Scroll | ✅ |
 | 31 | Fix Layout Modal, URL Koleksi Pakai Judul, Konfirmasi+Undo Hapus dari Grup, Hapus Puter.js | ✅ |
+| 32 | Nonaktifkan Sementara Generate Funfact AI, Export/Import Koleksi | ✅ |
 
-**QA pass: 2026-07-03** — Phase 11–18 dikerjakan iteratif sesudahnya, lihat [`CHANGELOG.md`](../CHANGELOG.md) untuk detail per-perubahan. Gap yang masih terdokumentasi: Phase 18 butuh satu kali manual click-through di dev environment normal buat verifikasi visual modal login (satu-satunya gap tersisa dari sekian phase post-launch). Phase 19–31 (2026-08-14 s/d 2026-08-15) semua sudah diverifikasi — sembilan bug nyata ketemu & diperbaiki selama proses (Phase 20 poin 3, Phase 23 poin 3, Phase 25 poin 3, Phase 26, Phase 27 poin 2, Phase 28 poin 5, Phase 29, Phase 30 poin 1, Phase 31 poin 1 — masing-masing sebelum phase berikutnya berjalan lolos verifikasi tanpa bug baru). Flash message controller kini sudah multi-bahasa penuh (Phase 25) — backlog lama yang tercatat di CLAUDE.md sudah diselesaikan. Grouping koleksi (Phase 25) dirombak total jadi desain many-to-many ala MDList MangaDex (Phase 27), diperluas dengan paginasi/filter/slug URL/visibilitas publik (Phase 28) lalu modal lebar + infinite scroll (Phase 30); dua bug flexbox/layout berturut-turut (Phase 30 `sm:` prefix Tailwind, Phase 31 `min-h` floor height) jadi pengingat kalau verifikasi HTTP/JSON doang nggak cukup buat nangkep bug rendering/CSS/JS client-side, perlu render beneran di browser. Integrasi Puter.js (AI provider gratis client-side) dihapus total di Phase 31 atas permintaan user.
+**QA pass: 2026-07-03** — Phase 11–18 dikerjakan iteratif sesudahnya, lihat [`CHANGELOG.md`](../CHANGELOG.md) untuk detail per-perubahan. Gap yang masih terdokumentasi: Phase 18 butuh satu kali manual click-through di dev environment normal buat verifikasi visual modal login (satu-satunya gap tersisa dari sekian phase post-launch). Phase 19–32 (2026-08-14 s/d 2026-08-15) semua sudah diverifikasi — sembilan bug nyata ketemu & diperbaiki selama proses (Phase 20 poin 3, Phase 23 poin 3, Phase 25 poin 3, Phase 26, Phase 27 poin 2, Phase 28 poin 5, Phase 29, Phase 30 poin 1, Phase 31 poin 1 — masing-masing sebelum phase berikutnya berjalan lolos verifikasi tanpa bug baru). Flash message controller kini sudah multi-bahasa penuh (Phase 25) — backlog lama yang tercatat di CLAUDE.md sudah diselesaikan. Grouping koleksi (Phase 25) dirombak total jadi desain many-to-many ala MDList MangaDex (Phase 27), diperluas dengan paginasi/filter/slug URL/visibilitas publik (Phase 28) lalu modal lebar + infinite scroll (Phase 30); dua bug flexbox/layout berturut-turut (Phase 30 `sm:` prefix Tailwind, Phase 31 `min-h` floor height) jadi pengingat kalau verifikasi HTTP/JSON doang nggak cukup buat nangkep bug rendering/CSS/JS client-side, perlu render beneran di browser. Integrasi Puter.js (AI provider gratis client-side) dihapus total di Phase 31 atas permintaan user; Phase 32 nonaktifkan sementara generate funfact AI-nya sendiri (word cloud genre tetap jalan) dan nambah fitur export/import koleksi (backup pribadi) — verifikasi Phase 32 pakai HTTP request langsung (curl) karena ada gangguan tool Browser pane di sesi itu, bukan indikasi masalah di fitur-nya.

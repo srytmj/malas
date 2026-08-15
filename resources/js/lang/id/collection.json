@@ -3,6 +3,16 @@
         "title": "Koleksiku",
         "count": "{{count}} series dalam koleksi",
         "addSeries": "Tambah Series",
+        "export": "Export",
+        "import": "Import",
+        "importDialog": {
+            "title": "Import Koleksi",
+            "description": "Pilih file JSON hasil export koleksi Malas. Series yang sudah ada di koleksimu otomatis dilewati.",
+            "fileLabel": "File koleksi (.json)",
+            "cancel": "Batal",
+            "import": "Import",
+            "importing": "Mengimpor..."
+        },
         "empty": {
             "title": "Koleksi masih kosong",
             "description": "Tambahkan series untuk mulai melacak volume yang kamu miliki.",

@@ -3,6 +3,16 @@
         "title": "マイコレクション",
         "count": "コレクション内 {{count}}シリーズ",
         "addSeries": "シリーズを追加",
+        "export": "エクスポート",
+        "import": "インポート",
+        "importDialog": {
+            "title": "コレクションをインポート",
+            "description": "Malasのコレクションエクスポートファイル（JSON）を選んでください。すでにコレクションにあるシリーズは自動的にスキップされます。",
+            "fileLabel": "コレクションファイル（.json）",
+            "cancel": "キャンセル",
+            "import": "インポート",
+            "importing": "インポート中..."
+        },
         "empty": {
             "title": "コレクションはまだ空です",
             "description": "所有している巻の記録を始めるにはシリーズを追加してください。",

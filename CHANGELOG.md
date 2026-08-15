@@ -4,6 +4,21 @@ Semua perubahan penting pada Malas dicatat di file ini. Format mengikuti prinsip
 
 ---
 
+## 2026-08-15 (lanjutan 5) — Export/Import Koleksi (Backup Pribadi)
+
+- Fitur baru atas request user: user bisa export seluruh koleksi (+ progres baca, review, rating) ke file JSON dan import balik. Tombol "Export"/"Import" di header `Collection/Index.tsx`.
+- **Export** (`CollectionController::export()`) — `response()->streamDownload()` (pola sama `DatabaseBackupController`), filename `malas-koleksi-{username}-{tanggal}.json`. Isi tiap entry: identifier series (`anilist_id`, `ranobedb_id`, `mal_id`, `slug` — dikirim semua sekaligus biar matching pas import tetap robust walau salah satu berubah/kosong), condition, acquired_at, notes, personal_rating, personal_review, dan full volume list (nomor, format, ebook_source, language, read_at).
+- **Import** (`CollectionController::import()`) — upload file JSON, validasi struktur (`version`+`collections` array) sebelum disentuh, wrapped `DB::beginTransaction()`. Matching series berurutan: `anilist_id` → `ranobedb_id` → `mal_id` → `slug`, dicari di katalog **lokal** (bukan fetch AniList otomatis — keputusan sengaja, biar nggak duplikasi logic `AniListController::import()`; kalau series belum ada di katalog lokal, entry itu di-skip dan dihitung terpisah). Series yang udah ada di koleksi user juga di-skip (**append-only**, sesuai konfirmasi user — bukan overwrite). Semua field volume (`format`/`ebook_source`/`language`) dan `condition` di-whitelist lewat `sanitizeEnum()` sebelum insert — file upload user nggak dipercaya mentah-mentah. Hasil dilaporkan lewat flash: "X diimpor, Y dilewati (sudah dimiliki atau tidak ada di katalog)".
+- Diverifikasi end-to-end lewat HTTP request langsung (curl, bukan browser — ada gangguan tool browser pane sesi ini): export user A dengan 2 koleksi (termasuk rating/review/2 volume) → JSON lengkap dan akurat; import ke user B yang udah punya 1 dari 2 series itu → cuma 1 series baru yang ke-import, yang lama nggak ke-duplikat/ke-timpa; entry dengan series yang nggak ada di katalog lokal → di-skip graceful, nggak crash; file JSON invalid/rusak → ditolak dengan pesan error, bukan 500.
+
+---
+
+## 2026-08-15 (lanjutan 4) — Nonaktifkan Sementara Generate Funfact AI
+
+- Atas permintaan user, fitur generate funfact AI (auto-generate + tombol "Generate Ulang" + teks funfact) dinonaktifkan sementara lewat konstanta `DashboardController::FUNFACT_GENERATION_ENABLED = false`. Word cloud genre (bagian non-AI dari kartu "Selera Genre" yang sama) **tetap** tampil normal — cuma bagian AI-nya yang di-skip. `regenerateFunfact()` juga dikasih guard 404 defensif kalau ada request nyasar ke endpoint itu selagi dinonaktifkan. Nggak ada penghapusan kode/data — tinggal balikin konstanta ke `true` buat ngaktifin ulang.
+
+---
+
 ## 2026-08-15 (lanjutan 3) — Fix Layout Modal, URL Koleksi Pakai Judul, Konfirmasi+Undo Hapus dari Grup, Hapus Puter.js
 
 - **Fix layout modal "Tambah Manga"**: filter tipe ketutupan dan modal ikut nge-scroll — root cause div list item (`min-h-[360px] flex-1 overflow-y-auto`) punya floor tinggi 360px yang bisa lebih besar dari sisa ruang yang dialokasikan flexbox (`max-h-[85vh]` dikurangi tinggi header/search/filter/footer), jadi begitu grid item cukup panjang, seluruh `DialogContent` kepaksa lebih tinggi dari `max-h-[85vh]` alih-alih cuma div itu doang yang scroll — filter ke-dorong keluar viewport. Fix: `min-h-[360px]` → `min-h-0` (biar flex item bisa nyusut penuh sesuai sisa ruang), plus `shrink-0` eksplisit di header/search/filter/footer biar nggak ikut kekompres.

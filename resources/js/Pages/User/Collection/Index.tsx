@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import {
-    BookOpen, Eye, LayoutGrid, Layers, Library, List, Loader2, Minus, Plus, RefreshCw, Search, Trash2,
+    BookOpen, Download, Eye, LayoutGrid, Layers, Library, List, Loader2, Minus, Plus, RefreshCw, Search, Trash2, Upload,
 } from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -12,6 +12,7 @@ import { SeriesStatusBadge } from '@/Components/app/StatusBadge';
 import { Badge } from '@/Components/ui/badge';
 import { Button, buttonVariants } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
+import { Label } from '@/Components/ui/label';
 import { ScrollArea } from '@/Components/ui/scroll-area';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/Components/ui/hover-card';
 import {
@@ -166,6 +167,28 @@ export default function CollectionIndex({ collections }: Props) {
     );
     const [adding, setAdding]               = useState(false);
 
+    // Import dialog
+    const [importOpen, setImportOpen]       = useState(false);
+    const [importFile, setImportFile]       = useState<File | null>(null);
+    const [importing, setImporting]         = useState(false);
+    const importFileRef = useRef<HTMLInputElement>(null);
+
+    function handleImport() {
+        if (!importFile) return;
+        setImporting(true);
+        const form = new FormData();
+        form.append('collection_file', importFile);
+        router.post(route('collection.import'), form, {
+            forceFormData: true,
+            onFinish: () => {
+                setImporting(false);
+                setImportOpen(false);
+                setImportFile(null);
+                if (importFileRef.current) importFileRef.current.value = '';
+            },
+        });
+    }
+
     // Debounced search
     useEffect(() => {
         if (!addOpen) return;
@@ -287,6 +310,14 @@ export default function CollectionIndex({ collections }: Props) {
                                 <Layers className="mr-1.5 h-3.5 w-3.5" />
                                 {t('groups.navLabel')}
                             </Link>
+                            <a href={route('collection.export')} className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
+                                <Download className="mr-1.5 h-3.5 w-3.5" />
+                                {t('index.export')}
+                            </a>
+                            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+                                <Upload className="mr-1.5 h-3.5 w-3.5" />
+                                {t('index.import')}
+                            </Button>
                             <Button size="sm" onClick={() => { setAddOpen(true); setSearchQuery(''); setSelectedIds(new Set()); }}>
                                 <Plus className="mr-1.5 h-3.5 w-3.5" />
                                 {t('index.addSeries')}
@@ -706,6 +737,39 @@ export default function CollectionIndex({ collections }: Props) {
                         <Button variant="outline" onClick={() => setDeleteTarget(null)}>{t('index.deleteDialog.cancel')}</Button>
                         <Button variant="destructive" disabled={deleting} onClick={handleDelete}>
                             {deleting ? t('index.deleteDialog.deleting') : t('index.deleteDialog.delete')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Import dialog */}
+            <Dialog
+                open={importOpen}
+                onOpenChange={(open) => {
+                    setImportOpen(open);
+                    if (!open) { setImportFile(null); if (importFileRef.current) importFileRef.current.value = ''; }
+                }}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{t('index.importDialog.title')}</DialogTitle>
+                        <DialogDescription>{t('index.importDialog.description')}</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-1.5">
+                        <Label htmlFor="import-file">{t('index.importDialog.fileLabel')}</Label>
+                        <input
+                            id="import-file"
+                            ref={importFileRef}
+                            type="file"
+                            accept="application/json,.json"
+                            onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
+                            className="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium"
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setImportOpen(false)}>{t('index.importDialog.cancel')}</Button>
+                        <Button disabled={!importFile || importing} onClick={handleImport}>
+                            {importing ? t('index.importDialog.importing') : t('index.importDialog.import')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

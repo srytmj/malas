@@ -114,6 +114,9 @@ return [
         'restored' => 'Koleksi berhasil dipulihkan.',
         'condition_updated' => 'Kondisi koleksi berhasil diperbarui.',
         'review_saved' => 'Review berhasil disimpan.',
+        'imported' => ':count series berhasil diimpor ke koleksi (:skipped dilewati — sudah dimiliki atau tidak ada di katalog).',
+        'import_invalid' => 'File tidak valid. Pastikan file adalah hasil export koleksi Malas.',
+        'import_failed' => 'Gagal mengimpor koleksi. Coba lagi nanti.',
 
         'volumes_invalid_number' => 'Masukkan minimal satu nomor volume yang valid.',
         'volumes_too_many' => 'Maksimal 100 volume sekaligus.',

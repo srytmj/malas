@@ -30,6 +30,11 @@ class DashboardController extends Controller
 
     private const FUNFACT_COOLDOWN_DAYS = 7;
 
+    // Dinonaktifkan sementara atas permintaan user (2026-08-15) — auto-generate & tombol
+    // "Generate Ulang" di-skip, word cloud genre (bukan AI) tetap jalan normal. Set true lagi
+    // buat ngaktifin ulang, nggak ada data yang perlu di-restore.
+    private const FUNFACT_GENERATION_ENABLED = false;
+
     public function __construct(
         private StorageSettingsService $storage,
         private AiFunfactService $aiFunfact,
@@ -78,7 +83,7 @@ class DashboardController extends Controller
 
         $funfact = GenreFunfact::where('user_id', $user->id)->first();
 
-        if ($eligible) {
+        if ($eligible && self::FUNFACT_GENERATION_ENABLED) {
             $funfact = $this->maybeAutoGenerateFunfact($user, $funfact, $ownedGenreCounts, $collectionsCount);
         }
 
@@ -100,6 +105,7 @@ class DashboardController extends Controller
             'genre_distribution' => $this->presentDistribution($ownedGenreCounts),
             'funfact' => [
                 'eligible' => $eligible,
+                'generation_enabled' => self::FUNFACT_GENERATION_ENABLED,
                 'content' => $funfact?->content,
                 'generated_at' => $funfact?->generated_at?->toIso8601String(),
                 'quota_remaining' => $this->quotaRemaining($funfact),
@@ -110,6 +116,10 @@ class DashboardController extends Controller
 
     public function regenerateFunfact(Request $request): RedirectResponse
     {
+        if (! self::FUNFACT_GENERATION_ENABLED) {
+            abort(404);
+        }
+
         $user = $request->user();
 
         $request->validate([

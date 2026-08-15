@@ -58,6 +58,7 @@ interface GenreDistributionItem {
 
 interface FunfactData {
     eligible: boolean;
+    generation_enabled: boolean;
     content: string | null;
     generated_at: string | null;
     quota_remaining: number;
@@ -256,7 +257,7 @@ function GenreFunfactCard({ genreDistribution, funfact }: { genreDistribution: G
                     <Sparkles className="h-4 w-4" />
                     {t('funfact.title')}
                 </CardTitle>
-                {funfact.eligible && (
+                {funfact.eligible && funfact.generation_enabled && (
                     <Button
                         variant="outline"
                         size="sm"
@@ -281,14 +282,18 @@ function GenreFunfactCard({ genreDistribution, funfact }: { genreDistribution: G
                                 {t('funfact.clickGenreHint')}
                             </p>
                         )}
-                        {funfact.content && (
-                            <p className="rounded-lg border bg-muted/40 p-3 text-sm leading-relaxed">
-                                {funfact.content}
-                            </p>
+                        {funfact.generation_enabled && (
+                            <>
+                                {funfact.content && (
+                                    <p className="rounded-lg border bg-muted/40 p-3 text-sm leading-relaxed">
+                                        {funfact.content}
+                                    </p>
+                                )}
+                                <p className="text-xs text-muted-foreground">
+                                    {t('funfact.quotaRemaining', { remaining: funfact.quota_remaining, max: funfact.quota_max })}
+                                </p>
+                            </>
                         )}
-                        <p className="text-xs text-muted-foreground">
-                            {t('funfact.quotaRemaining', { remaining: funfact.quota_remaining, max: funfact.quota_max })}
-                        </p>
                         {selectedGenre && <GenreDetailSection genre={selectedGenre} />}
                     </>
                 )}

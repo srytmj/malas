@@ -3,6 +3,16 @@
         "title": "My Collection",
         "count": "{{count}} series in collection",
         "addSeries": "Add Series",
+        "export": "Export",
+        "import": "Import",
+        "importDialog": {
+            "title": "Import Collection",
+            "description": "Choose a Malas collection export JSON file. Series already in your collection are skipped automatically.",
+            "fileLabel": "Collection file (.json)",
+            "cancel": "Cancel",
+            "import": "Import",
+            "importing": "Importing..."
+        },
         "empty": {
             "title": "Collection is empty",
             "description": "Add series to start tracking the volumes you own.",
