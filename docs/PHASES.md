@@ -595,6 +595,81 @@ Keputusan desain (hasil diskusi sebelum implementasi): bukan sistem approval adm
 
 ---
 
+## Phase 25 — Stepper dari Koleksiku, Grouping Koleksi, Flash Message Multi-Bahasa ✅
+
+**Goal:** Tiga item digabung jadi satu batch atas permintaan user ("gas, sekalian sama grouping, flash message multi bahasa") — extend stepper progres baca ke halaman Koleksiku (nggak perlu buka detail koleksi), fitur grouping koleksi yang sempat didiskusikan di Phase 24, dan backlog lama flash message belum multi-bahasa.
+
+1. **Stepper progres baca di Koleksiku** — `Collection/Index.tsx` (`ReadStepper`) reuse endpoint `collection.volumes.readProgress` yang sama persis dengan halaman detail koleksi (Phase 23) — nol perubahan backend. Per-row loading state (`busyId`) biar klik di satu koleksi nggak ngeblok koleksi lain. Muncul di grid card DAN table row, `stopPropagation()` biar nggak ke-trigger navigasi ke detail.
+2. **Grouping koleksi** — kolom `collections.group_name` baru (string bebas 100 char, bukan tabel terpisah — sengaja simpel, filter dedup dari nilai yang sudah ada per user). `CollectionController::updateGroup()` baru. UI: filter dropdown (sentinel `__ungrouped__` buat "Tanpa Grup") + edit inline lewat Popover (`GroupEditor`) di grid card & table row (kolom baru "Grup"). **⚠️ Desain ini ternyata salah semantik dan diganti total di Phase 27** — lihat detail di sana.
+3. **Flash message multi-bahasa** — backlog lama akhirnya dikerjakan. `lang/{id,en,ja}/flash.php` baru, ~70 pemanggilan `->with('success'/'error'/'info', ...)` di 24 controller dikonversi dari hardcode Indonesia jadi `__('flash.namespace.key', [...])`. Satu bug ketemu saat sweep manual: `VolumeController::generate()` pakai pola `->with($created > 0 ? 'success' : 'info', $message)` (key dinamis) yang lolos dari grep awal (`grep "with('success'"` cuma nangkep literal string key) — ketemu lewat sweep kedua yang nyari sisa kata "berhasil"/"gagal" hardcode di luar `__()`.
+   - **Keputusan scope**: pesan exception mentah (`$e->getMessage()`, dari API eksternal) dan teks `ActivityLog::record()` (log aktivitas admin) sengaja **tidak** diterjemahkan — yang pertama nggak bisa diprediksi isinya, yang kedua memang bukan flash toast per-locale (dibaca admin, konsisten Indonesia).
+
+### Done Criteria
+- [x] `npx tsc --noEmit` → 0 errors, `php -l` clean di semua 24 controller + 3 file `flash.php` yang disentuh
+- [x] Live HTTP test stepper dari Koleksiku: forward/backward mengubah `read_volumes_count` di response tanpa buka halaman detail
+- [x] Live HTTP test grouping: set nama grup, verifikasi tersimpan; set string kosong, verifikasi ke-null-kan
+- [x] Live HTTP test flash i18n: request yang sama (`readProgress` forward/backward) dengan `users.locale` di-set `id`/`en`/`ja` bergantian — hasil pesan flash 3-3-nya benar dan sesuai bahasa aktif
+- [x] Live tinker test: `:count` placeholder dikonfirmasi aman dipakai di `__()` biasa (bukan `trans_choice()`) di ketiga bahasa — nggak ada logic pluralisasi nyasar
+- [x] Sweep kedua nemuin & benerin 1 bug (`VolumeController::generate()` key dinamis yang lolos grep awal)
+- [x] Data uji coba (koleksi, role/locale sementara, token, session) dibersihkan dari database dev setelah verifikasi
+
+---
+
+## Phase 26 — Fix: Link Login (CLI/Email) Override Akun Aktif Alih-Alih Nambah ✅
+
+**Goal:** Bug report langsung ("langsung fix") — login lewat magic link CLI (`sso:emergency-login`) atau email yang di-klik saat masih login sebagai user lain **meng-override** sesi aktif, bukan nambahin sebagai akun ke-link (padahal tombol "Tambah Akun" di UI berfungsi benar). User curiga email login kena bug yang sama — benar.
+
+1. **Root cause**: `AccountLinkService::loginAs()` cuma nge-link akun lama kalau session flag `sso_link_mode` di-set — dan flag itu cuma di-set dari alur UI "Tambah Akun" (`?link=1` di `/auth/redirect`, field `link` di `POST /auth/fallback`). Link CLI/email nggak pernah lewat alur itu, jadi flag-nya selalu kosong.
+2. **Fix**: `loginAs(User $user)` (parameter `linkMode` dicopot) sekarang mutusin murni dari `auth()->check()` di momen link dikonsumsi — kalau ada user lain yang masih login, otomatis ke-link ke `linked_account_ids`, terlepas dari link-nya datang dari CLI, email, atau "Tambah Akun". `sso_link_mode` session flag dan `link` query/POST param dihapus total (dead code).
+3. Disentuh: `AccountLinkService.php`, `SsoController.php` (`redirect()` balik ke tanpa `Request` param), `SsoFallbackController.php`, `LoginMethodDialog.tsx` (JSDoc diupdate, `link` param dicopot dari POST body & route call).
+
+### Done Criteria
+- [x] `npx tsc --noEmit` → 0 errors, `php -l` clean
+- [x] Live HTTP test: login A → consume bare token (CLI-style, tanpa modal "Tambah Akun") buat B → A masuk `linked_accounts`, user aktif jadi B
+- [x] Live HTTP test: guest fresh login → `linked_accounts` kosong (nggak ada regresi ke kasus normal)
+- [x] Data uji coba (token, session) dibersihkan dari database dev setelah verifikasi
+
+---
+
+## Phase 27 — Grup Koleksi Dirombak Total (ala MDList MangaDex) ✅
+
+**Goal:** Desain grouping di Phase 25 poin 2 ternyata salah semantik — user jelasin maksudnya "ala MDList MangaDex": grup itu objek pertama (dikasih nama, mis. "RomCom"), diisi banyak manga dari koleksi user, bukan sekadar label string tunggal per koleksi. Diganti total, bukan di-patch.
+
+1. **`CollectionGroup` model baru** + pivot `collection_group_items` — **many-to-many**, satu manga bisa masuk lebih dari satu grup sekaligus. Kolom `collections.group_name` (desain Phase 25) dihapus lewat migration baru.
+2. **Bug ketemu & diperbaiki saat verifikasi HTTP langsung**: pivot table sempat dikasih `uuid('id')->primary()` kayak tabel lain di app ini — tapi `attach()`/`syncWithoutDetaching()` Eloquent insert baris pivot lewat query builder mentah (bukan lewat model event), jadi `HasUuids` nggak sempat ngisi kolom `id`, bikin `NOT NULL constraint violation` di SQLite. Fix: pivot table murni pakai composite primary key (`collection_group_id`, `collection_id`), bukan `id` sintetis — pola standar Laravel buat pivot table tanpa data tambahan.
+3. **Halaman baru**: `/collection-groups` (daftar grup, cover collage dari 4 manga pertama) → `/collection-groups/{group}` (isi grup — tambah manga dari koleksi lewat dialog picker, hapus dari grup, ubah nama, hapus grup). Routes sengaja dikasih prefix top-level terpisah (bukan nested di `/my-collection/`) buat menghindari tabrakan sama route-binding `/my-collection/{collection}` yang udah ada.
+4. Link "Grup Koleksi" ditambahkan di header halaman Koleksiku. Semua UI grouping lama di `Collection/Index.tsx` (popover inline, filter dropdown, kolom tabel "Grup") dicopot bersih.
+5. `lang/{id,en,ja}/flash.php` — key `collections.group_updated` (Phase 25) dihapus, diganti blok `collection_groups.*` baru. `lang/{id,en,ja}/collection.json` — namespace `groups` top-level baru, fully translated.
+
+### Done Criteria
+- [x] `npx tsc --noEmit` → 0 errors, `php -l` clean di semua file yang disentuh
+- [x] Live HTTP test: create group → add items dari koleksi → remove satu item → rename → delete group — semua correct, termasuk konfirmasi koleksi underlying TIDAK ikut kehapus saat grup dihapus
+- [x] Live HTTP test: pivot NOT NULL bug ketemu, migration di-rollback & diperbaiki (composite PK), re-migrate, retry verifikasi penuh lolos
+- [x] Data uji coba (grup, koleksi, item) dibersihkan dari database dev setelah verifikasi
+
+---
+
+## Phase 28 — Grup Koleksi: Modal Diperbesar + Paginasi, Filter Tipe, Slug URL, Publik/Privat ✅
+
+**Goal:** Empat item perbaikan/penambahan atas grup koleksi (Phase 27) diminta langsung tanpa "gimana?" (bukan diskusi): modal "Tambah Manga" terlalu kecil buat koleksi besar, butuh filter tipe, URL grup masih pakai UUID (harusnya slug ala Series), dan grup butuh opsi publik/privat (muncul di profil kalau publik).
+
+1. **Modal "Tambah Manga" diperbesar & dipaginasi** — `max-w-3xl` → `max-w-5xl`, list koleksi yang bisa ditambahkan di-paginate server-side (24/halaman, reuse `Pagination.tsx`) dan filter tipe (segmented control, reuse `useTypeFilterOptions()`) ditambahkan. Search & filter tipe sekarang server-side lewat debounced partial reload (`only: ['available']`), bukan filter client-side atas array yang di-load penuh sekali.
+2. **URL grup pakai slug** — `CollectionGroup::generateUniqueSlug()` (pola sama dengan `Series::generateUniqueSlug()`) bikin slug `{username}-{nama-grup}`, regenerate otomatis saat nama grup diubah. Migration baru nambah kolom `slug` (unique) + `is_public` (default false) ke `collection_groups`.
+3. **Opsi Publik/Privat** — `Switch` di halaman detail grup (owner-only). Grup publik muncul di profil publik pemilik (section baru) dan bisa diakses guest lewat URL langsung; privat cuma pemilik/admin. Route `GET /collection-groups/{group}` dipindah keluar dari grup middleware `auth` (pola sama `/u/{user}`), visibilitas dicek manual di controller.
+4. `PublicShell` (dulu inline di `Profile/Show.tsx`) diekstrak jadi komponen bersama `Components/app/PublicShell.tsx`, dipakai juga di `CollectionGroups/Show.tsx` — perlu supaya guest yang buka grup publik nggak nabrak `UserLayout` yang butuh sesi login.
+5. **Bug ketemu & diperbaiki saat verifikasi HTTP langsung**: query `available` yang di-`join()` ke tabel `series` bikin `whereNotIn('id', ...)` ambigu (SQLite nggak tahu `id` punya tabel mana). Fix: qualify jadi `whereNotIn('collections.id', ...)`.
+
+### Done Criteria
+- [x] `npx tsc --noEmit` → 0 errors, `php -l` clean di semua file yang disentuh
+- [x] Live HTTP test dengan 30 koleksi dummy: filter tipe (manga vs novel) benar, search substring benar, pagination halaman 2 benar
+- [x] Live HTTP test: tambah 2 item ke grup → langsung ke-exclude dari `available` (total 30→28)
+- [x] Live HTTP test: toggle publik → guest tanpa login bisa lihat grup (`is_owner: false`, `available: null`); toggle privat lagi → guest kena 403
+- [x] Live HTTP test: rename grup → slug regenerate otomatis (`testowner-romcom` → `testowner-shounen-favorites`)
+- [x] Live HTTP test: profil publik pemilik grup menampilkan grup publik dengan cover collage
+- [x] Data uji coba (user, koleksi, series, grup, token) dibersihkan dari database dev setelah verifikasi
+
+---
+
 ## Summary Tabel
 
 | Phase | Nama | Status |
@@ -624,5 +699,9 @@ Keputusan desain (hasil diskusi sebelum implementasi): bukan sistem approval adm
 | 22 | Filter Genre Multi-Select di Katalog User | ✅ |
 | 23 | Quick-Edit Progres Baca & Jumlah Volume di Koleksiku | ✅ |
 | 24 | Multi-Account Switching (Session-Based) | ✅ |
+| 25 | Stepper dari Koleksiku, Grouping Koleksi, Flash Message Multi-Bahasa *(grouping diganti total di Phase 27)* | ✅ |
+| 26 | Fix: Link Login (CLI/Email) Override Akun Aktif Alih-Alih Nambah | ✅ |
+| 27 | Grup Koleksi Dirombak Total (ala MDList MangaDex) | ✅ |
+| 28 | Grup Koleksi: Modal Diperbesar + Paginasi, Filter Tipe, Slug URL, Publik/Privat | ✅ |
 
-**QA pass: 2026-07-03** — Phase 11–18 dikerjakan iteratif sesudahnya, lihat [`CHANGELOG.md`](../CHANGELOG.md) untuk detail per-perubahan. Gap yang masih terdokumentasi: flash message controller belum multi-bahasa (backlog sadar, lihat [`CLAUDE.md`](../CLAUDE.md)); Phase 18 butuh satu kali manual click-through di dev environment normal buat verifikasi visual modal login. Phase 19–24 (2026-08-14) semua sudah diverifikasi lewat HTTP request langsung ke server dev — tiga bug nyata ketemu & diperbaiki selama proses (Phase 20 poin 3, Phase 23 poin 3 — keduanya sebelum Phase 24, yang sendiri lolos verifikasi tanpa bug baru).
+**QA pass: 2026-07-03** — Phase 11–18 dikerjakan iteratif sesudahnya, lihat [`CHANGELOG.md`](../CHANGELOG.md) untuk detail per-perubahan. Gap yang masih terdokumentasi: Phase 18 butuh satu kali manual click-through di dev environment normal buat verifikasi visual modal login (satu-satunya gap tersisa dari sekian phase post-launch). Phase 19–28 (2026-08-14) semua sudah diverifikasi lewat HTTP request langsung ke server dev — enam bug nyata ketemu & diperbaiki selama proses (Phase 20 poin 3, Phase 23 poin 3, Phase 25 poin 3, Phase 26, Phase 27 poin 2, Phase 28 poin 5 — masing-masing sebelum phase berikutnya berjalan lolos verifikasi tanpa bug baru). Flash message controller kini sudah multi-bahasa penuh (Phase 25) — backlog lama yang tercatat di CLAUDE.md sudah diselesaikan. Grouping koleksi (Phase 25) dirombak total jadi desain many-to-many ala MDList MangaDex (Phase 27), lalu diperluas dengan paginasi/filter/slug URL/visibilitas publik (Phase 28).

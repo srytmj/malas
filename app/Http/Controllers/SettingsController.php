@@ -24,9 +24,9 @@ class SettingsController extends Controller
 
         $request->user()->update($data);
 
-        $state = $data['is_profile_public'] ? 'publik' : 'privat';
+        $state = $data['is_profile_public'] ? __('flash.settings.profile_public') : __('flash.settings.profile_private');
 
-        return redirect()->back()->with('success', "Profil kamu sekarang {$state}.");
+        return redirect()->back()->with('success', __('flash.settings.profile_visibility_updated', ['state' => $state]));
     }
 
     public function updateLocale(Request $request): RedirectResponse

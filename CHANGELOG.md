@@ -4,6 +4,47 @@ Semua perubahan penting pada Malas dicatat di file ini. Format mengikuti prinsip
 
 ---
 
+## 2026-08-14 (lanjutan 9) — Grup Koleksi: Modal Diperbesar + Paginasi, Filter Tipe, Slug URL, Publik/Privat
+
+- **Modal "Tambah Manga" diperbesar & dipaginasi** — `max-w-3xl` → `max-w-5xl`, dan daftar koleksi yang bisa ditambahkan sekarang di-paginate server-side (24/halaman, `Pagination.tsx` yang sama dipakai di halaman list lain) supaya user bisa menjelajahi seluruh koleksinya, bukan cuma list pendek yang di-load sekali lalu difilter di client.
+- **Filter tipe** (Manga/Light Novel/One Shot/Doujinshi/Manhwa/Manhua, segmented control) ditambahkan di modal ini, reuse `useTypeFilterOptions()` — pola yang sama dengan filter tipe di halaman list lain (lihat aturan wajib di CLAUDE.md).
+- Pencarian & filter tipe di modal sekarang **server-side** (debounced `router.get` partial reload `only: ['available']`), bukan filter client-side atas array yang sudah di-load penuh — otomatis exclude manga yang udah ada di grup (`whereNotIn`) di level query, bukan cuma di UI.
+- **URL grup pakai slug, bukan UUID** — format `{username}-{nama-grup-slug}` (mis. `/collection-groups/testowner-romcom`), dibikin di `CollectionGroup::generateUniqueSlug()` (pola yang sama dengan `Series::generateUniqueSlug()`), regenerate otomatis kalau nama grup diubah. Fallback ke id kalau username belum ke-sync dari SSO.
+- **Opsi Publik/Privat per grup** — `Switch` di halaman detail grup (owner-only). Grup publik muncul di section baru "Grup Koleksi Publik" di profil publik pengguna (`ProfileController::publicGroups()`) dan bisa diakses siapa saja (termasuk guest) lewat URL langsung; grup privat cuma bisa dilihat pemiliknya (dan admin). Route `GET /collection-groups/{group}` dipindah ke luar grup middleware `auth` (sama polanya dengan `/u/{user}` profil publik) — visibilitas dicek manual di controller (`abort_unless($group->is_public || $isOwner || ...)`), bukan lewat middleware.
+- `PublicShell` (shell minimal buat halaman publik tanpa login — header + tombol login) diekstrak dari `Profile/Show.tsx` ke komponen bersama `Components/app/PublicShell.tsx`, dipakai juga di `CollectionGroups/Show.tsx` supaya guest yang buka grup publik nggak nabrak `UserLayout` yang butuh sesi login.
+- Migration baru: `collection_groups.slug` (unique) + `collection_groups.is_public` (default false).
+- **Bug ketemu & diperbaiki saat verifikasi HTTP langsung**: query `available` yang di-`join()` ke tabel `series` (buat urutkan berdasarkan judul & filter tipe) bikin `whereNotIn('id', ...)` ambigu — SQLite nggak tahu `id` itu punya tabel `collections` atau `series`, error `ambiguous column name: id`. Fix: qualify jadi `whereNotIn('collections.id', ...)`.
+- Live HTTP test lengkap: 30 koleksi dummy → filter tipe (manga vs novel) benar, search substring benar, pagination halaman 2 benar, tambah 2 item → langsung ke-exclude dari `available` (total 30→28), toggle publik → guest tanpa login bisa lihat grup (`is_owner: false`, `available: null`), toggle privat lagi → guest kena 403, rename grup → slug regenerate otomatis, profil publik pemilik grup menampilkan grup publik dengan cover collage. Data uji coba (user, koleksi, series, grup, token) dibersihkan dari database dev setelah verifikasi.
+
+---
+
+## 2026-08-14 (lanjutan 8) — Grup Koleksi Dirombak Total (ala MDList MangaDex)
+
+- **Desain grouping di lanjutan 6 ternyata salah semantik** — user jelasin maksudnya "ala MDList MangaDex": grup itu objek pertama (dikasih nama, mis. "RomCom"), diisi banyak manga dari koleksi user — bukan sekadar label string tunggal per koleksi. Diganti total, bukan di-patch.
+- `CollectionGroup` model baru + pivot `collection_group_items` — **many-to-many**, satu manga bisa masuk lebih dari satu grup sekaligus. Kolom `collections.group_name` (desain lama) dihapus.
+- Halaman baru: `/collection-groups` (daftar grup, cover collage dari 4 manga pertama) → `/collection-groups/{group}` (isi grup — tambah manga dari koleksi lewat dialog picker, hapus dari grup, ubah nama, hapus grup). Link "Grup Koleksi" ditambahkan di header halaman Koleksiku.
+- Semua UI grouping lama di `Collection/Index.tsx` (popover inline, filter dropdown, kolom tabel "Grup") dicopot bersih.
+- **Bug ketemu & diperbaiki saat verifikasi HTTP langsung**: pivot table `collection_group_items` sempat dikasih `uuid('id')->primary()` kayak tabel lain di app ini — tapi `attach()`/`syncWithoutDetaching()` Eloquent insert baris pivot lewat query builder mentah (bukan lewat model event), jadi `HasUuids` nggak sempat ngisi kolom `id`, bikin `NOT NULL constraint violation` di SQLite. Fix: pivot table murni pakai composite primary key (`collection_group_id`, `collection_id`), bukan `id` sintetis — pola standar Laravel buat pivot table tanpa data tambahan.
+
+---
+
+## 2026-08-14 (lanjutan 7) — Fix: Link Login (CLI/Email) Override Akun Aktif Alih-Alih Nambah
+
+- **Bug ditemukan user**: login lewat link darurat CLI (`sso:emergency-login`) atau lewat magic link email, pas dibuka sementara sudah login sebagai akun lain, malah **meng-override** akun yang lagi aktif alih-alih menambahkannya sebagai akun ke-link (fitur multi-account switching, lanjutan 5). Root cause: keputusan link-atau-replace sebelumnya bergantung ke flag `sso_link_mode` yang cuma di-set kalau login dimulai dari modal "Tambah Akun" di UI — link CLI/email nggak pernah lewat modal itu sama sekali, jadi flag-nya nggak pernah ke-set.
+- **Fix**: `AccountLinkService::loginAs()` sekarang nentuin link-atau-replace dari status login **saat link dikonsumsi** (`auth()->check()`), bukan dari flag UI — kalau ada user lain yang lagi aktif pas link diklik, otomatis ditambahkan ke daftar akun ke-link, apa pun sumber link-nya (modal "Tambah Akun", CLI, atau email). Flag `sso_link_mode` dan parameter query `?link=1` yang jadi biang masalah dihapus total (dead code setelah fix ini).
+- Diverifikasi lewat HTTP langsung: login sebagai A → konsumsi magic link bare buat B (simulasi CLI/email, tanpa modal "Tambah Akun") → identitas aktif jadi B, **A tetap muncul di daftar akun ke-link** (sebelumnya A akan hilang total). Kasus guest fresh-login (belum ada sesi sebelumnya) tetap bersih, nggak ada akun phantom nyangkut.
+
+---
+
+## 2026-08-14 (lanjutan 6) — Stepper dari Koleksiku, Grouping Koleksi, Flash Message Multi-Bahasa
+
+- Stepper +/- progres baca sekarang juga bisa dipakai langsung dari halaman **Koleksiku** (`/my-collection`), nggak perlu buka detail koleksi dulu — reuse endpoint yang sama persis dengan halaman detail (Phase 23), cuma tambahan UI di grid card & table row.
+- Fitur **grouping koleksi** baru — user bisa kasih label bebas ke koleksinya (mis. "Rak Kamar", "Rak Kantor") lewat popover inline, plus filter dropdown "Semua Grup"/"Tanpa Grup"/nama grup. Kolom `collections.group_name` (string bebas, bukan tabel terpisah). **⚠️ Desain ini diganti total di lanjutan 8** — ternyata salah semantik, lihat entri di bawah.
+- **Flash message controller akhirnya multi-bahasa** — backlog lama yang sudah lama tercatat di CLAUDE.md. `lang/{id,en,ja}/flash.php` baru, ~70 pemanggilan `->with('success'/'error'/'info', ...)` di 24 controller dikonversi dari hardcode Bahasa Indonesia jadi `__('flash.xxx', [...])`. Diverifikasi langsung lewat HTTP: request yang sama dengan `users.locale` beda-beda menghasilkan pesan flash yang benar di ketiga bahasa.
+- **Bug ketemu & diperbaiki saat sweep flash-message**: `VolumeController::generate()` pakai key dinamis (`->with($created > 0 ? 'success' : 'info', $message)`) yang lolos dari grep pencarian literal `with('success'` — ketemu lewat sweep kedua yang nyari sisa kata "berhasil"/"gagal" di luar pemanggilan `__()`.
+
+---
+
 ## 2026-08-14 (lanjutan 5) — Multi-Account Switching (Session-Based)
 
 - User (bukan cuma admin) sekarang bisa nyambungin akun lain ("Tambah Akun") dan switch cepat antar akun tanpa login ulang, selama masih di browser yang sama — dipicu dari kasus admin yang nggak bisa akses `/my-collection` pakai akun admin-nya sendiri.

@@ -80,11 +80,12 @@ class CollectionController extends Controller
 
         if ($added === 0) {
             return redirect()->back()
-                ->with('info', 'Series yang dipilih sudah ada di koleksimu.');
+                ->with('info', __('flash.collections.already_added'));
         }
 
-        $msg = "{$added} series berhasil ditambahkan ke koleksi."
-            .($skipped > 0 ? " {$skipped} dilewati (sudah ada)." : '');
+        $msg = $skipped > 0
+            ? __('flash.collections.added_with_skipped', ['count' => $added, 'skipped' => $skipped])
+            : __('flash.collections.added', ['count' => $added]);
 
         ActivityLog::record('collection.add', "{$user->name} menambahkan {$added} series ke koleksi.", $user);
 
@@ -107,7 +108,7 @@ class CollectionController extends Controller
 
         ActivityLog::record('collection.undo_add', "{$user->name} membatalkan penambahan {$count} series ke koleksi.", $user);
 
-        return redirect()->back()->with('success', "{$count} series dibatalkan penambahannya.");
+        return redirect()->back()->with('success', __('flash.collections.undo_added', ['count' => $count]));
     }
 
     public function show(Collection $collection): Response
@@ -181,7 +182,7 @@ class CollectionController extends Controller
         ActivityLog::record('collection.remove', auth()->user()->name." menghapus \"{$seriesTitle}\" dari koleksi.", auth()->user());
 
         return redirect()->route('collection.index')->with([
-            'success' => 'Koleksi berhasil dihapus.',
+            'success' => __('flash.collections.deleted'),
             // Catatan: riwayat pinjaman (Loan) volume di koleksi ini tidak ikut dipulihkan oleh undo.
             'undo_url' => route('collection.undo-destroy'),
             'undo_payload' => $payload,
@@ -201,7 +202,7 @@ class CollectionController extends Controller
         $user = auth()->user();
 
         if ($user->collections()->where('series_id', $request->series_id)->exists()) {
-            return redirect()->back()->with('info', 'Series ini sudah ada lagi di koleksimu.');
+            return redirect()->back()->with('info', __('flash.collections.already_restored'));
         }
 
         // array_filter buang key yang nilainya null, supaya default kolom DB (mis. condition) tetap
@@ -218,7 +219,7 @@ class CollectionController extends Controller
 
         ActivityLog::record('collection.undo_remove', "{$user->name} memulihkan koleksi yang dihapus.", $user);
 
-        return redirect()->back()->with('success', 'Koleksi berhasil dipulihkan.');
+        return redirect()->back()->with('success', __('flash.collections.restored'));
     }
 
     public function updateCondition(Request $request, Collection $collection): RedirectResponse
@@ -233,7 +234,7 @@ class CollectionController extends Controller
 
         ActivityLog::record('collection.update_condition', auth()->user()->name." mengubah kondisi koleksi \"{$collection->series->title_romaji}\" menjadi {$request->condition}.", auth()->user());
 
-        return redirect()->back()->with('success', 'Kondisi koleksi berhasil diperbarui.');
+        return redirect()->back()->with('success', __('flash.collections.condition_updated'));
     }
 
     public function storeVolumes(Request $request, Collection $collection): RedirectResponse
@@ -267,11 +268,11 @@ class CollectionController extends Controller
             ->values();
 
         if ($numbers->isEmpty()) {
-            return redirect()->back()->with('error', 'Masukkan minimal satu nomor volume yang valid.');
+            return redirect()->back()->with('error', __('flash.collections.volumes_invalid_number'));
         }
 
         if ($numbers->count() > 100) {
-            return redirect()->back()->with('error', 'Maksimal 100 volume sekaligus.');
+            return redirect()->back()->with('error', __('flash.collections.volumes_too_many'));
         }
 
         $existing = $collection->collectionVolumes()->pluck('volume_number')->toArray();
@@ -294,9 +295,11 @@ class CollectionController extends Controller
             $created++;
         }
 
-        $message = $created > 0
-            ? "{$created} volume berhasil ditambahkan".($skipped > 0 ? ", {$skipped} dilewati (sudah ada)." : '.')
-            : 'Semua volume yang diinput sudah ada di koleksimu.';
+        $message = match (true) {
+            $created > 0 && $skipped > 0 => __('flash.collections.volumes_added_with_skipped', ['count' => $created, 'skipped' => $skipped]),
+            $created > 0 => __('flash.collections.volumes_added', ['count' => $created]),
+            default => __('flash.collections.volumes_all_existing'),
+        };
 
         if ($created > 0) {
             ActivityLog::record(
@@ -333,7 +336,7 @@ class CollectionController extends Controller
             $collectionVolume,
         );
 
-        return redirect()->back()->with('success', "Format volume {$collectionVolume->volume_number} berhasil diperbarui.");
+        return redirect()->back()->with('success', __('flash.collections.volume_format_updated', ['number' => $collectionVolume->volume_number]));
     }
 
     public function updateVolumesFormat(Request $request, Collection $collection): RedirectResponse
@@ -362,7 +365,7 @@ class CollectionController extends Controller
             $collection,
         );
 
-        return redirect()->back()->with('success', "{$updated} volume berhasil diubah formatnya.");
+        return redirect()->back()->with('success', __('flash.collections.volumes_format_bulk_updated', ['count' => $updated]));
     }
 
     public function destroyVolume(Collection $collection, CollectionVolume $collectionVolume): RedirectResponse
@@ -382,7 +385,7 @@ class CollectionController extends Controller
         );
 
         return redirect()->back()->with([
-            'success' => 'Volume berhasil dihapus dari koleksi.',
+            'success' => __('flash.collections.volume_deleted'),
             // Catatan: riwayat pinjaman (Loan) volume ini tidak ikut dipulihkan oleh undo.
             'undo_url' => route('collection.volumes.restore', $collection->id),
             'undo_payload' => ['volumes' => [$payload]],
@@ -415,7 +418,7 @@ class CollectionController extends Controller
         );
 
         return redirect()->back()->with([
-            'success' => "{$deleted} volume berhasil dihapus dari koleksi.",
+            'success' => __('flash.collections.volumes_bulk_deleted', ['count' => $deleted]),
             // Catatan: riwayat pinjaman (Loan) volume-volume ini tidak ikut dipulihkan oleh undo.
             'undo_url' => route('collection.volumes.restore', $collection->id),
             'undo_payload' => ['volumes' => $volumes],
@@ -447,7 +450,7 @@ class CollectionController extends Controller
             $collection,
         );
 
-        return redirect()->back()->with('success', "{$restored} volume berhasil dipulihkan.");
+        return redirect()->back()->with('success', __('flash.collections.volumes_restored', ['count' => $restored]));
     }
 
     public function toggleVolumeRead(Collection $collection, CollectionVolume $collectionVolume): RedirectResponse
@@ -470,8 +473,8 @@ class CollectionController extends Controller
 
         return redirect()->back()->with([
             'success' => $nowRead
-                ? "Volume {$collectionVolume->volume_number} ditandai sudah dibaca."
-                : "Volume {$collectionVolume->volume_number} ditandai belum dibaca.",
+                ? __('flash.collections.volume_marked_read', ['number' => $collectionVolume->volume_number])
+                : __('flash.collections.volume_marked_unread', ['number' => $collectionVolume->volume_number]),
             'undo_url' => route('collection.volumes.toggleRead', [
                 'collection' => $collection->id,
                 'collectionVolume' => $collectionVolume->id,
@@ -486,7 +489,7 @@ class CollectionController extends Controller
         $volumeIds = $collection->collectionVolumes()->whereNull('read_at')->pluck('id');
 
         if ($volumeIds->isEmpty()) {
-            return redirect()->back()->with('info', 'Semua volume sudah ditandai dibaca.');
+            return redirect()->back()->with('info', __('flash.collections.all_already_read'));
         }
 
         $collection->collectionVolumes()->whereIn('id', $volumeIds)->update(['read_at' => now()]);
@@ -498,7 +501,7 @@ class CollectionController extends Controller
         );
 
         return redirect()->back()->with([
-            'success' => "{$volumeIds->count()} volume ditandai sudah dibaca.",
+            'success' => __('flash.collections.marked_all_read', ['count' => $volumeIds->count()]),
             'undo_url' => route('collection.volumes.unmarkRead', $collection->id),
             'undo_payload' => ['volume_ids' => $volumeIds->values()],
         ]);
@@ -519,7 +522,7 @@ class CollectionController extends Controller
 
         ActivityLog::record('collection.volumes.undo_mark_read', auth()->user()->name.' membatalkan tanda baca volume.', $collection);
 
-        return redirect()->back()->with('success', 'Perubahan dibatalkan.');
+        return redirect()->back()->with('success', __('flash.collections.undo_marked_read'));
     }
 
     // Stepper "progres baca" — geser batas volume terbaca satu langkah, bukan toggle per-volume manual.
@@ -537,20 +540,20 @@ class CollectionController extends Controller
             $volume = $collection->collectionVolumes()->whereNull('read_at')->orderBy('volume_number')->first();
 
             if (! $volume) {
-                return redirect()->back()->with('info', 'Semua volume yang dimiliki sudah ditandai dibaca.');
+                return redirect()->back()->with('info', __('flash.collections.all_owned_already_read'));
             }
 
             $volume->update(['read_at' => now()]);
-            $message = "Volume {$volume->volume_number} ditandai sudah dibaca.";
+            $message = __('flash.collections.volume_marked_read', ['number' => $volume->volume_number]);
         } else {
             $volume = $collection->collectionVolumes()->whereNotNull('read_at')->orderBy('volume_number', 'desc')->first();
 
             if (! $volume) {
-                return redirect()->back()->with('info', 'Belum ada volume yang ditandai dibaca.');
+                return redirect()->back()->with('info', __('flash.collections.none_read_yet'));
             }
 
             $volume->update(['read_at' => null]);
-            $message = "Volume {$volume->volume_number} ditandai belum dibaca.";
+            $message = __('flash.collections.volume_marked_unread', ['number' => $volume->volume_number]);
         }
 
         ActivityLog::record('collection.volumes.advance_read', auth()->user()->name.' '.$message, $collection);
@@ -607,7 +610,7 @@ class CollectionController extends Controller
             );
 
             return redirect()->back()->with([
-                'success' => "Volume {$volume->volume_number} berhasil ditambahkan.",
+                'success' => __('flash.collections.quick_volume_added', ['number' => $volume->volume_number]),
                 'undo_url' => route('collection.volumes.quickCount', $collection->id),
                 'undo_payload' => ['format' => $format, 'direction' => 'remove'],
             ]);
@@ -619,11 +622,11 @@ class CollectionController extends Controller
             ->first();
 
         if (! $volume) {
-            return redirect()->back()->with('info', 'Belum ada volume dengan format ini.');
+            return redirect()->back()->with('info', __('flash.collections.quick_no_volume_for_format'));
         }
 
         if ($volume->activeLoans()->exists()) {
-            return redirect()->back()->with('info', 'Volume tertinggi format ini sedang dipinjamkan, tidak bisa dihapus.');
+            return redirect()->back()->with('info', __('flash.collections.quick_top_volume_loaned'));
         }
 
         $payload = $volume->only(['volume_number', 'format', 'ebook_source', 'language', 'read_at']);
@@ -637,7 +640,7 @@ class CollectionController extends Controller
         );
 
         return redirect()->back()->with([
-            'success' => "Volume {$volumeNumber} berhasil dihapus.",
+            'success' => __('flash.collections.quick_volume_deleted', ['number' => $volumeNumber]),
             'undo_url' => route('collection.volumes.restore', $collection->id),
             'undo_payload' => ['volumes' => [$payload]],
         ]);
@@ -663,6 +666,6 @@ class CollectionController extends Controller
             $collection,
         );
 
-        return redirect()->back()->with('success', 'Review berhasil disimpan.');
+        return redirect()->back()->with('success', __('flash.collections.review_saved'));
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Collection;
+use App\Models\CollectionGroup;
 use App\Models\Follow;
 use App\Models\Series;
 use App\Models\User;
@@ -56,7 +57,32 @@ class ProfileController extends Controller
             'collections' => $collections->values(),
             'genre_distribution' => $this->genreDistribution($user),
             'format_breakdown' => $this->formatBreakdown($user),
+            'public_groups' => $this->publicGroups($user),
         ]);
+    }
+
+    /** @return array<int, array{id: string, slug: string, name: string, items_count: int, cover_urls: array<int, string>}> */
+    private function publicGroups(User $user): array
+    {
+        return CollectionGroup::where('user_id', $user->id)
+            ->where('is_public', true)
+            ->withCount('collections')
+            ->with(['collections.series' => fn ($q) => $q->select('id', 'title_romaji', 'cover_path')])
+            ->latest()
+            ->get()
+            ->map(fn ($g) => [
+                'id' => $g->id,
+                'slug' => $g->slug,
+                'name' => $g->name,
+                'items_count' => $g->collections_count,
+                'cover_urls' => $g->collections
+                    ->take(4)
+                    ->map(fn ($c) => $this->storage->url($c->series->cover_path))
+                    ->filter()
+                    ->values(),
+            ])
+            ->values()
+            ->all();
     }
 
     public function directory(Request $request): Response
@@ -105,7 +131,7 @@ class ProfileController extends Controller
 
         ActivityLog::record('profile.follow', "{$viewer->name} mengikuti {$user->name}.", $viewer);
 
-        return redirect()->back()->with('success', "Mengikuti {$user->name}.");
+        return redirect()->back()->with('success', __('flash.profile.followed', ['name' => $user->name]));
     }
 
     public function unfollow(Request $request, User $user): RedirectResponse
@@ -118,7 +144,7 @@ class ProfileController extends Controller
 
         ActivityLog::record('profile.unfollow', "{$viewer->name} berhenti mengikuti {$user->name}.", $viewer);
 
-        return redirect()->back()->with('success', "Berhenti mengikuti {$user->name}.");
+        return redirect()->back()->with('success', __('flash.profile.unfollowed', ['name' => $user->name]));
     }
 
     /** @return array<string, int> */

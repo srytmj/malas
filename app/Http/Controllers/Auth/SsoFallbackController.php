@@ -34,11 +34,6 @@ class SsoFallbackController extends Controller
             'email' => ['required', 'email'],
         ]);
 
-        // "Tambah Akun" — flag ini bertahan di session yang sama, dibaca lagi pas link di email
-        // diklik (consume()) selama masih di browser yang sama. Selalu di-set eksplisit (bukan
-        // cuma pas true) supaya flag basi dari percobaan sebelumnya nggak nyangkut.
-        session(['sso_link_mode' => $request->boolean('link')]);
-
         $user = User::where('email', $request->email)->where('is_banned', false)->first();
 
         if ($user && $this->mail->isConfigured()) {
@@ -57,7 +52,7 @@ class SsoFallbackController extends Controller
             }
         }
 
-        return redirect()->back()->with('success', 'Kalau email itu terdaftar, link login sudah dikirim. Cek inbox (dan folder spam).');
+        return redirect()->back()->with('success', __('flash.sso_fallback.link_sent'));
     }
 
     public function consume(string $token): RedirectResponse
@@ -71,7 +66,7 @@ class SsoFallbackController extends Controller
 
         $record->markUsed();
 
-        $this->accountLink->loginAs($user, (bool) session('sso_link_mode'));
+        $this->accountLink->loginAs($user);
 
         ActivityLog::record('auth.fallback_login', "{$user->name} login tanpa SSO (fallback).", $user);
 

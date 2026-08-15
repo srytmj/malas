@@ -28,7 +28,8 @@
 **Koleksi & Katalog**
 - 📚 Katalog + koleksi pribadi, input volume dengan syntax range (`1,2,5-9,11,12`)
 - 👁️ Tracking baca per volume — tandai sudah/belum, progres otomatis di datatable
-- ➕ Stepper cepat progres-baca & jumlah volume per format, buat kasus umum "baca yang berikutnya" / "baru beli satu volume lagi"
+- ➕ Stepper cepat progres-baca & jumlah volume per format — bisa langsung dari daftar koleksi, nggak perlu buka halaman detail
+- 🗂️ Grup koleksi custom ala MDList/MangaDex — bikin daftar bernama (mis. "RomCom"), isi dengan manga dari koleksi, satu manga bisa masuk beberapa grup
 - ⭐ Review & rating pribadi (-10 s/d +10, gaya MyAnimeList)
 - 💌 Wishlist — series yang ingin dibaca tapi belum dikoleksi
 - 🔁 Peminjaman volume — siapa pinjam, jatuh tempo, status terlambat otomatis
@@ -49,7 +50,7 @@
 - 👥 Profil publik opt-in + follow + direktori pengguna
 - 🔀 Multi-account switching — sambungin & switch cepat antar akun di sesi browser yang sama
 - ↩️ Undo di toast untuk aksi reversible
-- 🌗 Tema Light/Dark/System, 🌐 tiga bahasa (id/en/ja)
+- 🌗 Tema Light/Dark/System, 🌐 tiga bahasa (id/en/ja) — UI, pesan validasi, *dan* flash message controller semuanya sudah full diterjemahkan
 
 **Admin & Infrastruktur**
 - 🔐 Login SSO (PKCE OAuth2) *atau* magic link email — dua jalur setara
@@ -180,11 +181,9 @@ Panduan troubleshooting lebih lengkap (Nginx 502, migration gagal, storage permi
 
 Jujur soal apa yang belum ada, biar nggak ada yang kaget:
 
-- **Grouping/label custom buat koleksi** (mis. "Rak Kamar", "Rak Kantor") — didiskusikan bareng multi-account switching, belum di-"gas".
 - **Advanced filter batch import AniList** — multi-select genre, filter tag (`tag_in`), filter status (`status_in`). Sudah diverifikasi jalan di API AniList, belum di-implementasikan di UI.
 - **Activity feed di profil publik** (gaya Steam) — profil publik + follow sudah ada, feed aktivitasnya belum.
 - **Badge/label "Selera Genre"** ("Genre Explorer" vs "Genre Loyalist") — ditunda, numpang di data yang sama dengan fitur word cloud.
-- **Flash message controller belum multi-bahasa** — pesan sukses/error dari controller (`->with('success', ...)`) masih hardcode Bahasa Indonesia; validasi form & UI sendiri sudah full 3 bahasa.
 - **Verifikasi visual manual modal `LoginMethodDialog`** — kode sudah `tsc`-clean dan direview, tapi belum pernah di-klik langsung di browser sungguhan (lihat `docs/PHASES.md` Phase 18 buat detail kenapa).
 
 Lihat [`CLAUDE.md`](CLAUDE.md) bagian "Belum dikerjakan (backlog)" dan [`docs/PHASES.md`](docs/PHASES.md) untuk histori & konteks lengkap tiap item.

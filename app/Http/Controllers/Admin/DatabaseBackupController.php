@@ -91,7 +91,7 @@ class DatabaseBackupController extends Controller
         // Terima signature lama (MALAS, sebelum rename ke title case) juga — backup lama yang
         // sudah pernah di-download user jangan sampai ketolak cuma gara-gara ganti nama brand.
         if (! str_starts_with($content, '-- Malas Database Backup') && ! str_starts_with($content, '-- MALAS Database Backup')) {
-            return back()->with('error', 'File bukan backup Malas yang valid. Pastikan file yang diupload adalah hasil download dari halaman ini.');
+            return back()->with('error', __('flash.database_backup.invalid_file'));
         }
 
         // Parse statement satu per satu
@@ -127,7 +127,7 @@ class DatabaseBackupController extends Controller
 
             ActivityLog::record('database.import', 'Mengimpor database dari file backup: '.$request->file('backup_file')->getClientOriginalName().'.');
 
-            return back()->with('success', 'Database berhasil diimpor. Semua data (kecuali user) telah dipulihkan dari backup.');
+            return back()->with('success', __('flash.database_backup.imported'));
         } catch (\Throwable $e) {
             DB::rollBack();
             // Pastikan FK checks kembali aktif meski rollback
@@ -136,7 +136,7 @@ class DatabaseBackupController extends Controller
             } catch (\Throwable) {
             }
 
-            return back()->with('error', 'Import gagal dan dibatalkan (rollback). Pesan error: '.$e->getMessage());
+            return back()->with('error', __('flash.database_backup.import_failed', ['error' => $e->getMessage()]));
         }
     }
 

@@ -50,7 +50,7 @@ class WishlistController extends Controller
 
         $alreadyOwned = $user->collections()->where('series_id', $request->series_id)->exists();
         if ($alreadyOwned) {
-            return redirect()->back()->with('info', 'Series ini sudah ada di koleksimu.');
+            return redirect()->back()->with('info', __('flash.wishlist.already_owned'));
         }
 
         $user->wishlistItems()->firstOrCreate(['series_id' => $request->series_id]);
@@ -58,7 +58,7 @@ class WishlistController extends Controller
         $title = Series::find($request->series_id)?->title_romaji ?? $request->series_id;
         ActivityLog::record('wishlist.add', "{$user->name} menambahkan \"{$title}\" ke wishlist.", $user);
 
-        return redirect()->back()->with('success', 'Ditambahkan ke wishlist.');
+        return redirect()->back()->with('success', __('flash.wishlist.added'));
     }
 
     public function destroy(WishlistItem $wishlistItem): RedirectResponse
@@ -72,7 +72,7 @@ class WishlistController extends Controller
         ActivityLog::record('wishlist.remove', auth()->user()->name." menghapus \"{$title}\" dari wishlist.", auth()->user());
 
         return redirect()->back()->with([
-            'success' => 'Dihapus dari wishlist.',
+            'success' => __('flash.wishlist.deleted'),
             'undo_url' => route('wishlist.restore'),
             'undo_payload' => ['series_id' => $seriesId],
         ]);
@@ -88,6 +88,6 @@ class WishlistController extends Controller
 
         ActivityLog::record('wishlist.undo_remove', auth()->user()->name.' memulihkan item wishlist.', auth()->user());
 
-        return redirect()->back()->with('success', 'Wishlist dipulihkan.');
+        return redirect()->back()->with('success', __('flash.wishlist.restored'));
     }
 }

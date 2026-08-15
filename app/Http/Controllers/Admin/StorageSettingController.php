@@ -88,10 +88,10 @@ class StorageSettingController extends Controller
         if ($locationChanged) {
             MigrateStorageFilesJob::dispatch($oldConfig);
 
-            return redirect()->back()->with('success', 'Pengaturan penyimpanan disimpan. File lama sedang dipindahkan ke lokasi baru di latar belakang.');
+            return redirect()->back()->with('success', __('flash.storage_settings.saved_migrating'));
         }
 
-        return redirect()->back()->with('success', 'Pengaturan penyimpanan berhasil disimpan.');
+        return redirect()->back()->with('success', __('flash.storage_settings.saved'));
     }
 
     public function testConnection(TestStorageConnectionRequest $request): JsonResponse
@@ -106,7 +106,7 @@ class StorageSettingController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Koneksi berhasil — kredensial valid dan bucket bisa diakses.',
+                'message' => __('flash.storage_settings.connection_ok'),
             ]);
         } catch (\Throwable $e) {
             return response()->json([

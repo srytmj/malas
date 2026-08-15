@@ -30,6 +30,11 @@
         "columnGenre": "Genre",
         "columnVolume": "Volume",
         "readCount": "{{read}}/{{total}} read",
+        "readCountShort": "{{read}}/{{total}}",
+        "readProgress": {
+            "increase": "Mark next volume as read",
+            "decrease": "Undo read mark for the last volume"
+        },
         "view": "View",
         "removeFromCollection": "Remove from Collection",
         "addDialog": {
@@ -54,6 +59,66 @@
             "cancel": "Cancel",
             "deleting": "Removing...",
             "delete": "Remove"
+        }
+    },
+    "groups": {
+        "navLabel": "Collection Groups",
+        "nameLabel": "Group Name",
+        "namePlaceholder": "e.g. RomCom",
+        "rename": "Rename",
+        "delete": "Delete Group",
+        "addManga": "Add Manga",
+        "removeManga": "Remove from group",
+        "visibility": {
+            "public": "Public",
+            "private": "Private",
+            "publicHint": "Public groups appear on your profile and can be seen by anyone.",
+            "privateHint": "Private groups can only be seen by you."
+        },
+        "index": {
+            "title": "Collection Groups",
+            "count": "{{count}} group(s)",
+            "create": "Create Group",
+            "itemCount": "{{count}} manga",
+            "empty": {
+                "title": "No groups yet",
+                "description": "Create a group to collect manga from your collection, e.g. \"RomCom\" or \"Currently Reading\"."
+            }
+        },
+        "createDialog": {
+            "title": "Create New Group",
+            "description": "Give your group a name — you can add manga from your collection to it afterward.",
+            "cancel": "Cancel",
+            "create": "Create",
+            "creating": "Creating..."
+        },
+        "renameDialog": {
+            "title": "Rename Group",
+            "save": "Save",
+            "saving": "Saving..."
+        },
+        "deleteDialog": {
+            "title": "Delete Group",
+            "confirmPrefix": "Are you sure you want to delete the group",
+            "confirmSuffix": "? Manga inside it won't be removed from your collection.",
+            "deleting": "Deleting...",
+            "delete": "Delete"
+        },
+        "show": {
+            "empty": {
+                "title": "This group is empty",
+                "description": "Add manga from your collection to this group."
+            }
+        },
+        "addDialog": {
+            "title": "Add Manga to Group",
+            "description": "Pick manga from your collection to add to this group.",
+            "searchPlaceholder": "Search your collection...",
+            "noneAvailable": "All the manga in your collection are already in this group.",
+            "noResults": "No results.",
+            "selectedCount": "{{count}} selected",
+            "adding": "Adding...",
+            "add": "Add"
         }
     },
     "show": {

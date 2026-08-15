@@ -28,7 +28,8 @@
 **Collection & Catalog**
 - 📚 Catalog + personal collection, add volumes via range syntax (`1,2,5-9,11,12`)
 - 👁️ Per-volume read tracking — mark read/unread, auto progress in the collection table
-- ➕ Quick read-progress and per-format volume-count steppers, for the common "read the next one" / "just bought another volume" case
+- ➕ Quick read-progress and per-format volume-count steppers — available from the collection list itself, no need to open a detail page
+- 🗂️ Custom collection groups (MDList/MangaDex-style) — create named lists (e.g. "RomCom") and add manga from your collection to them, one manga can belong to multiple groups
 - ⭐ Personal review & rating (-10 to +10, MyAnimeList-style)
 - 💌 Wishlist — series you want to read but haven't collected yet
 - 🔁 Volume lending — who borrowed it, due date, automatic overdue status
@@ -49,7 +50,7 @@
 - 👥 Opt-in public profile + follow + user directory
 - 🔀 Multi-account switching — link and quick-switch between accounts in the same browser session
 - ↩️ Undo button on toasts for reversible actions
-- 🌗 Light/Dark/System theme, 🌐 three languages (id/en/ja)
+- 🌗 Light/Dark/System theme, 🌐 three languages (id/en/ja) — UI, validation messages, *and* controller flash messages are all fully translated
 
 **Admin & Infrastructure**
 - 🔐 SSO login (PKCE OAuth2) *or* email magic link — two peer login methods
@@ -180,11 +181,9 @@ Fuller troubleshooting guide (Nginx 502s, failed migrations, storage permissions
 
 Being upfront about what's *not* there yet, so nothing catches you off guard:
 
-- **Custom collection grouping/labels** (e.g. "Shelf 1", "Office Shelf") — discussed alongside multi-account switching, not built yet.
 - **Advanced AniList batch-import filters** — multi-select genre, tag filter (`tag_in`), status filter (`status_in`). Verified working against the live AniList API, not yet built into the UI.
 - **Activity feed on public profiles** (Steam-style) — public profiles + follow already exist, the activity feed doesn't yet.
 - **"Genre Taste" badges/labels** ("Genre Explorer" vs "Genre Loyalist") — deferred, would reuse the same data as the word-cloud feature.
-- **Flash messages aren't localized yet** — success/error messages from controllers (`->with('success', ...)`) are still hardcoded in Indonesian; form validation and the rest of the UI are already fully trilingual.
 - **Manual visual verification of the `LoginMethodDialog` modal** — code is `tsc`-clean and reviewed, but has never been clicked through in a real browser (see `docs/PHASES.md` Phase 18 for why).
 
 See [`CLAUDE.md`](CLAUDE.md) under "Belum dikerjakan (backlog)" and [`docs/PHASES.md`](docs/PHASES.md) for full history and context per item.

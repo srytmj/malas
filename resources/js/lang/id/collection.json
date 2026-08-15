@@ -30,6 +30,11 @@
         "columnGenre": "Genre",
         "columnVolume": "Volume",
         "readCount": "{{read}}/{{total}} dibaca",
+        "readCountShort": "{{read}}/{{total}}",
+        "readProgress": {
+            "increase": "Tandai volume berikutnya sudah dibaca",
+            "decrease": "Batalkan tanda baca volume terakhir"
+        },
         "view": "Lihat",
         "removeFromCollection": "Hapus dari Koleksi",
         "addDialog": {
@@ -54,6 +59,66 @@
             "cancel": "Batal",
             "deleting": "Menghapus...",
             "delete": "Hapus"
+        }
+    },
+    "groups": {
+        "navLabel": "Grup Koleksi",
+        "nameLabel": "Nama Grup",
+        "namePlaceholder": "mis. RomCom",
+        "rename": "Ubah Nama",
+        "delete": "Hapus Grup",
+        "addManga": "Tambah Manga",
+        "removeManga": "Hapus dari grup",
+        "visibility": {
+            "public": "Publik",
+            "private": "Privat",
+            "publicHint": "Grup publik muncul di profilmu dan bisa dilihat siapa saja.",
+            "privateHint": "Grup privat cuma bisa kamu lihat sendiri."
+        },
+        "index": {
+            "title": "Grup Koleksi",
+            "count": "{{count}} grup",
+            "create": "Buat Grup",
+            "itemCount": "{{count}} manga",
+            "empty": {
+                "title": "Belum ada grup",
+                "description": "Buat grup buat ngumpulin manga dari koleksimu, mis. \"RomCom\" atau \"Lagi Dibaca\"."
+            }
+        },
+        "createDialog": {
+            "title": "Buat Grup Baru",
+            "description": "Kasih nama buat grupmu — nanti kamu bisa isi manga dari koleksi ke sini.",
+            "cancel": "Batal",
+            "create": "Buat",
+            "creating": "Membuat..."
+        },
+        "renameDialog": {
+            "title": "Ubah Nama Grup",
+            "save": "Simpan",
+            "saving": "Menyimpan..."
+        },
+        "deleteDialog": {
+            "title": "Hapus Grup",
+            "confirmPrefix": "Yakin ingin menghapus grup",
+            "confirmSuffix": "? Manga di dalamnya nggak ikut terhapus dari koleksimu.",
+            "deleting": "Menghapus...",
+            "delete": "Hapus"
+        },
+        "show": {
+            "empty": {
+                "title": "Grup ini masih kosong",
+                "description": "Tambahkan manga dari koleksimu ke grup ini."
+            }
+        },
+        "addDialog": {
+            "title": "Tambah Manga ke Grup",
+            "description": "Pilih manga dari koleksimu buat dimasukkan ke grup ini.",
+            "searchPlaceholder": "Cari di koleksimu...",
+            "noneAvailable": "Semua manga di koleksimu sudah ada di grup ini.",
+            "noResults": "Tidak ada hasil.",
+            "selectedCount": "{{count}} dipilih",
+            "adding": "Menambahkan...",
+            "add": "Tambahkan"
         }
     },
     "show": {

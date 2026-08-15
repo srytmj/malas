@@ -61,7 +61,7 @@ class LoanController extends Controller
         $alreadyLoaned = $cv->activeLoans()->exists();
 
         if ($alreadyLoaned) {
-            return redirect()->back()->with('error', 'Volume ini masih dalam status dipinjam.');
+            return redirect()->back()->with('error', __('flash.loans.already_loaned'));
         }
 
         $loan = Loan::create([
@@ -75,7 +75,7 @@ class LoanController extends Controller
             $loan,
         );
 
-        return redirect()->back()->with('success', 'Pinjaman berhasil dicatat.');
+        return redirect()->back()->with('success', __('flash.loans.recorded'));
     }
 
     public function markReturned(Loan $loan): RedirectResponse
@@ -90,6 +90,6 @@ class LoanController extends Controller
             $loan,
         );
 
-        return redirect()->back()->with('success', 'Volume berhasil ditandai sudah dikembalikan.');
+        return redirect()->back()->with('success', __('flash.loans.marked_returned'));
     }
 }

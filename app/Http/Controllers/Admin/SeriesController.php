@@ -72,7 +72,7 @@ class SeriesController extends Controller
         Series::create($data);
 
         return redirect()->route('admin.series.index')
-            ->with('success', 'Series berhasil ditambahkan.');
+            ->with('success', __('flash.series.created'));
     }
 
     public function show(Request $request, Series $series): Response
@@ -201,7 +201,7 @@ class SeriesController extends Controller
         $series->update($data);
 
         return redirect()->route('admin.series.show', $series)
-            ->with('success', 'Series berhasil diperbarui.');
+            ->with('success', __('flash.series.updated'));
     }
 
     public function destroy(Series $series): RedirectResponse
@@ -213,7 +213,7 @@ class SeriesController extends Controller
         $series->delete();
 
         return redirect()->route('admin.series.index')->with([
-            'success' => 'Series berhasil dihapus.',
+            'success' => __('flash.series.deleted'),
             'undo_url' => route('admin.series.restore', $id),
         ]);
     }
@@ -237,7 +237,7 @@ class SeriesController extends Controller
         Series::whereIn('id', $request->ids)->delete();
 
         return redirect()->route('admin.series.index')->with([
-            'success' => "{$count} series berhasil dihapus.",
+            'success' => __('flash.series.bulk_deleted', ['count' => $count]),
             'undo_url' => route('admin.series.restore-bulk'),
             'undo_payload' => ['ids' => $request->ids],
         ]);
@@ -252,7 +252,7 @@ class SeriesController extends Controller
         $series->restore();
         ActivityLog::record('series.restore', "Memulihkan series \"{$series->title_romaji}\".", $series);
 
-        return redirect()->back()->with('success', 'Series berhasil dipulihkan.');
+        return redirect()->back()->with('success', __('flash.series.restored'));
     }
 
     public function restoreBulk(Request $request): RedirectResponse
@@ -271,7 +271,7 @@ class SeriesController extends Controller
         Series::withTrashed()->whereIn('id', $request->ids)->restore();
         ActivityLog::record('series.bulk_restore', "Memulihkan {$series->count()} series sekaligus.");
 
-        return redirect()->back()->with('success', "{$series->count()} series berhasil dipulihkan.");
+        return redirect()->back()->with('success', __('flash.series.bulk_restored', ['count' => $series->count()]));
     }
 
     private function storeCover(?UploadedFile $file): ?string

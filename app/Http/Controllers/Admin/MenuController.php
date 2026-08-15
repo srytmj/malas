@@ -84,7 +84,7 @@ class MenuController extends Controller
             }
         });
 
-        return redirect()->back()->with('success', 'Urutan menu berhasil diperbarui.');
+        return redirect()->back()->with('success', __('flash.menus.reordered'));
     }
 
     public function edit(Request $request, Menu $menu): Response
@@ -125,10 +125,10 @@ class MenuController extends Controller
         $menu->update($validated);
 
         if ($request->wantsJson() || $request->header('X-Inertia')) {
-            return redirect()->back()->with('success', 'Menu berhasil diperbarui.');
+            return redirect()->back()->with('success', __('flash.menus.updated'));
         }
 
         return redirect()->route('admin.menus.index')
-            ->with('success', 'Menu berhasil diperbarui.');
+            ->with('success', __('flash.menus.updated'));
     }
 }

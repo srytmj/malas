@@ -21,8 +21,13 @@ interface LoginMethodDialogProps {
 /**
  * Modal pilihan cara login — SSO whitearchive.id atau magic link lewat email — dipakai dari
  * tombol "Login" di Landing page (mode="login") DAN dari AccountSwitcher buat "Tambah Akun"
- * (mode="link", session-based, lihat AccountLinkService). Login lewat email TIDAK men-sync ulang
- * profil (nama/avatar/username) dari SSO — itu cuma terjadi pas login lewat SSO.
+ * (mode="link"). `mode` di sini cuma ganti copy/teks ("Tambah Akun" vs "Masuk ke Malas") —
+ * keputusan link-atau-replace akun sepenuhnya di server (AccountLinkService::loginAs()) berdasarkan
+ * status login SAAT link dikonsumsi, bukan dari flag yang dikirim dari sini. Ini sengaja: magic
+ * link yang diterbitkan lewat CLI (`sso:emergency-login`) atau diklik dari email nggak pernah
+ * lewat modal ini sama sekali, jadi keputusan link-mode nggak boleh bergantung ke state di modal.
+ * Login lewat email TIDAK men-sync ulang profil (nama/avatar/username) dari SSO — itu cuma terjadi
+ * pas login lewat SSO.
  */
 export function LoginMethodDialog({ open, onOpenChange, mode = 'login' }: LoginMethodDialogProps) {
     const { t } = useTranslation();
@@ -48,7 +53,7 @@ export function LoginMethodDialog({ open, onOpenChange, mode = 'login' }: LoginM
     function handleEmailSubmit(e: React.FormEvent) {
         e.preventDefault();
         setSubmitting(true);
-        router.post(route('sso.fallback.send'), { email, link: isLinkMode }, {
+        router.post(route('sso.fallback.send'), { email }, {
             preserveScroll: true,
             onFinish: () => { setSubmitting(false); setStep('sent'); },
         });
@@ -64,7 +69,7 @@ export function LoginMethodDialog({ open, onOpenChange, mode = 'login' }: LoginM
                             <DialogDescription>{isLinkMode ? t('loginDialog.linkDescription') : t('loginDialog.description')}</DialogDescription>
                         </DialogHeader>
                         <div className="flex flex-col gap-2">
-                            <a href={route('sso.redirect', isLinkMode ? { link: 1 } : undefined)} className="w-full">
+                            <a href={route('sso.redirect')} className="w-full">
                                 <Button className="w-full justify-start" size="lg">
                                     <LogIn className="mr-2 h-4 w-4" />
                                     {t('loginDialog.ssoOption')}

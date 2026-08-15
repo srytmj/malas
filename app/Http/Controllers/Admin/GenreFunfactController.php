@@ -59,7 +59,7 @@ class GenreFunfactController extends Controller
             $user,
         );
 
-        return redirect()->back()->with('success', "Kuota funfact {$user->name} berhasil direset.");
+        return redirect()->back()->with('success', __('flash.genre_funfacts.reset', ['name' => $user->name]));
     }
 
     public function override(Request $request, User $user): RedirectResponse
@@ -80,6 +80,6 @@ class GenreFunfactController extends Controller
 
         ActivityLog::record('admin.funfact_quota.override', $description, $user);
 
-        return redirect()->back()->with('success', "Batas kuota funfact {$user->name} berhasil diperbarui.");
+        return redirect()->back()->with('success', __('flash.genre_funfacts.override_updated', ['name' => $user->name]));
     }
 }

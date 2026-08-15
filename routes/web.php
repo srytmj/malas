@@ -28,6 +28,7 @@ use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Auth\SsoFallbackController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\User\CollectionController;
+use App\Http\Controllers\User\CollectionGroupController;
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use App\Http\Controllers\User\LoanController;
 use App\Http\Controllers\User\ProfileController;
@@ -79,6 +80,11 @@ Route::get('/banned', function () {
 // (read-only, tanpa akses ke fitur internal seperti Katalog). Lihat ProfileController::show().
 Route::get('/u/{user}', [ProfileController::class, 'show'])->name('profile.show');
 
+// Grup koleksi publik (opt-in per grup) — sengaja di luar grup 'auth', sama alasannya dengan
+// profil publik di atas. Visibilitas (publik/privat) dicek manual di controller, bukan lewat
+// middleware, karena guest juga boleh lihat kalau grupnya public. Lihat CollectionGroupController::show().
+Route::get('/collection-groups/{group}', [CollectionGroupController::class, 'show'])->name('collection.groups.show');
+
 // User area
 Route::middleware(['auth', 'not_banned', 'check.menu'])->group(function () {
     Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
@@ -114,6 +120,16 @@ Route::middleware(['auth', 'not_banned', 'check.menu'])->group(function () {
     Route::patch('/my-collection/{collection}/volumes/restore', [CollectionController::class, 'restoreVolumes'])->name('collection.volumes.restore');
     Route::patch('/my-collection/{collection}/volumes/read-progress', [CollectionController::class, 'advanceReadProgress'])->name('collection.volumes.readProgress');
     Route::patch('/my-collection/{collection}/volumes/quick-count', [CollectionController::class, 'quickAdjustCount'])->name('collection.volumes.quickCount');
+
+    // Grup koleksi custom (ala MDList MangaDex) — many-to-many, path terpisah dari
+    // /my-collection/{collection} biar nggak tabrakan sama route model binding.
+    Route::get('/collection-groups', [CollectionGroupController::class, 'index'])->name('collection.groups.index');
+    Route::post('/collection-groups', [CollectionGroupController::class, 'store'])->name('collection.groups.store');
+    Route::patch('/collection-groups/{group}', [CollectionGroupController::class, 'update'])->name('collection.groups.update');
+    Route::patch('/collection-groups/{group}/visibility', [CollectionGroupController::class, 'updateVisibility'])->name('collection.groups.visibility.update');
+    Route::delete('/collection-groups/{group}', [CollectionGroupController::class, 'destroy'])->name('collection.groups.destroy');
+    Route::post('/collection-groups/{group}/items', [CollectionGroupController::class, 'addItems'])->name('collection.groups.items.add');
+    Route::delete('/collection-groups/{group}/items/{collection}', [CollectionGroupController::class, 'removeItem'])->name('collection.groups.items.remove');
 
     // Pinjaman user
     Route::get('/my-loans', [LoanController::class, 'index'])->name('loans.index');

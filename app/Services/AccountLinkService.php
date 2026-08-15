@@ -15,15 +15,20 @@ use Illuminate\Support\Facades\Auth;
 class AccountLinkService
 {
     /**
-     * Login sebagai $user. Kalau $linkMode true dan lagi ada user yang login (proses "Tambah
-     * Akun"), user yang lama ditambahkan ke daftar akun ke-link juga — supaya bisa switch balik
-     * tanpa re-auth selama sesi browser ini masih hidup.
+     * Login sebagai $user. Kalau lagi ada user LAIN yang aktif login di sesi ini, user itu
+     * otomatis ditambahkan ke daftar akun ke-link (bukan diganti/hilang) — supaya bisa switch
+     * balik tanpa re-auth. Keputusan ini SENGAJA berdasarkan status login saat ini (`auth()->check()`),
+     * bukan flag eksplisit dari UI ("Tambah Akun" vs login biasa) — karena magic link yang
+     * diterbitkan lewat CLI (`sso:emergency-login`) atau yang di-klik dari email nggak pernah lewat
+     * modal "Tambah Akun", jadi flag manapun yang dikirim dari situ nggak akan pernah ke-set. Kalau
+     * user memang mau logout dulu baru login akun lain, itu ditangani lewat AccountController's
+     * logoutCurrent()/logout total — bukan tanggung jawab method ini.
      */
-    public function loginAs(User $user, bool $linkMode): void
+    public function loginAs(User $user): void
     {
         $linked = collect(session('linked_account_ids', []));
 
-        if ($linkMode && auth()->check()) {
+        if (auth()->check() && auth()->id() !== $user->id) {
             $linked->push(auth()->id());
         }
 
@@ -33,6 +38,5 @@ class AccountLinkService
         request()->session()->regenerate();
 
         session(['linked_account_ids' => $linked->unique()->values()->all()]);
-        session()->forget('sso_link_mode');
     }
 }

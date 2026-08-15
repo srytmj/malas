@@ -319,10 +319,14 @@ Didukung: **id** (default), **en**, **ja**. Preferensi bahasa disimpan per-user 
   request (default `id` untuk guest/user tanpa preferensi).
 - Pesan validasi Laravel sudah terjemah otomatis lewat `lang/{id,en,ja}/validation.php` — nggak
   perlu custom message manual di FormRequest kecuali butuh teks di luar rule bawaan Laravel.
-- Flash message controller (`->with('success', '...')` dll) **belum** ada sistem terjemahan
-  terpusat — ini backlog, saat ini masih hardcode Bahasa Indonesia. Kalau menambah flash message
-  baru di area yang sudah pernah disentuh untuk i18n, tanyakan dulu ke user apakah mau sekalian
-  dibikin multi-bahasa atau menyusul.
+- Flash message controller sudah multi-bahasa lewat `lang/{id,en,ja}/flash.php` — controller manggil
+  `__('flash.namespace.key', ['param' => $value])`, bukan hardcode string. Semua ~70 pemanggilan
+  `->with('success'/'error'/'info', ...)` di 24 controller sudah dikonversi. **Wajib pakai pola ini
+  buat flash message baru** — jangan hardcode string lagi. Placeholder pakai `:key` (mis. `:count`,
+  `:name`, `:number`) sesuai konvensi Laravel `__()`. Pengecualian yang SENGAJA tidak diterjemahkan:
+  pesan exception mentah (`$e->getMessage()`, umumnya dari API eksternal/AWS SDK) dan teks di dalam
+  `ActivityLog::record()` (log aktivitas admin, bukan flash toast — tetap Indonesia karena dibaca
+  admin, bukan user-facing per-locale).
 
 **Sudah diterjemahkan penuh** (semua namespace: `common.json`, `dashboard.json`, `user.json`,
 `catalog.json`, `collection.json`, `admin.json` — lihat `resources/js/lang/{id,en,ja}/`):
@@ -354,9 +358,6 @@ sebuah file, dan JANGAN hapus baris kalau baru diterjemahkan sebagian)**:
   controller manapun (`grep Inertia::render('Dashboard'` nihil hasil), jadi ini file mati.
   Sengaja **tidak** diterjemahkan — pertimbangkan untuk dihapus di kesempatan lain, bukan
   diterjemahkan.
-
-Flash message dari controller (`->with('success', '...')` dll) masih hardcode Indonesia di semua
-controller — belum ada sistem terjemahan terpusat untuk ini (lihat catatan di bagian Backend di atas).
 
 **Pola yang sudah mapan, ikuti kalau nerusin backlog di atas**:
 - String tipe/status/format series yang berulang di banyak file → pakai key `common.json`
@@ -418,12 +419,14 @@ Jangan duplikasi atau rebuild ulang fitur-fitur ini:
 | Editor genre/authors/illustrators/themes/demographics di Admin Series Edit | `Admin/Series/Edit.tsx` (`TagListInput.tsx`) — sync AniList/RanobeDB ikut ngisi tag, sentinel string kosong buat hapus semua tag lewat `SeriesController::update()` |
 | URL admin series berbasis judul (slug, bukan UUID) | Sama mekanisme dengan katalog user — semua `route('admin.series.show'/'edit', ...)` (Index, Show, EditVolume, AniList/RanobeDB/Search results, Tickets, Command Palette) pakai `slug` |
 | Filter genre searchable + multi-select di Katalog user | `User/Catalog/Index.tsx` (`GenreMultiSelect.tsx`, Popover+Command/cmdk) + `User\SeriesController::index()` — OR-match (`orWhereJsonContains`), genre dikirim sebagai array (`genre[]=...`) |
-| Multi-account switching (session-based, kepake semua user) | `AccountSwitcher.tsx` (dropdown avatar di sidebar footer Admin/User) + `AccountLinkService`/`Auth\AccountController` — daftar akun ke-link cuma hidup di session (`linked_account_ids`), **tidak** ada link permanen di DB (switch tetap selalu butuh bukti login beneran ke akun target sekali). "Tambah Akun" reuse `LoginMethodDialog` (`mode="link"`) lewat SSO atau email; flag `sso_link_mode` di session nandain ke `SsoController`/`SsoFallbackController` supaya user lama ikut ditambahkan ke daftar ke-link, bukan digantikan. Logout `POST /accounts/logout-current` cuma keluarin akun aktif (auto-switch ke akun ke-link lain kalau ada; kalau ini akun terakhir, delegasi ke `SsoController::logout()`) — `POST /logout` tetap logout semua akun sekaligus. |
+| Multi-account switching (session-based, kepake semua user) | `AccountSwitcher.tsx` (dropdown avatar di sidebar footer Admin/User) + `AccountLinkService`/`Auth\AccountController` — daftar akun ke-link cuma hidup di session (`linked_account_ids`), **tidak** ada link permanen di DB (switch tetap selalu butuh bukti login beneran ke akun target sekali). "Tambah Akun" reuse `LoginMethodDialog` (`mode="link"`, cuma ganti copy teks). Keputusan link-atau-replace di `AccountLinkService::loginAs()` **berdasarkan status login SAAT link dikonsumsi** (`auth()->check()`), bukan flag dari UI — supaya magic link yang diterbitkan lewat CLI (`sso:emergency-login`) atau diklik dari email (yang nggak pernah lewat modal "Tambah Akun" sama sekali) tetap nambah ke daftar ke-link, bukan override akun yang lagi aktif. Logout `POST /accounts/logout-current` cuma keluarin akun aktif (auto-switch ke akun ke-link lain kalau ada; kalau ini akun terakhir, delegasi ke `SsoController::logout()`) — `POST /logout` tetap logout semua akun sekaligus. |
+| Grup koleksi custom ala MDList MangaDex (mis. "RomCom") | `CollectionGroup`/`CollectionGroupController` — many-to-many (`collection_group_items` pivot, satu manga bisa masuk beberapa grup), halaman terpisah `User/CollectionGroups/Index.tsx` (daftar grup + cover collage) dan `Show.tsx` (isi grup + dialog tambah manga dari koleksi, dipaginate server-side + filter tipe). URL grup pakai slug (`{username}-{nama-grup}`, lihat `CollectionGroup::generateUniqueSlug()`), bukan UUID. Grup bisa di-toggle publik/privat (`Switch` di halaman detail) — grup publik muncul di profil publik pemilik dan bisa diakses guest lewat `PublicShell` (komponen bersama, juga dipakai `Profile/Show.tsx`). **Bukan** kolom string tunggal per koleksi (desain awal salah, diganti total) |
+| Stepper progres baca dari halaman Koleksiku (tanpa buka detail koleksi) | `Collection/Index.tsx` (`ReadStepper`) — reuse endpoint `collection.volumes.readProgress` yang sama dengan halaman detail, per-row loading state biar nggak saling blocking |
+| Flash message multi-bahasa | `lang/{id,en,ja}/flash.php` — semua `->with('success'/'error'/'info', ...)` di seluruh controller (~70 pemanggilan, 24 file) pakai `__('flash.xxx', [...])`, bukan hardcode string |
 
 **Belum dikerjakan (backlog):**
 - Activity feed di profil publik (community hub, gaya Steam) — profil publik + follow sudah ada, activity feed-nya masih ditunda.
 - Badge/label selera genre ("Genre Explorer" vs "Genre Loyalist") berdasar distribusi genre koleksi — ditunda, numpang di data yang sama dengan fitur Selera Genre (word cloud + funfact AI).
-- Grouping/label custom buat koleksi milik user (mis. "Rak Kamar", "Rak Kantor") — didiskusikan bareng multi-account switching (alasannya kepake buat kasus yang butuh pemisahan koleksi tanpa akun terpisah), belum di-"gas".
 - Advanced filter batch import AniList: multi-select genre (sekarang masih single-select), filter tag (`tag_in` — AniList punya ~470 tag, butuh combobox searchable, bukan dropdown statis), dan filter status (`status_in`, publishing/finished/hiatus/dll). Sudah didiskusikan dan diverifikasi lewat API langsung (`tag_in`/`status_in` keduanya jalan buat manga), tapi belum di-"gas".
 - Verifikasi visual manual buat modal `LoginMethodDialog` — kode sudah `tsc`-clean dan direview, tapi belum di-klik langsung di browser (lihat PHASES.md Phase 18 buat detail kenapa).
 

@@ -30,6 +30,11 @@
         "columnGenre": "ジャンル",
         "columnVolume": "巻数",
         "readCount": "{{read}}/{{total}} 既読",
+        "readCountShort": "{{read}}/{{total}}",
+        "readProgress": {
+            "increase": "次の巻を既読にする",
+            "decrease": "最後の既読巻を取り消す"
+        },
         "view": "見る",
         "removeFromCollection": "コレクションから削除",
         "addDialog": {
@@ -54,6 +59,66 @@
             "cancel": "キャンセル",
             "deleting": "削除中...",
             "delete": "削除"
+        }
+    },
+    "groups": {
+        "navLabel": "コレクショングループ",
+        "nameLabel": "グループ名",
+        "namePlaceholder": "例: ラブコメ",
+        "rename": "名前を変更",
+        "delete": "グループを削除",
+        "addManga": "マンガを追加",
+        "removeManga": "グループから削除",
+        "visibility": {
+            "public": "公開",
+            "private": "非公開",
+            "publicHint": "公開グループはプロフィールに表示され、誰でも見ることができます。",
+            "privateHint": "非公開グループは自分だけが見られます。"
+        },
+        "index": {
+            "title": "コレクショングループ",
+            "count": "{{count}}件のグループ",
+            "create": "グループを作成",
+            "itemCount": "{{count}}件のマンガ",
+            "empty": {
+                "title": "まだグループがありません",
+                "description": "コレクションのマンガをまとめるグループを作成しましょう。例: 「ラブコメ」「読書中」"
+            }
+        },
+        "createDialog": {
+            "title": "新しいグループを作成",
+            "description": "グループの名前を決めてください — あとでコレクションからマンガを追加できます。",
+            "cancel": "キャンセル",
+            "create": "作成",
+            "creating": "作成中..."
+        },
+        "renameDialog": {
+            "title": "グループ名を変更",
+            "save": "保存",
+            "saving": "保存中..."
+        },
+        "deleteDialog": {
+            "title": "グループを削除",
+            "confirmPrefix": "グループ",
+            "confirmSuffix": "を削除しますか？中のマンガはコレクションから削除されません。",
+            "deleting": "削除中...",
+            "delete": "削除"
+        },
+        "show": {
+            "empty": {
+                "title": "このグループはまだ空です",
+                "description": "コレクションからマンガをこのグループに追加してください。"
+            }
+        },
+        "addDialog": {
+            "title": "グループにマンガを追加",
+            "description": "コレクションからこのグループに追加するマンガを選んでください。",
+            "searchPlaceholder": "コレクションを検索...",
+            "noneAvailable": "コレクションのマンガはすべてこのグループに追加済みです。",
+            "noResults": "結果がありません。",
+            "selectedCount": "{{count}}件選択中",
+            "adding": "追加中...",
+            "add": "追加"
         }
     },
     "show": {

@@ -49,7 +49,7 @@ class AnnouncementController extends Controller
         Announcement::create($request->validated());
 
         return redirect()->route('admin.announcements.index')
-            ->with('success', 'Pengumuman berhasil dibuat.');
+            ->with('success', __('flash.announcements.created'));
     }
 
     public function edit(Announcement $announcement): Response
@@ -76,7 +76,7 @@ class AnnouncementController extends Controller
         $announcement->update($request->validated());
 
         return redirect()->route('admin.announcements.index')
-            ->with('success', 'Pengumuman berhasil diperbarui.');
+            ->with('success', __('flash.announcements.updated'));
     }
 
     public function destroy(Announcement $announcement): RedirectResponse
@@ -87,7 +87,7 @@ class AnnouncementController extends Controller
         $announcement->delete();
 
         return redirect()->route('admin.announcements.index')->with([
-            'success' => 'Pengumuman berhasil dihapus.',
+            'success' => __('flash.announcements.deleted'),
             'undo_url' => route('admin.announcements.restore'),
             'undo_payload' => $payload,
         ]);
@@ -105,6 +105,6 @@ class AnnouncementController extends Controller
 
         Announcement::create($request->only(['title', 'body', 'type', 'is_active', 'starts_at', 'expires_at']));
 
-        return redirect()->back()->with('success', 'Pengumuman berhasil dipulihkan.');
+        return redirect()->back()->with('success', __('flash.announcements.restored'));
     }
 }

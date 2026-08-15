@@ -81,6 +81,6 @@ class TicketController extends Controller
             'responded_at' => now(),
         ]);
 
-        return redirect()->back()->with('success', 'Respons berhasil dikirim.');
+        return redirect()->back()->with('success', __('flash.tickets.responded'));
     }
 }

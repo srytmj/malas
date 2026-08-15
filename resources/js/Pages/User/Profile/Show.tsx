@@ -1,11 +1,12 @@
-import { PropsWithChildren, ReactNode, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
-import { ArrowUp, BookOpen, Layers, LogIn, Settings, UserMinus, UserPlus, Users } from 'lucide-react';
+import { ArrowUp, BookOpen, Layers, Settings, UserMinus, UserPlus, Users } from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
 import { AdultBlurOverlay } from '@/Components/app/AdultBlurOverlay';
 import { LoginMethodDialog } from '@/Components/app/LoginMethodDialog';
+import { PublicShell } from '@/Components/app/PublicShell';
 import { Avatar, AvatarFallback, AvatarImage } from '@/Components/ui/avatar';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
@@ -18,26 +19,6 @@ import { cn } from '@/lib/utils';
 import { useTypeFilterOptions } from '@/lib/typeFilters';
 import { PageProps } from '@/types';
 import { type SeriesType } from '@/lib/types';
-
-function PublicShell({ header, children }: PropsWithChildren<{ header?: ReactNode }>) {
-    const { t } = useTranslation();
-    const [loginOpen, setLoginOpen] = useState(false);
-
-    return (
-        <div className="min-h-screen bg-background">
-            <header className="flex h-14 items-center justify-between border-b px-6">
-                <span className="text-base font-bold tracking-tight">Malas</span>
-                <Button variant="outline" size="sm" onClick={() => setLoginOpen(true)}>
-                    <LogIn className="mr-1.5 h-3.5 w-3.5" />
-                    {t('nav.login')}
-                </Button>
-            </header>
-            {header && <div className="border-b bg-background px-6 py-4">{header}</div>}
-            <main className="mx-auto max-w-5xl p-6">{children}</main>
-            <LoginMethodDialog open={loginOpen} onOpenChange={setLoginOpen} />
-        </div>
-    );
-}
 
 function BackToTop() {
     const { t } = useTranslation('user');
@@ -87,6 +68,14 @@ interface GenreDistributionItem {
     percent: number;
 }
 
+interface PublicGroup {
+    id: string;
+    slug: string;
+    name: string;
+    items_count: number;
+    cover_urls: string[];
+}
+
 interface Props extends PageProps {
     profile_user: ProfileUser;
     is_owner: boolean;
@@ -98,11 +87,12 @@ interface Props extends PageProps {
     collections: ProfileCollectionItem[];
     genre_distribution: GenreDistributionItem[];
     format_breakdown: Record<string, number>;
+    public_groups: PublicGroup[];
 }
 
 export default function ProfileShow({
     profile_user, is_owner, is_guest, is_following, followers_count, following_count, collections_count, collections, genre_distribution,
-    format_breakdown,
+    format_breakdown, public_groups,
 }: Props) {
     const { t } = useTranslation('user');
     const typeFilterOptions = useTypeFilterOptions();
@@ -262,6 +252,42 @@ export default function ProfileShow({
                     </Card>
                 )}
             </div>
+
+            {public_groups.length > 0 && (
+                <div className="mt-8">
+                    <h2 className="mb-3 text-base font-semibold">{t('profile.publicGroups.heading')}</h2>
+                    <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(160px,1fr))]">
+                        {public_groups.map((g) => (
+                            <Link
+                                key={g.id}
+                                href={route('collection.groups.show', g.slug)}
+                                className="group flex flex-col overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-md"
+                            >
+                                <div className="grid aspect-[2/1] grid-cols-2 grid-rows-2 gap-0.5 overflow-hidden bg-muted">
+                                    {g.cover_urls.length > 0 ? (
+                                        g.cover_urls.map((url, i) => (
+                                            <img
+                                                key={i}
+                                                src={url}
+                                                alt=""
+                                                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                            />
+                                        ))
+                                    ) : (
+                                        <div className="col-span-2 row-span-2 flex items-center justify-center">
+                                            <BookOpen className="h-6 w-6 text-muted-foreground/40" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="p-2.5">
+                                    <p className="line-clamp-1 text-sm font-medium">{g.name}</p>
+                                    <p className="text-xs text-muted-foreground">{t('profile.publicGroups.itemCount', { count: g.items_count })}</p>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             <div className="mt-8">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">

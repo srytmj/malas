@@ -69,6 +69,10 @@
         "collectionHeading": "コレクション ({{visible}}/{{total}})",
         "noneForType": "このタイプのコレクションはありません。",
         "backToTop": "トップに戻る",
+        "publicGroups": {
+            "heading": "公開コレクショングループ",
+            "itemCount": "{{count}}件のマンガ"
+        },
         "show": {
             "25": "25件表示",
             "50": "50件表示",

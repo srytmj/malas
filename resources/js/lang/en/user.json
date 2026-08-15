@@ -69,6 +69,10 @@
         "collectionHeading": "Collection ({{visible}}/{{total}})",
         "noneForType": "No collection items of this type.",
         "backToTop": "Back to top",
+        "publicGroups": {
+            "heading": "Public Collection Groups",
+            "itemCount": "{{count}} manga"
+        },
         "show": {
             "25": "Show 25",
             "50": "Show 50",

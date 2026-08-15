@@ -23,7 +23,7 @@ class VolumeController extends Controller
         $this->authorize('create', Volume::class);
 
         if (! $series->total_volumes) {
-            return redirect()->back()->with('error', 'Total volume belum diset untuk series ini.');
+            return redirect()->back()->with('error', __('flash.volumes.total_not_set'));
         }
 
         $existing = $series->volumes()->pluck('volume_number')->all();
@@ -37,8 +37,8 @@ class VolumeController extends Controller
         }
 
         $message = $created > 0
-            ? "{$created} volume berhasil dibuat otomatis."
-            : 'Semua volume sudah ada, tidak ada yang perlu dibuat.';
+            ? __('flash.volumes.generated', ['count' => $created])
+            : __('flash.volumes.all_already_exist');
 
         return redirect()->back()->with($created > 0 ? 'success' : 'info', $message);
     }
@@ -57,7 +57,7 @@ class VolumeController extends Controller
         $series->volumes()->create($data);
 
         return redirect()->back()
-            ->with('success', 'Volume berhasil ditambahkan.');
+            ->with('success', __('flash.volumes.created'));
     }
 
     public function edit(Volume $volume): Response
@@ -103,7 +103,7 @@ class VolumeController extends Controller
         $volume->update($data);
 
         return redirect()->back()
-            ->with('success', 'Volume berhasil diperbarui.');
+            ->with('success', __('flash.volumes.updated'));
     }
 
     public function destroy(Volume $volume): RedirectResponse
@@ -128,7 +128,7 @@ class VolumeController extends Controller
         return redirect()->back()->with([
             // Cover (kalau ada) sudah terhapus permanen dari storage — undo memulihkan datanya
             // tapi covernya perlu diupload ulang manual.
-            'success' => 'Volume berhasil dihapus.'.($hadCover ? ' Cover volume tidak bisa dipulihkan otomatis.' : ''),
+            'success' => __('flash.volumes.deleted').($hadCover ? __('flash.volumes.deleted_cover_note') : ''),
             'undo_url' => route('admin.volumes.restore', $volumeId),
         ]);
     }
@@ -145,7 +145,7 @@ class VolumeController extends Controller
             "Memulihkan volume #{$volumeModel->volume_number} dari series \"{$volumeModel->series->title_romaji}\"."
         );
 
-        return redirect()->back()->with('success', 'Volume berhasil dipulihkan.');
+        return redirect()->back()->with('success', __('flash.volumes.restored'));
     }
 
     private function fetchCoverFromUrl(string $url): ?string

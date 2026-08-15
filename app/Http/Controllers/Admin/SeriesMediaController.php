@@ -32,7 +32,7 @@ class SeriesMediaController extends Controller
             ]);
         }
 
-        return redirect()->back()->with('success', 'Media berhasil ditambahkan.');
+        return redirect()->back()->with('success', __('flash.series_media.added'));
     }
 
     public function destroy(SeriesMedia $seriesMedia): RedirectResponse
@@ -44,6 +44,6 @@ class SeriesMediaController extends Controller
         $this->storage->delete($seriesMedia->image_path);
         $seriesMedia->delete();
 
-        return redirect()->back()->with('success', 'Media berhasil dihapus.');
+        return redirect()->back()->with('success', __('flash.series_media.deleted'));
     }
 }

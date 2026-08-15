@@ -109,6 +109,7 @@
 | user_id | uuid FK | |
 | series_id | uuid FK | |
 | condition | enum | `mint`, `good`, `fair`, `poor` |
+| group_name | string(100) | nullable — label bebas per user (mis. "Rak Kamar"), bukan tabel terpisah |
 | acquired_at | date | nullable |
 | notes | text | nullable |
 | personal_rating | smallint | nullable, -10 s/d 10 (gaya MyAnimeList: negatif = tidak direkomendasikan) |
@@ -474,6 +475,9 @@ resources/js/lang/{id,en,ja}/
 lang/{id,en,ja}/
     validation.php, pagination.php
     (translation Laravel bawaan — pesan validasi & paginator otomatis ikut App::getLocale())
+    flash.php
+    (~70 flash message dari seluruh controller, key nested per fitur — dipanggil lewat
+    __('flash.xxx', [...]), lihat §9)
 ```
 
 ---
@@ -596,6 +600,7 @@ Semua file (cover series, cover volume) diakses lewat **`StorageSettingsService`
 - **Locale disimpan per-user:** kolom `users.locale` (default `id`), diubah dari kartu "Bahasa" di halaman Settings atau langsung dari `LanguageSwitcher.tsx` di sidebar footer (Admin & User Layout) — tidak perlu buka Settings.
 - **Propagasi ke frontend:** middleware `SetLocale` set `App::setLocale()` server-side tiap request, `HandleInertiaRequests` share sebagai prop `locale`; `resources/js/app.tsx` baca prop ini sebelum render pertama (hindari flash bahasa salah), `AdminLayout`/`UserLayout` masing-masing punya `useEffect` yang watch perubahan `locale` untuk navigasi berikutnya.
 - **Backend:** `lang/{id,en,ja}/validation.php` dan `lang/{id,en,ja}/pagination.php` — publish manual dari Laravel stock, supaya pesan validasi/paginator ikut bahasa aktif (sebelumnya selalu Inggris karena `lang/` belum pernah di-publish). `config/app.php` locale/fallback_locale default `id`.
+- **Flash message:** `lang/{id,en,ja}/flash.php` — semua `->with('success'/'error'/'info', ...)` di seluruh controller (~70 pemanggilan, 24 file) manggil `__('flash.namespace.key', ['param' => $value])`, bukan hardcode string. Placeholder Laravel `:key` (`:count`, `:name`, `:number`, dst) — dikonfirmasi `:count` aman dipakai sebagai placeholder biasa di `__()` (bukan `trans_choice()`, jadi tidak memicu logic pluralisasi). Pengecualian yang sengaja tidak diterjemahkan: pesan exception mentah (`$e->getMessage()`, umumnya dari API eksternal) dan teks di `ActivityLog::record()` (log aktivitas admin, tetap Indonesia — bukan flash toast per-locale).
 - **Label menu sidebar** (dari tabel `menus`, teks Indonesia mentah di DB) di-map ke translation key lewat `menuTranslationKey()` (`resources/js/lib/menu.ts`), fallback ke label DB kalau key tidak dikenal (mis. admin rename manual).
 - **Filter tipe series** (Segmented Control yang berulang di banyak halaman) pakai `useTypeFilterOptions()` (`resources/js/lib/typeFilters.ts`) supaya terjemahan tidak terduplikasi.
 - **Cakupan saat ini:** lihat [`CLAUDE.md`](../CLAUDE.md) bagian "Sistem Multi-Bahasa" untuk daftar halaman yang sudah/belum diterjemahkan — daftar ini di-update tiap kali ada halaman baru yang selesai diterjemahkan.

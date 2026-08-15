@@ -72,7 +72,7 @@ class TicketController extends Controller
         if ($this->activeTicketsCount() >= self::MAX_ACTIVE_TICKETS) {
             return redirect()->back()->with(
                 'error',
-                'Kamu hanya bisa punya '.self::MAX_ACTIVE_TICKETS.' tiket aktif dalam waktu yang sama. Tunggu tiket yang ada direspon/selesai dulu.'
+                __('flash.tickets.limit_reached', ['max' => self::MAX_ACTIVE_TICKETS])
             );
         }
 
@@ -81,7 +81,7 @@ class TicketController extends Controller
         ActivityLog::record('ticket.create', auth()->user()->name." membuat tiket \"{$ticket->subject}\".", $ticket);
 
         return redirect()->route('tickets.index')
-            ->with('success', 'Tiket berhasil dikirim. Admin akan segera meninjau.');
+            ->with('success', __('flash.tickets.created'));
     }
 
     private function activeTicketsCount(): int

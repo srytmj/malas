@@ -69,6 +69,10 @@
         "collectionHeading": "Koleksi ({{visible}}/{{total}})",
         "noneForType": "Tidak ada koleksi dengan tipe ini.",
         "backToTop": "Kembali ke atas",
+        "publicGroups": {
+            "heading": "Grup Koleksi Publik",
+            "itemCount": "{{count}} manga"
+        },
         "show": {
             "25": "Tampilkan 25",
             "50": "Tampilkan 50",

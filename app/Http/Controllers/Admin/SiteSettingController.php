@@ -27,6 +27,6 @@ class SiteSettingController extends Controller
         $state = $request->boolean('blur_adult_content') ? 'aktif' : 'nonaktif';
         ActivityLog::record('site_settings.update', "Mengubah pengaturan blur konten 18+ menjadi {$state}.");
 
-        return redirect()->back()->with('success', 'Pengaturan konten berhasil disimpan.');
+        return redirect()->back()->with('success', __('flash.site_settings.saved'));
     }
 }

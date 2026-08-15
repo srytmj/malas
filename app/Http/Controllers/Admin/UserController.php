@@ -87,7 +87,7 @@ class UserController extends Controller
         // Force logout the banned user
         DB::table('sessions')->where('user_id', $user->id)->delete();
 
-        return redirect()->back()->with('success', "{$user->name} berhasil di-ban.");
+        return redirect()->back()->with('success', __('flash.users.banned', ['name' => $user->name]));
     }
 
     public function unban(User $user): RedirectResponse
@@ -102,7 +102,7 @@ class UserController extends Controller
 
         ActivityLog::record('user.unban', "Meng-unban {$user->name} ({$user->email}).", $user);
 
-        return redirect()->back()->with('success', "{$user->name} berhasil di-unban.");
+        return redirect()->back()->with('success', __('flash.users.unbanned', ['name' => $user->name]));
     }
 
     public function changeRole(Request $request, User $user): RedirectResponse
@@ -122,6 +122,6 @@ class UserController extends Controller
             $user
         );
 
-        return redirect()->back()->with('success', "Role {$user->name} berhasil diubah ke {$request->role}.");
+        return redirect()->back()->with('success', __('flash.users.role_changed', ['name' => $user->name, 'role' => $request->role]));
     }
 }

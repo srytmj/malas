@@ -16,7 +16,7 @@ class SsoController extends Controller
 {
     public function __construct(private AccountLinkService $accountLink) {}
 
-    public function redirect(Request $request): Response
+    public function redirect(): Response
     {
         $codeVerifier = bin2hex(random_bytes(32));
         $codeChallenge = rtrim(
@@ -29,12 +29,6 @@ class SsoController extends Controller
             'sso_code_verifier' => $codeVerifier,
             'sso_state' => $state,
         ]);
-
-        // "Tambah Akun" — flag ini bertahan lewat session cookie yang sama pas browser
-        // pulang-pergi ke domain SSO, sama seperti sso_state/sso_code_verifier. Selalu di-set
-        // eksplisit (bukan cuma pas true) supaya flag basi dari percobaan login sebelumnya
-        // nggak numpang nyangkut ke request yang nggak minta "Tambah Akun".
-        session(['sso_link_mode' => $request->boolean('link')]);
 
         $query = http_build_query([
             'response_type' => 'code',
@@ -105,7 +99,7 @@ class SsoController extends Controller
             'sso_refresh_token' => $tokenResponse['refresh_token'],
         ]);
 
-        $this->accountLink->loginAs($user, (bool) session('sso_link_mode'));
+        $this->accountLink->loginAs($user);
 
         if ($user->is_banned) {
             return redirect()->route('banned');

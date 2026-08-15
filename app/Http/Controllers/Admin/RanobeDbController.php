@@ -113,7 +113,7 @@ class RanobeDbController extends Controller
             }
             $existing->update($attributes);
             $series = $existing;
-            $message = 'Series berhasil diperbarui dari RanobeDB.';
+            $message = __('flash.ranobedb.updated');
         } else {
             if ($mainBook && ! empty($mainBook['image']['filename'])) {
                 $attributes['cover_path'] = $this->ranobedb->downloadCover(
@@ -122,12 +122,12 @@ class RanobeDbController extends Controller
                 );
             }
             $series = Series::create($attributes);
-            $message = 'Series berhasil diimpor dari RanobeDB.';
+            $message = __('flash.ranobedb.imported');
         }
 
         $generated = $this->generateVolumesFromBooks($series, $data['books'] ?? []);
         if ($generated > 0) {
-            $message .= " {$generated} volume dibuat otomatis.";
+            $message .= __('flash.volumes_generated_suffix', ['count' => $generated]);
         }
 
         return redirect()->back()->with('success', $message);

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import {
-    BookOpen, Eye, LayoutGrid, Library, List, Loader2, Plus, RefreshCw, Search, Trash2,
+    BookOpen, Eye, LayoutGrid, Layers, Library, List, Loader2, Minus, Plus, RefreshCw, Search, Trash2,
 } from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -10,7 +10,7 @@ import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyCont
 import { AdultBlurOverlay } from '@/Components/app/AdultBlurOverlay';
 import { SeriesStatusBadge } from '@/Components/app/StatusBadge';
 import { Badge } from '@/Components/ui/badge';
-import { Button } from '@/Components/ui/button';
+import { Button, buttonVariants } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { ScrollArea } from '@/Components/ui/scroll-area';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/Components/ui/hover-card';
@@ -95,6 +95,15 @@ export default function CollectionIndex({ collections }: Props) {
     const [view, setView]                   = useState<ViewMode>(() => readLocal<ViewMode>(VIEW_KEY, 'grid'));
     const [sort, setSort]                   = useState<SortValue>(() => readLocal<SortValue>(SORT_KEY, 'added_desc'));
     const [refreshing, setRefreshing]       = useState(false);
+    const [busyId, setBusyId]               = useState<string | null>(null);
+
+    function handleAdvanceRead(collectionId: string, direction: 'forward' | 'backward') {
+        setBusyId(`${collectionId}:${direction}`);
+        router.patch(route('collection.volumes.readProgress', collectionId), { direction }, {
+            preserveScroll: true,
+            onFinish: () => setBusyId(null),
+        });
+    }
 
     useEffect(() => {
         window.localStorage.setItem(VIEW_KEY, view);
@@ -213,6 +222,42 @@ export default function CollectionIndex({ collections }: Props) {
         });
     }
 
+    function ReadStepper({ c }: { c: CollectionRow }) {
+        const hasUnread = c.read_volumes_count < c.collection_volumes_count;
+        const hasRead = c.read_volumes_count > 0;
+        return (
+            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5"
+                    disabled={!hasRead || busyId !== null}
+                    onClick={() => handleAdvanceRead(c.id, 'backward')}
+                    aria-label={t('index.readProgress.decrease')}
+                >
+                    <Minus className="h-3 w-3" />
+                </Button>
+                <span className="min-w-9 text-center text-[10px] text-muted-foreground">
+                    {busyId === `${c.id}:forward` || busyId === `${c.id}:backward`
+                        ? <Loader2 className="mx-auto h-3 w-3 animate-spin" />
+                        : t('index.readCountShort', { read: c.read_volumes_count, total: c.collection_volumes_count })}
+                </span>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5"
+                    disabled={!hasUnread || busyId !== null}
+                    onClick={() => handleAdvanceRead(c.id, 'forward')}
+                    aria-label={t('index.readProgress.increase')}
+                >
+                    <Plus className="h-3 w-3" />
+                </Button>
+            </div>
+        );
+    }
+
     function GenreBadges({ genres }: { genres: string[] }) {
         if (genres.length === 0) return null;
         const shown = genres.slice(0, 3);
@@ -236,10 +281,16 @@ export default function CollectionIndex({ collections }: Props) {
                     title={t('index.title')}
                     description={t('index.count', { count: collections.length })}
                     actions={
-                        <Button size="sm" onClick={() => { setAddOpen(true); setSearchQuery(''); setSelectedIds(new Set()); }}>
-                            <Plus className="mr-1.5 h-3.5 w-3.5" />
-                            {t('index.addSeries')}
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                            <Link href={route('collection.groups.index')} className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
+                                <Layers className="mr-1.5 h-3.5 w-3.5" />
+                                {t('groups.navLabel')}
+                            </Link>
+                            <Button size="sm" onClick={() => { setAddOpen(true); setSearchQuery(''); setSelectedIds(new Set()); }}>
+                                <Plus className="mr-1.5 h-3.5 w-3.5" />
+                                {t('index.addSeries')}
+                            </Button>
+                        </div>
                     }
                 />
             }
@@ -420,6 +471,7 @@ export default function CollectionIndex({ collections }: Props) {
                                             <SeriesStatusBadge status={c.status} />
                                         </div>
                                         <GenreBadges genres={c.genres} />
+                                        {c.collection_volumes_count > 0 && <ReadStepper c={c} />}
 
                                         <div className="mt-auto flex items-center justify-between pt-1.5">
                                             <p className="text-xs text-muted-foreground">
@@ -448,7 +500,7 @@ export default function CollectionIndex({ collections }: Props) {
                                         <TableHead>{t('index.columnTitle')}</TableHead>
                                         <TableHead className="w-36">{t('user:tickets.status')}</TableHead>
                                         <TableHead>{t('index.columnGenre')}</TableHead>
-                                        <TableHead className="w-24 text-right">{t('index.columnVolume')}</TableHead>
+                                        <TableHead className="w-32 text-right">{t('index.columnVolume')}</TableHead>
                                         <TableHead className="w-12" />
                                     </TableRow>
                                 </TableHeader>
@@ -494,12 +546,17 @@ export default function CollectionIndex({ collections }: Props) {
                                                 </TableCell>
                                                 <TableCell><SeriesStatusBadge status={c.status} /></TableCell>
                                                 <TableCell><GenreBadges genres={c.genres} /></TableCell>
-                                                <TableCell className="text-right">
+                                                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                                     <p>{c.collection_volumes_count}{c.total_volumes ? `/${c.total_volumes}` : ''}</p>
                                                     {c.collection_volumes_count > 0 && (
-                                                        <p className="text-xs text-muted-foreground">
-                                                            {t('index.readCount', { read: c.read_volumes_count, total: c.collection_volumes_count })}
-                                                        </p>
+                                                        <>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                {t('index.readCount', { read: c.read_volumes_count, total: c.collection_volumes_count })}
+                                                            </p>
+                                                            <div className="mt-1 flex justify-end">
+                                                                <ReadStepper c={c} />
+                                                            </div>
+                                                        </>
                                                     )}
                                                 </TableCell>
                                                 <TableCell onClick={(e) => e.stopPropagation()}>

@@ -37,6 +37,6 @@ class MailSettingController extends Controller
 
         ActivityLog::record('mail_settings.update', "Mengubah pengaturan Email (provider: {$setting->provider}).");
 
-        return redirect()->back()->with('success', 'Pengaturan Email berhasil disimpan.');
+        return redirect()->back()->with('success', __('flash.mail_settings.saved'));
     }
 }

@@ -172,13 +172,13 @@ class AniListController extends Controller
 
         $message = $wasNew
             ? ($fromCache
-                ? 'Series berhasil diimpor (data dari cache pencarian — beberapa field mungkin tidak lengkap).'
-                : 'Series berhasil diimpor dari AniList.')
-            : 'Series berhasil diperbarui dari AniList.';
+                ? __('flash.anilist.imported_from_cache')
+                : __('flash.anilist.imported'))
+            : __('flash.anilist.updated');
 
         $generated = $this->generateVolumesIfFinished($series);
         if ($generated > 0) {
-            $message .= " {$generated} volume dibuat otomatis.";
+            $message .= __('flash.volumes_generated_suffix', ['count' => $generated]);
         }
 
         return redirect()->back()->with('success', $message);
@@ -224,8 +224,9 @@ class AniListController extends Controller
                 ($failedCount > 0 ? ", {$failedCount} gagal" : '').'.',
         );
 
-        $message = "Bulk import selesai: {$importedCount} series baru, {$updatedCount} diperbarui";
-        $message .= $failedCount > 0 ? ", {$failedCount} gagal diimpor." : '.';
+        $message = $failedCount > 0
+            ? __('flash.anilist.bulk_result_with_failed', ['imported' => $importedCount, 'updated' => $updatedCount, 'failed' => $failedCount])
+            : __('flash.anilist.bulk_result', ['imported' => $importedCount, 'updated' => $updatedCount]);
 
         return redirect()->back()->with($failedCount > 0 && $importedCount === 0 && $updatedCount === 0 ? 'error' : 'success', $message);
     }
