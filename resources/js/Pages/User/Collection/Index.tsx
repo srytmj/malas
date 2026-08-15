@@ -593,7 +593,7 @@ export default function CollectionIndex({ collections }: Props) {
 
             {/* Add Series Dialog */}
             <Dialog open={addOpen} onOpenChange={(open) => { setAddOpen(open); if (!open) { setSelectedIds(new Set()); setSearchQuery(''); } }}>
-                <DialogContent className="max-w-4xl">
+                <DialogContent className="sm:max-w-4xl">
                     <DialogHeader>
                         <DialogTitle>{t('index.addDialog.title')}</DialogTitle>
                         <DialogDescription>{t('index.addDialog.description')}</DialogDescription>

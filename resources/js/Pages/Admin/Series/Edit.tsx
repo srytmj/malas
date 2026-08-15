@@ -1201,7 +1201,7 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
 
             {/* Cover Image Search Dialog */}
             <Dialog open={coverSearchOpen} onOpenChange={(open) => { setCoverSearchOpen(open); if (!open) { setCoverSearchResults([]); } }}>
-                <DialogContent className="max-w-3xl">
+                <DialogContent className="sm:max-w-3xl">
                     <DialogHeader>
                         <DialogTitle>{t('series.searchCoverTitle')}</DialogTitle>
                     </DialogHeader>
