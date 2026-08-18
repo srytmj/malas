@@ -33,6 +33,8 @@
 - Personal review & rating (-10 to +10, MyAnimeList-style)
 - Wishlist — series you want to read but haven't collected yet
 - Volume lending — who borrowed it, due date, automatic overdue status
+- "Missing volumes" badge — flags gaps against the series' known volume count, click it to jump straight into a pre-filled "Add Volume" form
+- Export/import your collection as a personal JSON backup (reading progress, review, rating included)
 
 **Import & Data**
 - Import metadata from [AniList](https://anilist.co) (GraphQL) — title, synopsis, genres, authors, score

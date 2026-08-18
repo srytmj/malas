@@ -49,6 +49,7 @@ interface CollectionRow {
     condition: 'mint' | 'good' | 'fair' | 'poor';
     created_at: string;
     is_adult: boolean;
+    missing_volumes: number[];
 }
 
 interface SeriesResult {
@@ -75,6 +76,29 @@ const SORT_KEY = 'malas.collection.sort';
 function readLocal<T extends string>(key: string, fallback: T): T {
     if (typeof window === 'undefined') return fallback;
     return (window.localStorage.getItem(key) as T) || fallback;
+}
+
+/** Compress a sorted-or-unsorted list of volume numbers into "4, 6-7, 9-12" range syntax. */
+function compressRanges(numbers: number[]): string {
+    if (numbers.length === 0) return '';
+    const sorted = [...numbers].sort((a, b) => a - b);
+    const parts: string[] = [];
+    let start = sorted[0];
+    let end = sorted[0];
+
+    for (let i = 1; i <= sorted.length; i++) {
+        if (i < sorted.length && sorted[i] === end + 1) {
+            end = sorted[i];
+        } else {
+            parts.push(start === end ? `${start}` : `${start}-${end}`);
+            if (i < sorted.length) {
+                start = sorted[i];
+                end = sorted[i];
+            }
+        }
+    }
+
+    return parts.join(', ');
 }
 
 export default function CollectionIndex({ collections }: Props) {
@@ -298,6 +322,35 @@ export default function CollectionIndex({ collections }: Props) {
         );
     }
 
+    function MissingVolumesBadge({ c }: { c: CollectionRow }) {
+        const missing = c.missing_volumes;
+        if (missing.length === 0) return null;
+        const compressed = compressRanges(missing);
+        return (
+            <span onClick={(e) => e.stopPropagation()}>
+                <HoverCard>
+                    <HoverCardTrigger
+                        render={
+                            <Link href={`${route('collection.show', c.slug)}?addVolumes=${encodeURIComponent(compressed)}`} />
+                        }
+                    >
+                        <Badge
+                            variant="outline"
+                            className="cursor-pointer border-amber-500/50 bg-amber-500/10 text-[10px] text-amber-700 dark:text-amber-400"
+                        >
+                            {t('index.missingVolumes.badge', { count: missing.length })}
+                        </Badge>
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-auto max-w-xs">
+                        <p className="text-xs font-medium text-muted-foreground">{t('index.missingVolumes.title')}</p>
+                        <p className="mt-1 text-sm">{compressed}</p>
+                        <p className="mt-2 text-xs text-muted-foreground">{t('index.missingVolumes.clickHint')}</p>
+                    </HoverCardContent>
+                </HoverCard>
+            </span>
+        );
+    }
+
     return (
         <UserLayout
             header={
@@ -501,6 +554,7 @@ export default function CollectionIndex({ collections }: Props) {
                                         )}
                                         <div className="flex flex-wrap items-center gap-1.5">
                                             <SeriesStatusBadge status={c.status} />
+                                            <MissingVolumesBadge c={c} />
                                         </div>
                                         <GenreBadges genres={c.genres} />
                                         {c.collection_volumes_count > 0 && <ReadStepper c={c} />}
@@ -580,6 +634,11 @@ export default function CollectionIndex({ collections }: Props) {
                                                 <TableCell><GenreBadges genres={c.genres} /></TableCell>
                                                 <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                                     <p>{c.collection_volumes_count}{c.total_volumes ? `/${c.total_volumes}` : ''}</p>
+                                                    {c.missing_volumes.length > 0 && (
+                                                        <div className="mt-1 flex justify-end">
+                                                            <MissingVolumesBadge c={c} />
+                                                        </div>
+                                                    )}
                                                     {c.collection_volumes_count > 0 && (
                                                         <>
                                                             <p className="text-xs text-muted-foreground">

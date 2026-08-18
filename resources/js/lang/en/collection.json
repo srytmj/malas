@@ -36,6 +36,11 @@
         "tableView": "Table view",
         "noneMatchFilter": "No collection items match the current filters.",
         "volumeShort": "vol.",
+        "missingVolumes": {
+            "badge": "{{count}} missing",
+            "title": "Missing:",
+            "clickHint": "Click to add these to your collection"
+        },
         "columnTitle": "Title",
         "columnGenre": "Genre",
         "columnVolume": "Volume",

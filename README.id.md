@@ -33,6 +33,8 @@
 - Review & rating pribadi (-10 s/d +10, gaya MyAnimeList)
 - Wishlist — series yang ingin dibaca tapi belum dikoleksi
 - Peminjaman volume — siapa pinjam, jatuh tempo, status terlambat otomatis
+- Badge "volume kurang" — nandain gap dari total volume yang diketahui series-nya, klik langsung buka form "Tambah Volume" yang udah keisi
+- Export/import koleksi sebagai backup JSON pribadi (termasuk progres baca, review, rating)
 
 **Import & Data**
 - Import metadata dari [AniList](https://anilist.co) (GraphQL) — judul, sinopsis, genre, author, skor

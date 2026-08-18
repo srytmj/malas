@@ -4,6 +4,24 @@ Semua perubahan penting pada Malas dicatat di file ini. Format mengikuti prinsip
 
 ---
 
+## 2026-08-16 (lanjutan 2) — Badge "Volume Kurang" Bisa Diklik, Auto-Isi Form Tambah Volume
+
+- User nanya "terus diapain" soal badge "volume kurang" yang masih sekadar informational — ditambahin aksi: badge sekarang `<Link>` ke halaman detail koleksi dengan query param `?addVolumes=4,6-7,9-12`.
+- `Collection/Show.tsx` baca query param itu sekali di `useEffect` pas mount, langsung prefill field nomor volume di form "Tambah Volume" + auto-buka dialognya (nggak perlu klik tombol "Tambah Volume" lagi), terus bersihin param dari URL bar (`window.history.replaceState`) biar refresh/tombol back browser nggak ke-trigger ulang.
+- Alurnya sekarang: klik badge → dialog "Tambah Volume" langsung kebuka dengan nomor yang kurang udah keisi → user tinggal pilih format → submit. Dari 4 langkah (lihat nomor, buka detail, buka dialog, ketik ulang) jadi 2 (klik badge, pilih format+submit).
+- Diverifikasi end-to-end di Browser (bukan curl — tool Browser pane udah pulih di sesi ini): koleksi dummy 5/12 volume → klik badge "7 kurang" → dialog kebuka dengan input `"4, 6-7, 9-12"` persis, URL bar bersih (query param ilang) → submit → koleksi jadi 12/12.
+
+---
+
+## 2026-08-16 — Badge "Volume Kurang" (Next Volume to Buy) di Koleksiku
+
+- Fitur baru hasil diskusi ("next volume to buy") — tiap koleksi yang punya `series.total_volumes` diketahui, sistem hitung selisih antara `range(1, total_volumes)` dan volume yang udah dimiliki user (`CollectionVolume.volume_number`), lalu tampilin sebagai badge amber `{{count}} kurang` di grid card & table row `Collection/Index.tsx`. Hover badge-nya buka `HoverCard` yang nampilin nomor lengkap, dikompres pakai syntax range yang sama dipakai form "Tambah Volume" (mis. `4, 6-7, 9-12`) lewat fungsi baru `compressRanges()`.
+- `total_volumes` dari AniList/RanobeDB udah representasi volume yang **sudah rilis** (bukan proyeksi total planned), jadi nggak perlu logic tambahan buat filter "belum rilis" — semua nomor di `range(1, total_volumes)` yang belum dimiliki otomatis valid buat di-flag "kurang". Series dengan `total_volumes` null (data AniList belum lengkap) di-skip, nggak dihitung.
+- Badge di-`stopPropagation()` biar klik/hover-nya nggak nge-trigger navigasi ke halaman detail koleksi (pola yang sama dengan tombol hapus & `ReadStepper` yang udah ada di file yang sama).
+- Diverifikasi lewat HTTP request langsung (curl, browser pane masih ada gangguan tool di sesi ini) — koleksi dummy dengan volume `[1,2,3,5,8]` dari total 12 → `missing_volumes` server balikin persis `[4,6,7,9,10,11,12]`; koleksi lengkap (3/3) → array kosong, badge nggak muncul (dicek via kondisi `missing.length === 0` di komponen).
+
+---
+
 ## 2026-08-15 (lanjutan 5) — Export/Import Koleksi (Backup Pribadi)
 
 - Fitur baru atas request user: user bisa export seluruh koleksi (+ progres baca, review, rating) ke file JSON dan import balik. Tombol "Export"/"Import" di header `Collection/Index.tsx`.

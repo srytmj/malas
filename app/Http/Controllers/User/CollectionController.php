@@ -24,7 +24,7 @@ class CollectionController extends Controller
     {
         $collections = auth()->user()
             ->collections()
-            ->with('series')
+            ->with(['series', 'collectionVolumes:id,collection_id,volume_number'])
             ->withCount([
                 'collectionVolumes',
                 'collectionVolumes as read_volumes_count' => fn ($q) => $q->whereNotNull('read_at'),
@@ -47,11 +47,34 @@ class CollectionController extends Controller
                 'condition' => $c->condition,
                 'created_at' => $c->created_at->toIso8601String(),
                 'is_adult' => $c->series->is_adult,
+                'missing_volumes' => $this->missingVolumes($c),
             ]);
 
         return Inertia::render('User/Collection/Index', [
             'collections' => $collections,
         ]);
+    }
+
+    /**
+     * Nomor volume yang belum dimiliki user — dibandingkan terhadap `series.total_volumes`
+     * (angka ini dari AniList/RanobeDB udah merepresentasikan volume yang SUDAH rilis, bukan
+     * proyeksi total planned, jadi nggak perlu filter tanggal rilis terpisah). Null kalau
+     * `total_volumes` belum diketahui — nggak bisa dihitung gap-nya.
+     *
+     * @return array<int, int>
+     */
+    private function missingVolumes(Collection $collection): array
+    {
+        if (! $collection->series->total_volumes) {
+            return [];
+        }
+
+        $owned = $collection->collectionVolumes->pluck('volume_number')->all();
+
+        return collect(range(1, $collection->series->total_volumes))
+            ->diff($owned)
+            ->values()
+            ->all();
     }
 
     public function export(): StreamedResponse

@@ -416,6 +416,23 @@ export default function CollectionShow({ collection, series, volumes, last_read_
 
     const avFormat = avWatch('format');
 
+    // Prefill + auto-open "Tambah Volume" kalau datang dari badge "volume kurang" di Koleksiku
+    // (?addVolumes=4,6-7,9-12) — bersihin query param-nya setelahnya biar refresh/back nggak
+    // ke-trigger ulang.
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const prefill = params.get('addVolumes');
+        if (!prefill) return;
+
+        avReset({ volumes: prefill, format: 'physical' });
+        setAddVolumeOpen(true);
+
+        params.delete('addVolumes');
+        const query = params.toString();
+        window.history.replaceState(null, '', window.location.pathname + (query ? `?${query}` : ''));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     // Loan form
     const {
         register, handleSubmit, reset, setError,

@@ -753,6 +753,38 @@ Keputusan desain (hasil diskusi sebelum implementasi): bukan sistem approval adm
 
 ---
 
+## Phase 33 — Badge "Volume Kurang" (Next Volume to Buy) di Koleksiku ✅
+
+**Goal:** Fitur hasil diskusi ide fitur baru — "next volume to buy", user setuju logic-nya (bandingin volume dimiliki vs `total_volumes`) dan setuju ditaruh sebagai badge di halaman Koleksiku (Opsi A dari beberapa opsi yang didiskusikan).
+
+1. `CollectionController::missingVolumes()` — `range(1, series.total_volumes)` dikurangi nomor volume yang udah dimiliki user. `total_volumes` dari AniList/RanobeDB udah representasi volume yang **sudah rilis**, bukan proyeksi total planned, jadi nggak perlu logic filter tanggal rilis terpisah. Series dengan `total_volumes` null di-skip (nggak bisa dihitung gap-nya).
+2. UI: badge amber `{{count}} kurang` di grid card & table row `Collection/Index.tsx` (`MissingVolumesBadge`), muncul cuma kalau ada gap. Hover buka `HoverCard` nampilin nomor lengkap dikompres pakai syntax range yang sama dengan input "Tambah Volume" (fungsi baru `compressRanges()`, mis. `4, 6-7, 9-12`). Badge di-`stopPropagation()` biar nggak nge-trigger navigasi card (pola sama tombol hapus/`ReadStepper` yang udah ada).
+3. Query `index()` diupdate eager-load `collectionVolumes:id,collection_id,volume_number` (kolom dibatasi, hindari over-fetch) buat ngitung gap tanpa N+1 query.
+
+### Done Criteria
+- [x] `npx tsc --noEmit` → 0 errors, `php -l` clean di file yang disentuh
+- [x] Verifikasi (curl, browser pane ada gangguan tool di sesi ini): koleksi dummy `[1,2,3,5,8]` dari total 12 → `missing_volumes` server balikin persis `[4,6,7,9,10,11,12]`
+- [x] Verifikasi: koleksi lengkap (3/3 volume) → `missing_volumes` kosong, badge nggak muncul
+- [x] Data uji coba (user, series, koleksi, volume, token) dibersihkan dari database dev setelah verifikasi
+
+---
+
+## Phase 34 — Badge "Volume Kurang" Bisa Diklik, Auto-Isi Form Tambah Volume ✅
+
+**Goal:** Follow-up langsung dari Phase 33 — user nanya "terus diapain" soal badge yang cuma informational, disepakati (lewat diskusi "gimana?" beberapa putaran) badge jadi bisa diklik dan langsung ngisi form "Tambah Volume" di halaman detail.
+
+1. Badge (`MissingVolumesBadge` di `Collection/Index.tsx`) sekarang `<Link>` (bukan cuma span statis) ke `route('collection.show', c.slug)` + query param `?addVolumes={compressRanges(missing)}`, mis. `?addVolumes=4%2C%206-7%2C%209-12`. `stopPropagation()` tetap dipertahankan biar klik badge nggak ikut nge-trigger `onClick` card pembungkusnya (yang navigate ke halaman yang sama tapi tanpa query param).
+2. `Collection/Show.tsx` — `useEffect` baru (sekali jalan pas mount) baca `addVolumes` dari `window.location.search`, `avReset({ volumes: prefill, format: 'physical' })` buat prefill form react-hook-form yang udah ada, `setAddVolumeOpen(true)` buat auto-buka dialog, lalu `window.history.replaceState` buat bersihin query param dari URL bar (bukan lewat Inertia visit — cuma ganti address bar, nggak reload/refetch apa pun).
+3. Nggak ada perubahan skema/endpoint baru — reuse penuh form "Tambah Volume" yang udah ada (`collection.volumes.store`), cuma titik masuknya aja yang baru (query param, bukan klik tombol manual).
+
+### Done Criteria
+- [x] `npx tsc --noEmit` → 0 errors di file yang disentuh
+- [x] Verifikasi Browser (bukan curl — tool Browser pane pulih di sesi ini): koleksi dummy 5/12 volume, klik badge "7 kurang" di Koleksiku → navigate ke halaman detail, dialog "Tambah Volume" auto-kebuka dengan input persis `"4, 6-7, 9-12"`, URL bar bersih dari query param
+- [x] Verifikasi Browser: submit form itu → koleksi jadi 12/12 volume, badge hilang (nggak ada lagi yang kurang)
+- [x] Data uji coba (user, series, koleksi, volume, token) dibersihkan dari database dev setelah verifikasi
+
+---
+
 ## Summary Tabel
 
 | Phase | Nama | Status |
@@ -790,5 +822,7 @@ Keputusan desain (hasil diskusi sebelum implementasi): bukan sistem approval adm
 | 30 | Modal "Tambah Manga" Lebih Lebar + Infinite Scroll | ✅ |
 | 31 | Fix Layout Modal, URL Koleksi Pakai Judul, Konfirmasi+Undo Hapus dari Grup, Hapus Puter.js | ✅ |
 | 32 | Nonaktifkan Sementara Generate Funfact AI, Export/Import Koleksi | ✅ |
+| 33 | Badge "Volume Kurang" (Next Volume to Buy) di Koleksiku | ✅ |
+| 34 | Badge "Volume Kurang" Bisa Diklik, Auto-Isi Form Tambah Volume | ✅ |
 
-**QA pass: 2026-07-03** — Phase 11–18 dikerjakan iteratif sesudahnya, lihat [`CHANGELOG.md`](../CHANGELOG.md) untuk detail per-perubahan. Gap yang masih terdokumentasi: Phase 18 butuh satu kali manual click-through di dev environment normal buat verifikasi visual modal login (satu-satunya gap tersisa dari sekian phase post-launch). Phase 19–32 (2026-08-14 s/d 2026-08-15) semua sudah diverifikasi — sembilan bug nyata ketemu & diperbaiki selama proses (Phase 20 poin 3, Phase 23 poin 3, Phase 25 poin 3, Phase 26, Phase 27 poin 2, Phase 28 poin 5, Phase 29, Phase 30 poin 1, Phase 31 poin 1 — masing-masing sebelum phase berikutnya berjalan lolos verifikasi tanpa bug baru). Flash message controller kini sudah multi-bahasa penuh (Phase 25) — backlog lama yang tercatat di CLAUDE.md sudah diselesaikan. Grouping koleksi (Phase 25) dirombak total jadi desain many-to-many ala MDList MangaDex (Phase 27), diperluas dengan paginasi/filter/slug URL/visibilitas publik (Phase 28) lalu modal lebar + infinite scroll (Phase 30); dua bug flexbox/layout berturut-turut (Phase 30 `sm:` prefix Tailwind, Phase 31 `min-h` floor height) jadi pengingat kalau verifikasi HTTP/JSON doang nggak cukup buat nangkep bug rendering/CSS/JS client-side, perlu render beneran di browser. Integrasi Puter.js (AI provider gratis client-side) dihapus total di Phase 31 atas permintaan user; Phase 32 nonaktifkan sementara generate funfact AI-nya sendiri (word cloud genre tetap jalan) dan nambah fitur export/import koleksi (backup pribadi) — verifikasi Phase 32 pakai HTTP request langsung (curl) karena ada gangguan tool Browser pane di sesi itu, bukan indikasi masalah di fitur-nya.
+**QA pass: 2026-07-03** — Phase 11–18 dikerjakan iteratif sesudahnya, lihat [`CHANGELOG.md`](../CHANGELOG.md) untuk detail per-perubahan. Gap yang masih terdokumentasi: Phase 18 butuh satu kali manual click-through di dev environment normal buat verifikasi visual modal login (satu-satunya gap tersisa dari sekian phase post-launch). Phase 19–34 (2026-08-14 s/d 2026-08-16) semua sudah diverifikasi — sembilan bug nyata ketemu & diperbaiki selama proses (Phase 20 poin 3, Phase 23 poin 3, Phase 25 poin 3, Phase 26, Phase 27 poin 2, Phase 28 poin 5, Phase 29, Phase 30 poin 1, Phase 31 poin 1 — masing-masing sebelum phase berikutnya berjalan lolos verifikasi tanpa bug baru). Flash message controller kini sudah multi-bahasa penuh (Phase 25) — backlog lama yang tercatat di CLAUDE.md sudah diselesaikan. Grouping koleksi (Phase 25) dirombak total jadi desain many-to-many ala MDList MangaDex (Phase 27), diperluas dengan paginasi/filter/slug URL/visibilitas publik (Phase 28) lalu modal lebar + infinite scroll (Phase 30); dua bug flexbox/layout berturut-turut (Phase 30 `sm:` prefix Tailwind, Phase 31 `min-h` floor height) jadi pengingat kalau verifikasi HTTP/JSON doang nggak cukup buat nangkep bug rendering/CSS/JS client-side, perlu render beneran di browser. Integrasi Puter.js (AI provider gratis client-side) dihapus total di Phase 31 atas permintaan user; Phase 32 nonaktifkan sementara generate funfact AI-nya sendiri (word cloud genre tetap jalan) dan nambah fitur export/import koleksi (backup pribadi); Phase 33 nambah fitur "next volume to buy" (badge volume kurang) hasil diskusi ide fitur, lalu Phase 34 bikin badge itu actionable (klik → auto-isi form Tambah Volume). Phase 32–33 verifikasi pakai HTTP request langsung (curl) karena tool Browser pane sempat kena gangguan; udah pulih lagi pas Phase 34, verifikasi balik ke render beneran di browser.

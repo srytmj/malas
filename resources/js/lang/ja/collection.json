@@ -36,6 +36,11 @@
         "tableView": "テーブル表示",
         "noneMatchFilter": "現在のフィルターに一致するコレクションはありません。",
         "volumeShort": "巻",
+        "missingVolumes": {
+            "badge": "{{count}}巻不足",
+            "title": "未所持:",
+            "clickHint": "クリックしてコレクションに追加"
+        },
         "columnTitle": "タイトル",
         "columnGenre": "ジャンル",
         "columnVolume": "巻数",

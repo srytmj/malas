@@ -36,6 +36,11 @@
         "tableView": "Tampilan tabel",
         "noneMatchFilter": "Tidak ada koleksi yang cocok dengan filter saat ini.",
         "volumeShort": "vol.",
+        "missingVolumes": {
+            "badge": "{{count}} kurang",
+            "title": "Belum punya:",
+            "clickHint": "Klik buat langsung tambahin ke koleksi"
+        },
         "columnTitle": "Judul",
         "columnGenre": "Genre",
         "columnVolume": "Volume",
