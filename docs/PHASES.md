@@ -785,6 +785,85 @@ Keputusan desain (hasil diskusi sebelum implementasi): bukan sistem approval adm
 
 ---
 
+## Phase 35 — Reveal API Key/Secret di Admin Settings (Ikon Mata) ✅
+
+**Goal:** Request langsung dari user — tiga secret di halaman Admin Settings (`secret_access_key` Storage, `api_key` AI, `api_key` Mail) yang tadinya disembunyikan total (cuma kirim boolean `has_key`/`has_secret` ke frontend) sekarang bisa dilihat nilainya lewat toggle ikon mata.
+
+1. **Kenapa aman**: halaman ini **sudah** `super_admin`-only lewat `StorageSettingPolicy::view()`/`update()` (dicek di `StorageSettingController::edit()`). Reveal ini nggak nambah expose ke audience baru — cuma ngasih super_admin yang emang udah pegang kendali penuh atas secret itu (bisa reset kapan aja) akses buat lihat balik nilainya.
+2. **Backend**: `StorageSettingController::edit()` sekarang kirim `secret_access_key`/`api_key` asli ke frontend (udah otomatis ke-decrypt lewat cast `encrypted` di `StorageSetting`/`AiSetting`/`MailSetting` model), bukan cuma boolean. Boolean `has_key`/`has_secret` tetap dikirim & dipakai buat required-field marker (`*`) di label.
+3. **Frontend**: komponen baru `SecretInput` (`Admin/Settings/Index.tsx`) — `Input` + tombol ikon mata (Eye/EyeOff) yang toggle `type="password"`/`type="text"`. Dipakai di tiga tempat (AI, Mail, Storage tab) lewat `Controller` react-hook-form; field-nya sekarang di-prefill sama value asli (`aiSetting.api_key ?? ''`, dst), bukan string kosong kayak sebelumnya.
+4. **Beres-beres**: translation key `apiKeyPlaceholder`/`apiKeySaved`/`secretAccessKeyPlaceholder` (`admin.json` id/en/ja) jadi dead code begitu field di-prefill value asli — dihapus. Deskripsi kartu yang bilang "tidak pernah ditampilkan ulang setelah disimpan" diupdate karena udah nggak akurat lagi.
+
+### Done Criteria
+- [x] `npx tsc --noEmit` → 0 errors, `php -l` clean di file yang disentuh
+- [x] Verifikasi Browser: field API key AI ke-load dengan value asli (masked, `type="password"`), klik ikon mata → `type` jadi `text` dan value asli kebaca persis dari DOM, klik lagi → balik masked
+- [x] Verifikasi Browser: field API key Mail juga ke-load dengan value asli (masked) — pola konsisten
+- [x] Verifikasi Browser: submit form AI tanpa ubah apa pun → key tetap utuh persis di database (dicek langsung lewat tinker), nggak ke-null-kan/rusak oleh resubmit value yang sama
+- [x] Sweep translation key mati (`apiKeyPlaceholder`/`apiKeySaved`/`secretAccessKeyPlaceholder`) → nol referensi tersisa di `Admin/Settings/Index.tsx` sebelum dihapus dari JSON
+- [x] Data uji coba: nggak ada (pakai data admin settings asli yang udah ke-konfigurasi sebelumnya, cuma dibaca ulang, nggak diubah/dihapus)
+
+---
+
+## Phase 36 — Fix: Download/Import Backup Database 403 Buat Super Admin Asli ✅
+
+**Goal:** Bug report langsung dari user — akses `/admin/settings/database/download` sebagai super_admin asli kena 403 "Akses Ditolak".
+
+1. **Root cause**: `DatabaseBackupController::download()`/`import()` pakai `auth()->user()->hasRole('super_admin')` — method dari Spatie Laravel Permission. Tapi app ini **nggak pernah** manggil `assignRole()` di mana pun di codebase, jadi tabel `model_has_roles` Spatie selalu kosong dan `hasRole()` SELALU balikin `false`, terlepas dari kolom `users.role` (yang beneran dipakai buat semua Policy/menu access lain di app ini) udah bener `super_admin`. Ini satu-satunya tempat di seluruh codebase yang pakai Spatie `hasRole()` — dua controller kembar persis (`AiSettingController`/`MailSettingController`) udah bener pakai `isSuperAdmin()`.
+2. **Fix**: ganti `hasRole('super_admin')` → `isSuperAdmin()` di kedua method, konsisten sama pola yang bener di seluruh app.
+3. **Root cause dokumentasi**: `CLAUDE.md` bagian "Sistem Otorisasi" ternyata sendiri yang nyaranin pola `hasRole('super_admin')` sebagai "pengecualian yang boleh dipakai" — inilah kemungkinan sumber kenapa kode ini ditulis salah dari awal. Diperbaiki sekalian, ditambah catatan eksplisit "jangan pernah pakai Spatie `hasRole()`" plus penjelasan kenapa (Spatie Role infrastruktur ada tapi nggak pernah di-assign).
+
+### Done Criteria
+- [x] `php -l` clean di file yang disentuh
+- [x] Verifikasi: `User::isSuperAdmin()` buat akun super_admin asli balikin `true` (lolos `abort_unless`)
+- [x] Verifikasi HTTP: request ke `/admin/settings/database/download` login sebagai super_admin asli — 403 ilang, request lanjut sampe ke logic backup (sisa error 500 di local testing itu murni `SHOW TABLES` sintaks MySQL-only ketemu SQLite dev, bukan bug dari fix ini — di server produksi yang pakai MySQL beneran nggak akan kejadian)
+- [x] Sweep `grep -rn "hasRole("` di seluruh `app/` → nol hasil tersisa
+
+---
+
+## Phase 37 — Fix: Download/Import Backup Database 500 di SQLite (Dev) ✅
+
+**Goal:** Bug report lanjutan dari user setelah Phase 36 — 403 udah ilang, tapi `/admin/settings/database/download` sekarang balikin 500 "Terjadi Kesalahan", user bilang errornya nggak muncul di log.
+
+1. **Investigasi**: error-nya beneran ADA di `storage/logs/laravel.log` (grep ketemu match persis timestamp request user) — `SQLSTATE[HY000]: General error: 1 near "SHOW": syntax error ... SQL: SHOW TABLES`. Cek langsung `.env` `malas.test` confirmed `DB_CONNECTION=sqlite` (sesuai konvensi dev project ini di `CLAUDE.md`), sementara `DatabaseBackupController` ditulis MySQL-only sejak awal (`SHOW TABLES`, `SET FOREIGN_KEY_CHECKS=0/1`) — dua sintaks itu bikin error di SQLite. Bug ini nggak pernah kejadian sebelumnya karena selalu ketutup duluan sama bug 403 Phase 36.
+2. **Fix `getBackupTables()`**: branch berdasarkan `DB::connection()->getDriverName()` — SQLite pakai `SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'`, selain itu tetap `SHOW TABLES`.
+3. **Fix FK-check toggle**: dipusatkan ke helper baru `fkChecksStatement(bool $enable): string` — emit `PRAGMA foreign_keys = ON/OFF;` untuk SQLite, `SET FOREIGN_KEY_CHECKS=1/0;` untuk driver lain. Dipakai di `download()` (sebelum/sesudah dump) dan `import()` (sebelum/sesudah transaksi, plus di catch/rollback).
+4. **Fix cross-driver import**: `import()` sekarang skip baris FK-check mentah dari file upload (regex `^(SET\s+FOREIGN_KEY_CHECKS|PRAGMA\s+foreign_keys)`), selalu pakai `fkChecksStatement()` yang sesuai driver AKTIF — sengaja didesain biar backup lintas-driver (mis. export dari SQLite dev, import ke MySQL prod) tetap jalan, karena `INSERT`/`DELETE` sendiri driver-agnostic antara SQLite dan MySQL.
+
+### Done Criteria
+- [x] `php -l` clean di file yang disentuh
+- [x] Verifikasi HTTP end-to-end di SQLite dev database (environment sama persis dengan `malas.test`): `GET .../download` → 200 dengan file `.sql` valid (`PRAGMA foreign_keys = OFF;` muncul, bukan lagi 500)
+- [x] Verifikasi round-trip: `POST .../import` pakai file backup yang baru di-download → 302 sukses, nol error baru di `laravel.log`
+- [x] Verifikasi data integrity: `GET .../download` lagi setelah import → file identik byte-per-byte dengan backup sebelumnya (kecuali baris timestamp), membuktikan export→import nggak merusak/mengubah data
+
+---
+
+## Phase 38 — Deploy via Docker (Postgres) + Rapikan Struktur File Deploy ✅
+
+**Goal:** Request user — tambah cara deploy ketiga (Docker, generik buat Proxmox LXC/VM tapi portable ke Linux manapun), database full Postgres (biar konsisten sama microservice lain), pastikan data lama ke-copy ke database baru, sekalian rapiin file infrastruktur deploy yang berantakan di root.
+
+1. **`DatabaseBackupController` jadi 3-driver-aware**: tambah branch Postgres di `getBackupTables()` (`pg_catalog.pg_tables`) dan `fkChecksStatement()` (`SET session_replication_role = replica/origin`, karena Postgres nggak punya toggle FK global kayak MySQL/SQLite). Identifier quoting di dump SQL ikut driver aktif (backtick vs `"double quote"`) lewat helper baru `identifierQuoteChar()`/`quoteIdentifier()`.
+2. **Command baru `php artisan malas:migrate-data --from= --to=`** (`MigrateDatabaseData.php`) — migrasi data pas cutover engine DB, nyalin baris-per-baris lewat query builder (`cursor()` + `array_chunk`), bukan lewat teks SQL — driver-agnostic sepenuhnya. Beda dengan backup `.sql` biasa (skip `users`), command ini nyalin **semua** tabel karena tujuannya cutover penuh.
+3. **Docker stack baru** di `deploy/`: `Dockerfile` (multi-stage Node→Composer→PHP-FPM runtime), `docker-compose.yml` (app/queue/nginx/db=Postgres 16), `docker-compose.override.yml` (dev lokal + Vite HMR), `nginx.conf`, `.env.docker.example`.
+4. **Script `deploy/deploy-docker.sh`** — generik, cuma butuh Docker Engine + Compose plugin (tidak pakai Proxmox API): setup `.env`, generate `APP_KEY`, build+jalankan stack, migrate+seed, tawarin migrasi data lama, cache production. `deploy/update-docker.sh` buat update kode di deploy yang udah jalan.
+5. **Rapiin struktur file**: `deploy.sh`/`update.sh` (native) dipindah ke `deploy/deploy.sh`/`deploy/update.sh` (path `$SCRIPT_DIR` diupdate `cd` naik satu level). Referensi path diupdate di `README.md`, `README.id.md`, `docs/DEPLOYMENT.md`. Dokumen baru `docs/DOCKER.md`.
+6. **Bug nyata #1 ketemu pas build image beneran** (bukan cuma baca kode): tanpa `.dockerignore`, `COPY . .` di Dockerfile ikut nyalin `bootstrap/cache/*.php` lokal (gitignored tapi ada di disk dev) yang masih reference `Laravel\Breeze\BreezeServiceProvider` dari `require-dev` — bikin `composer dump-autoload` gagal total di stage `vendor` karena Breeze nggak ke-install waktu `--no-dev`. Fix: tambah `.dockerignore` (exclude `vendor/`, `node_modules/`, `bootstrap/cache/*.php`, `.env`, dll).
+7. **Bug nyata #2 ketemu pas jalanin stack beneran**: user non-root `malas` di image runtime cuma di-`chown` buat `storage/`+`bootstrap/cache/`, bukan `public/` — `php artisan storage:link` gagal (`symlink(): Permission denied`) karena butuh nulis symlink baru ke `public/`. Fix: tambah `public/` ke daftar `chown` di `Dockerfile`.
+
+### Done Criteria
+- [x] `php -l` clean di file PHP yang disentuh
+- [x] `docker compose config` valid untuk `docker-compose.yml` (sendiri) dan gabungan dengan `docker-compose.override.yml`
+- [x] `docker build` sukses sampai akhir (setelah fix `.dockerignore`)
+- [x] `docker compose up` — semua 4 service (app, queue, nginx, db) jalan dan `db` health-check `healthy`
+- [x] 44 migration jalan bersih di Postgres asli (nol masalah dialect SQL — seluruh app pakai Eloquent/query builder, cuma `DatabaseBackupController` yang punya raw SQL)
+- [x] `storage:link` + seed sukses setelah fix permission `public/`
+- [x] Landing page 200 lewat nginx → PHP-FPM → Postgres; login via magic link sukses
+- [x] Download backup di Postgres asli menghasilkan `.sql` valid (`SET session_replication_role = replica;` + identifier `"double-quoted"`)
+- [x] Round-trip import → 302 sukses, nol error baru di log; redownload setelahnya identik byte-per-byte (kecuali timestamp) dengan backup sebelumnya
+- [x] `malas:migrate-data` dites terpisah (SQLite → SQLite scratch DB via connection dinamis): 34 tabel, semua baris tersalin sesuai jumlah sumber
+- [x] Container test + image test di-cleanup (`docker compose down -v`, `docker rmi`) setelah verifikasi
+
+---
+
 ## Summary Tabel
 
 | Phase | Nama | Status |
@@ -824,5 +903,9 @@ Keputusan desain (hasil diskusi sebelum implementasi): bukan sistem approval adm
 | 32 | Nonaktifkan Sementara Generate Funfact AI, Export/Import Koleksi | ✅ |
 | 33 | Badge "Volume Kurang" (Next Volume to Buy) di Koleksiku | ✅ |
 | 34 | Badge "Volume Kurang" Bisa Diklik, Auto-Isi Form Tambah Volume | ✅ |
+| 35 | Reveal API Key/Secret di Admin Settings (Ikon Mata) | ✅ |
+| 36 | Fix: Download/Import Backup Database 403 Buat Super Admin Asli | ✅ |
+| 37 | Fix: Download/Import Backup Database 500 di SQLite (Dev) | ✅ |
+| 38 | Deploy via Docker (Postgres) + Rapikan Struktur File Deploy | ✅ |
 
-**QA pass: 2026-07-03** — Phase 11–18 dikerjakan iteratif sesudahnya, lihat [`CHANGELOG.md`](../CHANGELOG.md) untuk detail per-perubahan. Gap yang masih terdokumentasi: Phase 18 butuh satu kali manual click-through di dev environment normal buat verifikasi visual modal login (satu-satunya gap tersisa dari sekian phase post-launch). Phase 19–34 (2026-08-14 s/d 2026-08-16) semua sudah diverifikasi — sembilan bug nyata ketemu & diperbaiki selama proses (Phase 20 poin 3, Phase 23 poin 3, Phase 25 poin 3, Phase 26, Phase 27 poin 2, Phase 28 poin 5, Phase 29, Phase 30 poin 1, Phase 31 poin 1 — masing-masing sebelum phase berikutnya berjalan lolos verifikasi tanpa bug baru). Flash message controller kini sudah multi-bahasa penuh (Phase 25) — backlog lama yang tercatat di CLAUDE.md sudah diselesaikan. Grouping koleksi (Phase 25) dirombak total jadi desain many-to-many ala MDList MangaDex (Phase 27), diperluas dengan paginasi/filter/slug URL/visibilitas publik (Phase 28) lalu modal lebar + infinite scroll (Phase 30); dua bug flexbox/layout berturut-turut (Phase 30 `sm:` prefix Tailwind, Phase 31 `min-h` floor height) jadi pengingat kalau verifikasi HTTP/JSON doang nggak cukup buat nangkep bug rendering/CSS/JS client-side, perlu render beneran di browser. Integrasi Puter.js (AI provider gratis client-side) dihapus total di Phase 31 atas permintaan user; Phase 32 nonaktifkan sementara generate funfact AI-nya sendiri (word cloud genre tetap jalan) dan nambah fitur export/import koleksi (backup pribadi); Phase 33 nambah fitur "next volume to buy" (badge volume kurang) hasil diskusi ide fitur, lalu Phase 34 bikin badge itu actionable (klik → auto-isi form Tambah Volume). Phase 32–33 verifikasi pakai HTTP request langsung (curl) karena tool Browser pane sempat kena gangguan; udah pulih lagi pas Phase 34, verifikasi balik ke render beneran di browser.
+**QA pass: 2026-07-03** — Phase 11–18 dikerjakan iteratif sesudahnya, lihat [`CHANGELOG.md`](../CHANGELOG.md) untuk detail per-perubahan. Gap yang masih terdokumentasi: Phase 18 butuh satu kali manual click-through di dev environment normal buat verifikasi visual modal login (satu-satunya gap tersisa dari sekian phase post-launch). Phase 19–38 (2026-08-14 s/d 2026-08-23) semua sudah diverifikasi — tiga belas bug nyata ketemu & diperbaiki selama proses (Phase 20 poin 3, Phase 23 poin 3, Phase 25 poin 3, Phase 26, Phase 27 poin 2, Phase 28 poin 5, Phase 29, Phase 30 poin 1, Phase 31 poin 1, Phase 36, Phase 37, Phase 38 poin 6, Phase 38 poin 7 — masing-masing sebelum phase berikutnya berjalan lolos verifikasi tanpa bug baru). Flash message controller kini sudah multi-bahasa penuh (Phase 25) — backlog lama yang tercatat di CLAUDE.md sudah diselesaikan. Grouping koleksi (Phase 25) dirombak total jadi desain many-to-many ala MDList MangaDex (Phase 27), diperluas dengan paginasi/filter/slug URL/visibilitas publik (Phase 28) lalu modal lebar + infinite scroll (Phase 30); dua bug flexbox/layout berturut-turut (Phase 30 `sm:` prefix Tailwind, Phase 31 `min-h` floor height) jadi pengingat kalau verifikasi HTTP/JSON doang nggak cukup buat nangkep bug rendering/CSS/JS client-side, perlu render beneran di browser. Integrasi Puter.js (AI provider gratis client-side) dihapus total di Phase 31 atas permintaan user; Phase 32 nonaktifkan sementara generate funfact AI-nya sendiri (word cloud genre tetap jalan) dan nambah fitur export/import koleksi (backup pribadi); Phase 33 nambah fitur "next volume to buy" (badge volume kurang) hasil diskusi ide fitur, lalu Phase 34 bikin badge itu actionable (klik → auto-isi form Tambah Volume). Phase 35 buka akses reveal API key/secret di Admin Settings (super_admin-only, jadi aman) lewat toggle ikon mata. Phase 36 nemuin & benerin bug otorisasi nyata (Spatie `hasRole()` yang nggak pernah kesinkron sama kolom `role` asli) yang ternyata bersumber dari dokumentasi `CLAUDE.md` sendiri yang salah — pengingat kalau dokumentasi juga bisa jadi sumber bug kalau nggak dicek ulang terhadap kode beneran. Phase 37 nemuin bug kedua yang ketutup sama bug Phase 36 (fitur backup database MySQL-only ketemu SQLite dev) — contoh nyata "benerin satu bug bisa nyingkap bug berikutnya yang ketutup di baliknya", sekalian jadi pengingat kalau klaim user "nggak ada di log" perlu dicek ulang langsung ke file log, bukan diasumsikan benar. Phase 38 nambah metode deploy ketiga (Docker + Postgres, generik buat Proxmox atau Linux manapun) dan command migrasi data lintas engine DB — dua bug nyata ketemu langsung pas build/jalanin Docker beneran (bukan cuma baca kode): `.dockerignore` yang belum ada bikin cache Composer lokal ikut ke-copy ke image dan bikin build gagal total, dan permission `public/` yang belum di-`chown` ke user non-root bikin `storage:link` gagal — pengingat kalau infrastruktur (Dockerfile, compose) butuh diverifikasi dengan benar-benar di-build & dijalankan, nggak cukup cuma ditulis dan dibaca ulang. Phase 32–33 verifikasi pakai HTTP request langsung (curl) karena tool Browser pane sempat kena gangguan; udah pulih lagi mulai Phase 34.

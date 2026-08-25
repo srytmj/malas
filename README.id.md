@@ -142,12 +142,19 @@ Default driver `local` langsung jalan tanpa konfigurasi tambahan. Untuk switch k
 
 ## Deployment ke Production
 
-Dua metode tersedia — otomatis via `deploy.sh` atau manual step-by-step. Panduan lengkap termasuk setup AWS EC2, Azure VM, dan Local Server (VPS/bare metal): **[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)**.
+Tiga metode tersedia:
+
+1. **Otomatis, native (Ubuntu bare-metal/VPS)** — `bash deploy/deploy.sh`, install PHP/MySQL/Nginx/Node/Supervisor langsung di host.
+2. **Manual step-by-step** — hasil sama dengan metode 1, kontrol penuh.
+3. **Docker (berbasis Postgres)** — `bash deploy/deploy-docker.sh`, stack Docker Compose generik (app/nginx/Postgres/queue), jalan di Linux manapun yang ada Docker, termasuk LXC/VM Proxmox. Lihat **[`docs/DOCKER.md`](docs/DOCKER.md)**.
+
+Panduan lengkap metode 1–2, termasuk setup AWS EC2, Azure VM, dan Local Server (VPS/bare metal): **[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)**.
 
 Update kode di server yang sudah live:
 
 ```bash
-bash update.sh
+bash deploy/update.sh        # deploy native
+bash deploy/update-docker.sh # deploy Docker
 ```
 
 Script ini melakukan `git pull`, rebuild dependencies/frontend hanya jika perlu, jalankan migration baru, dan rebuild cache — tanpa menyentuh data yang sudah ada.

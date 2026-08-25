@@ -142,15 +142,22 @@ The default `local` driver works out of the box with no extra configuration. To 
 
 ## Production Deployment
 
-Two methods available — automated via `deploy.sh` or manual step-by-step. Full guide including AWS EC2, Azure VM, and bare-metal/VPS setup: **[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)**.
+Three methods available:
+
+1. **Automated, native (Ubuntu bare-metal/VPS)** — `bash deploy/deploy.sh`, installs PHP/MySQL/Nginx/Node/Supervisor directly on the host.
+2. **Manual step-by-step** — same result as method 1, full control.
+3. **Docker (Postgres-based)** — `bash deploy/deploy-docker.sh`, generic Docker Compose stack (app/nginx/Postgres/queue), works on any Linux host with Docker installed, including a Proxmox LXC/VM. See **[`docs/DOCKER.md`](docs/DOCKER.md)**.
+
+Full guide for methods 1–2, including AWS EC2, Azure VM, and bare-metal/VPS setup: **[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)**.
 
 Update code on an already-live server:
 
 ```bash
-bash update.sh
+bash deploy/update.sh        # native deploy
+bash deploy/update-docker.sh # Docker deploy
 ```
 
-This script runs `git pull`, rebuilds dependencies/frontend only when needed, runs new migrations, and rebuilds caches — without touching existing data.
+These scripts run `git pull`, rebuild dependencies/frontend only when needed, run new migrations, and rebuild caches — without touching existing data.
 
 ---
 

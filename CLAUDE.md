@@ -23,7 +23,8 @@ Untuk setiap rencana perubahan yang belum dapat konfirmasi → **tulis rencanany
 | Styling | Tailwind CSS v4 |
 | Bundler | Vite |
 | Database (dev) | SQLite |
-| Database (prod) | MySQL 8+ |
+| Database (prod, native deploy) | MySQL 8+ — `deploy/deploy.sh`, lihat `docs/DEPLOYMENT.md` |
+| Database (prod, Docker deploy) | PostgreSQL 16 — `deploy/deploy-docker.sh`, lihat `docs/DOCKER.md` |
 | Auth/Role | Spatie Laravel Permission |
 | File storage | Local (dev) atau S3-compatible/Cloudflare R2 (prod) — dikonfigurasi via UI admin, bukan `.env` |
 | External API | AniList GraphQL (`https://graphql.anilist.co`) — untuk import metadata manga/manhwa/manhua |
@@ -227,9 +228,13 @@ Storage::put('covers/' . $filename, $content);
 Role: super_admin > admin > user
 
 Akses dikontrol oleh:
-1. Spatie Role       — untuk resource-level access (via Policy)
-2. MenuMiddleware    — untuk route-level access (is_maintenance, role_access)
+1. Kolom `users.role` (string biasa, BUKAN Spatie Role) — via method `User::isAdmin()`/`isSuperAdmin()`, dipakai di semua Policy
+2. MenuMiddleware    — untuk route-level access (is_maintenance, role_access), baca kolom `role` yang sama
 ```
+
+**Spatie Laravel Permission ada di composer.json/migration (tabel `roles`, `model_has_roles`, dll) tapi TIDAK dipakai buat keputusan otorisasi apa pun di app ini** — nggak ada satu pun `assignRole()` dipanggil di codebase, jadi `model_has_roles` selalu kosong. Semua Policy dan middleware baca kolom `users.role` polos, bukan Spatie.
+
+**Jangan pernah pakai `auth()->user()->hasRole(...)` (method Spatie)** — selalu balikin `false` karena role Spatie nggak pernah di-assign, meskipun kolom `role` user itu udah benar. Ini kejadian bug nyata: `DatabaseBackupController::download()`/`import()` pakai `hasRole('super_admin')`, jadi super_admin asli malah kena 403 — fix-nya ganti ke `isSuperAdmin()` (lihat CHANGELOG.md tanggal terkait). Selalu pakai `$user->isAdmin()` / `$user->isSuperAdmin()`, atau `abort_unless($user->isSuperAdmin(), 403)` langsung di controller buat fitur yang nggak punya model relevan buat Policy (Storage Settings, Database Backup).
 
 **Jangan pernah hardcode role check di component React.** Kirim permission dari backend:
 
@@ -242,8 +247,6 @@ Akses dikontrol oleh:
 // SALAH — cek di frontend
 if (user.role === 'admin') { ... }
 ```
-
-Pengecualian: `super_admin`-only features (Storage Settings, Database Backup) boleh pakai `abort_unless(auth()->user()->hasRole('super_admin'), 403)` langsung di controller karena tidak punya model yang relevan untuk Policy.
 
 ---
 
@@ -398,8 +401,9 @@ Jangan duplikasi atau rebuild ulang fitur-fitur ini:
 | Undo pada toast (aksi reversible) | `useFlash.ts` (flash `undo_url`/`undo_payload`) |
 | Sistem tiket user → admin | `User/Tickets/*`, `Admin/Tickets/*` |
 | Peminjaman volume | `User/Loans/*` + `Admin/Loans` |
-| Backup & import database | `Admin/Settings/Index.tsx` (tab Database) + `DatabaseBackupController` |
-| Konfigurasi storage (Local/S3) | `Admin/Settings/Index.tsx` (tab Storage) + `StorageSettingController` |
+| Backup & import database | `Admin/Settings/Index.tsx` (tab Database) + `DatabaseBackupController` — driver-aware buat SQLite/MySQL/Postgres (identifier quoting beda: backtick vs `"`, dan FK-check toggle beda: `PRAGMA foreign_keys`/`SET FOREIGN_KEY_CHECKS`/`SET session_replication_role`), lihat `fkChecksStatement()`/`getBackupTables()` |
+| Migrasi data lintas engine DB (mis. SQLite/MySQL lama → Postgres Docker baru) | `php artisan malas:migrate-data --from= --to=` (`MigrateDatabaseData.php`) — nyalin baris per baris lewat query builder (bukan teks SQL), jadi driver-agnostic; dipakai sekali pas cutover, dipanggil otomatis dari `deploy/deploy-docker.sh` kalau user pilih migrasi data lama, lihat `docs/DOCKER.md` |
+| Konfigurasi storage (Local/S3) | `Admin/Settings/Index.tsx` (tab Storage) + `StorageSettingController` — `secret_access_key` (dan API key AI/Mail) ter-enkripsi di DB tapi dikirim ke frontend & bisa di-reveal via `SecretInput` (toggle ikon mata Eye/EyeOff) — aman karena halaman ini `super_admin`-only (`StorageSettingPolicy`), jadi nggak nambah expose ke audience baru |
 | Blur konten 18+ | `Admin/Settings/Index.tsx` (tab Konten) + `SiteSettingController` |
 | Log aktivitas admin | `Admin/ActivityLog/Index.tsx` + `ActivityLogController` |
 | Galeri media tambahan per series | `SeriesMediaGallery.tsx` + `Admin/SeriesMediaController` |
@@ -417,7 +421,7 @@ Jangan duplikasi atau rebuild ulang fitur-fitur ini:
 | Modal pilihan login (SSO / Email) | `LoginMethodDialog.tsx` — dipakai dari tombol Login di Landing page; login lewat email tidak sync ulang profil (cuma SSO yang sync) |
 | Login dengan Email (magic link, peer method — bukan cuma fallback) | `Auth/SsoFallback.tsx` + `Auth\SsoFallbackController` — magic link sekali-pakai lewat email, `throttle:5,10`, generic response (anti email-enumeration) |
 | Login darurat via CLI (tanpa nunggu email) | `php artisan sso:emergency-login {identifier=super_admin}` (`IssueEmergencyLoginLink.php`) — reuse `SsoFallbackToken`, butuh akses SSH ke server, lihat `docs/DEPLOYMENT.md` |
-| Konfigurasi Email (Resend) | `Admin/Settings/Index.tsx` tab Email + `Admin\MailSettingController` + `MailSettingsService` — API key ter-encrypt, sama pola dengan Storage/AI |
+| Konfigurasi Email (Resend) | `Admin/Settings/Index.tsx` tab Email + `Admin\MailSettingController` + `MailSettingsService` — API key ter-encrypt, sama pola reveal-via-`SecretInput` dengan Storage/AI |
 | Editor genre/authors/illustrators/themes/demographics di Admin Series Edit | `Admin/Series/Edit.tsx` (`TagListInput.tsx`) — sync AniList/RanobeDB ikut ngisi tag, sentinel string kosong buat hapus semua tag lewat `SeriesController::update()` |
 | URL admin series berbasis judul (slug, bukan UUID) | Sama mekanisme dengan katalog user — semua `route('admin.series.show'/'edit', ...)` (Index, Show, EditVolume, AniList/RanobeDB/Search results, Tickets, Command Palette) pakai `slug` |
 | Filter genre searchable + multi-select di Katalog user | `User/Catalog/Index.tsx` (`GenreMultiSelect.tsx`, Popover+Command/cmdk) + `User\SeriesController::index()` — OR-match (`orWhereJsonContains`), genre dikirim sebagai array (`genre[]=...`) |

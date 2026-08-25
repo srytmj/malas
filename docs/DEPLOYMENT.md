@@ -1,20 +1,22 @@
 # Malas — Panduan Deployment
 
-> Dokumen ini mencakup cara deploy Malas ke berbagai environment: **Local Server**, **AWS EC2**, dan **Azure VM**, menggunakan script otomatis maupun manual.
+> Dokumen ini mencakup cara deploy Malas native (tanpa Docker) ke berbagai environment: **Local Server**, **AWS EC2**, dan **Azure VM**, menggunakan script otomatis maupun manual. Untuk deploy via Docker (Postgres, generik buat Proxmox LXC/VM atau Linux manapun), lihat [`docs/DOCKER.md`](DOCKER.md) — dokumen terpisah.
 
 ---
 
 ## Daftar Isi
 
 - [Prasyarat](#prasyarat)
-- [Metode 1: Otomatis dengan deploy.sh](#metode-1-otomatis-dengan-deploysh)
+- [Metode 1: Otomatis dengan deploy/deploy.sh](#metode-1-otomatis-dengan-deploydeploysh)
 - [Metode 2: Manual Step-by-Step](#metode-2-manual-step-by-step)
 - [Platform: AWS EC2](#platform-aws-ec2)
 - [Platform: Azure VM](#platform-azure-vm)
 - [Platform: Local Server (VPS / Bare Metal)](#platform-local-server-vps--bare-metal)
 - [Setelah Deploy: Akses via Domain](#setelah-deploy-akses-via-domain)
-- [Memperbarui Kode (update.sh)](#memperbarui-kode-updatesh)
+- [Memperbarui Kode (deploy/update.sh)](#memperbarui-kode-deployupdatesh)
 - [Troubleshooting](#troubleshooting)
+
+> **Metode 3 (Docker, berbasis Postgres)** ada di dokumen terpisah: [`docs/DOCKER.md`](DOCKER.md).
 
 ---
 
@@ -40,7 +42,7 @@ Sebelum mulai, pastikan kamu punya:
 
 ---
 
-## Metode 1: Otomatis dengan deploy.sh
+## Metode 1: Otomatis dengan deploy/deploy.sh
 
 Cara tercepat. Satu script handle semuanya.
 
@@ -67,7 +69,7 @@ git clone git@github.com:USERNAME/malas.git /var/www/malas
 
 ```bash
 cd /var/www/malas
-bash deploy.sh
+bash deploy/deploy.sh
 ```
 
 Script akan:
@@ -308,7 +310,7 @@ ssh -i key-pair.pem ubuntu@<EC2_PUBLIC_IP>
 ```bash
 git clone https://github.com/USERNAME/malas.git /var/www/malas
 cd /var/www/malas
-bash deploy.sh
+bash deploy/deploy.sh
 ```
 
 ### Domain
@@ -355,7 +357,7 @@ ssh azureuser@<VM_PUBLIC_IP>
 ```bash
 git clone https://github.com/USERNAME/malas.git /var/www/malas
 cd /var/www/malas
-bash deploy.sh
+bash deploy/deploy.sh
 ```
 
 ### Domain
@@ -460,13 +462,13 @@ php artisan config:cache
 
 ---
 
-## Memperbarui Kode (update.sh)
+## Memperbarui Kode (deploy/update.sh)
 
 Setiap kali ada kode baru di GitHub, jalankan dari server:
 
 ```bash
 cd /var/www/malas
-bash update.sh
+bash deploy/update.sh
 ```
 
 Script ini akan:
@@ -559,7 +561,7 @@ Job seperti migrasi otomatis file saat driver storage diganti butuh queue worker
 sudo supervisorctl status malas-worker:*
 
 # Kalau tidak jalan / belum ada, setup dulu — lihat bagian "Konfigurasi queue worker (Supervisor)"
-# di Metode 2: Manual Step-by-Step, atau jalankan ulang bash deploy.sh
+# di Metode 2: Manual Step-by-Step, atau jalankan ulang bash deploy/deploy.sh
 
 # Restart worker manual
 sudo supervisorctl restart malas-worker:*
