@@ -14,11 +14,11 @@ warn()    { echo -e "${YELLOW}[WARN]${NC} $*"; }
 error()   { echo -e "${RED}[ERROR]${NC} $*"; exit 1; }
 step()    { echo -e "\n${BOLD}▶ $*${NC}"; }
 
-# Harus dijalankan dari root project
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Root project = satu level di atas folder deploy/
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$SCRIPT_DIR"
 
-[[ -f "artisan" ]] || error "Script harus dijalankan dari root direktori project MALAS."
+[[ -f "artisan" ]] || error "Script harus dijalankan dari project MALAS (deploy/deploy.sh)."
 
 # =============================================================================
 step "Cek hak akses"
@@ -265,5 +265,5 @@ echo -e "  ${BOLD}B. SSL langsung (butuh IP publik):${NC}"
 echo -e "     sudo apt install certbot python3-certbot-nginx"
 echo -e "     sudo certbot --nginx -d ${APP_DOMAIN}"
 echo ""
-echo -e "Untuk update kode di masa mendatang, jalankan: ${BOLD}bash update.sh${NC}"
+echo -e "Untuk update kode di masa mendatang, jalankan: ${BOLD}bash deploy/update.sh${NC}"
 echo ""

@@ -15,10 +15,11 @@ warn()    { echo -e "${YELLOW}[WARN]${NC} $*"; }
 error()   { echo -e "${RED}[ERROR]${NC} $*"; exit 1; }
 step()    { echo -e "\n${BOLD}▶ $*${NC}"; }
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Root project = satu level di atas folder deploy/
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$SCRIPT_DIR"
 
-[[ -f "artisan" ]] || error "Script harus dijalankan dari root direktori project MALAS."
+[[ -f "artisan" ]] || error "Script harus dijalankan dari project MALAS (deploy/update.sh)."
 
 echo -e "${BOLD}MALAS — Update${NC}"
 echo "Mengambil kode terbaru dari GitHub..."
