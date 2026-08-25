@@ -37,21 +37,24 @@ class StorageSettingController extends Controller
                 'endpoint' => $setting->endpoint,
                 'region' => $setting->region,
                 'url' => $setting->url,
-                // secret_access_key is never sent to the frontend
+                // Secret dikirim ke frontend sekarang (dulu disembunyikan total) — halaman ini
+                // sudah super_admin-only lewat StorageSettingPolicy, jadi nggak nambah expose
+                // ke audience baru. UI nampilinnya di belakang toggle show/hide (ikon mata).
+                'secret_access_key' => $setting->secret_access_key,
                 'has_secret' => filled($setting->secret_access_key),
                 'migration_status' => $setting->migration_status,
                 'migration_message' => $setting->migration_message,
             ],
             'aiSetting' => [
                 'provider' => $aiSetting->provider,
-                // api_key is never sent to the frontend
+                'api_key' => $aiSetting->api_key,
                 'has_key' => filled($aiSetting->api_key),
             ],
             'mailSetting' => [
                 'provider' => $mailSetting->provider,
                 'from_address' => $mailSetting->from_address,
                 'from_name' => $mailSetting->from_name,
-                // api_key is never sent to the frontend
+                'api_key' => $mailSetting->api_key,
                 'has_key' => filled($mailSetting->api_key),
             ],
         ]);

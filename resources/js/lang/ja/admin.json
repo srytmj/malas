@@ -146,16 +146,14 @@
         },
         "ai": {
             "cardTitle": "AI設定",
-            "cardDescription": "ユーザーダッシュボードのジャンル傾向ファンファクト生成に使用します。APIキーは暗号化して保存され、保存後に再表示されることはありません。",
+            "cardDescription": "ユーザーダッシュボードのジャンル傾向ファンファクト生成に使用します。APIキーはデータベースに暗号化して保存されます — 目のアイコンをクリックするとこのページで確認できます（super_admin限定）。",
             "provider": "プロバイダー",
             "providers": {
                 "gemini": "Google Gemini",
                 "openai": "OpenAI",
                 "claude": "Anthropic Claude"
             },
-            "apiKey": "APIキー",
-            "apiKeyPlaceholder": "既存のキーを維持する場合は空欄のままにしてください",
-            "apiKeySaved": "APIキーはすでに保存されています。"
+            "apiKey": "APIキー"
         },
         "storage": {
             "cardTitle": "ストレージ設定",
@@ -166,7 +164,6 @@
             "driverS3": "S3互換（R2、AWS S3など）",
             "accessKeyId": "アクセスキーID",
             "secretAccessKey": "シークレットアクセスキー",
-            "secretAccessKeyPlaceholder": "既存のキーを維持する場合は空欄のままにしてください",
             "bucket": "バケット",
             "region": "リージョン",
             "endpoint": "エンドポイント",
@@ -206,10 +203,8 @@
         },
         "mail": {
             "cardTitle": "メール設定",
-            "cardDescription": "whitearchive.id にアクセスできないときの「SSOなしログイン」機能（マジックリンク）で使用します。プロバイダー: Resend。APIキーは暗号化して保存され、保存後は再表示されません。",
+            "cardDescription": "whitearchive.id にアクセスできないときの「SSOなしログイン」機能（マジックリンク）で使用します。プロバイダー: Resend。APIキーはデータベースに暗号化して保存されます — 目のアイコンをクリックするとこのページで確認できます（super_admin限定）。",
             "apiKey": "Resend APIキー",
-            "apiKeyPlaceholder": "空欄のままにすると既存のキーを維持します",
-            "apiKeySaved": "APIキーは保存済みです。",
             "fromAddress": "送信元アドレス",
             "fromName": "送信元名",
             "hint": "APIキーが未設定の場合、SSOなしログイン機能はメールを送信しません — 有効なAPIキーが設定されているときだけリンクが生成されます。"

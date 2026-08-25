@@ -146,16 +146,14 @@
         },
         "ai": {
             "cardTitle": "Konfigurasi AI",
-            "cardDescription": "Dipakai untuk generate funfact selera genre di dashboard pengguna. API key disimpan terenkripsi, tidak pernah ditampilkan ulang setelah disimpan.",
+            "cardDescription": "Dipakai untuk generate funfact selera genre di dashboard pengguna. API key disimpan terenkripsi di database — klik ikon mata buat lihat nilainya di halaman ini (khusus super_admin).",
             "provider": "Provider",
             "providers": {
                 "gemini": "Google Gemini",
                 "openai": "OpenAI",
                 "claude": "Anthropic Claude"
             },
-            "apiKey": "API Key",
-            "apiKeyPlaceholder": "Biarkan kosong untuk tetap pakai yang lama",
-            "apiKeySaved": "API key sudah tersimpan."
+            "apiKey": "API Key"
         },
         "storage": {
             "cardTitle": "Konfigurasi Storage",
@@ -166,7 +164,6 @@
             "driverS3": "S3-compatible (R2, AWS S3, dll)",
             "accessKeyId": "Access Key ID",
             "secretAccessKey": "Secret Access Key",
-            "secretAccessKeyPlaceholder": "Biarkan kosong untuk tetap pakai yang lama",
             "bucket": "Bucket",
             "region": "Region",
             "endpoint": "Endpoint",
@@ -206,10 +203,8 @@
         },
         "mail": {
             "cardTitle": "Konfigurasi Email",
-            "cardDescription": "Dipakai untuk fitur login tanpa SSO (magic link) saat whitearchive.id tidak bisa diakses. Provider: Resend. API key disimpan terenkripsi, tidak pernah ditampilkan ulang setelah disimpan.",
+            "cardDescription": "Dipakai untuk fitur login tanpa SSO (magic link) saat whitearchive.id tidak bisa diakses. Provider: Resend. API key disimpan terenkripsi di database — klik ikon mata buat lihat nilainya di halaman ini (khusus super_admin).",
             "apiKey": "API Key Resend",
-            "apiKeyPlaceholder": "Biarkan kosong untuk tetap pakai yang lama",
-            "apiKeySaved": "API key sudah tersimpan.",
             "fromAddress": "Alamat Pengirim",
             "fromName": "Nama Pengirim",
             "hint": "Kalau API key belum diisi, fitur login tanpa SSO tidak akan mengirim email apa pun — link cuma akan digenerate kalau ada API key aktif."

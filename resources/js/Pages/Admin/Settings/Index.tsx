@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import {
-    AlertTriangle, Bot, CheckCircle2, Database, Download, Eye, HardDrive, Loader2, Mail, Save, Shield, Upload, XCircle, Zap,
+    AlertTriangle, Bot, CheckCircle2, Database, Download, Eye, EyeOff, HardDrive, Loader2, Mail, Save, Shield, Upload, XCircle, Zap,
 } from 'lucide-react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -30,6 +30,7 @@ interface StorageSettingData {
     endpoint: string | null;
     region: string | null;
     url: string | null;
+    secret_access_key: string | null;
     has_secret: boolean;
     migration_status: 'idle' | 'running' | 'completed' | 'failed';
     migration_message: string | null;
@@ -37,6 +38,7 @@ interface StorageSettingData {
 
 interface AiSettingData {
     provider: 'gemini' | 'openai' | 'claude';
+    api_key: string | null;
     has_key: boolean;
 }
 
@@ -44,7 +46,40 @@ interface MailSettingData {
     provider: 'resend';
     from_address: string | null;
     from_name: string | null;
+    api_key: string | null;
     has_key: boolean;
+}
+
+/** Input password dengan tombol ikon mata buat toggle show/hide — dipakai buat tiga secret (AI, Mail, Storage). */
+function SecretInput({ id, value, onChange, placeholder }: {
+    id: string;
+    value: string;
+    onChange: (value: string) => void;
+    placeholder?: string;
+}) {
+    const [visible, setVisible] = useState(false);
+    return (
+        <div className="relative">
+            <Input
+                id={id}
+                type={visible ? 'text' : 'password'}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder={placeholder}
+                className="pr-9"
+            />
+            <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 top-0 h-9 w-9 text-muted-foreground"
+                onClick={() => setVisible((v) => !v)}
+                tabIndex={-1}
+            >
+                {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </Button>
+        </div>
+    );
 }
 
 interface Props extends PageProps {
@@ -94,13 +129,13 @@ function AiTab({ aiSetting }: { aiSetting: AiSettingData }) {
     };
 
     const {
-        register, control, handleSubmit, setError,
+        control, handleSubmit, setError,
         formState: { errors },
     } = useForm<AiFormValues>({
         resolver: zodResolver(aiSchema),
         defaultValues: {
             provider: aiSetting.provider,
-            api_key: '',
+            api_key: aiSetting.api_key ?? '',
         },
     });
 
@@ -155,16 +190,14 @@ function AiTab({ aiSetting }: { aiSetting: AiSettingData }) {
                         <Label htmlFor="api_key">
                             {t('settings.ai.apiKey')} {!aiSetting.has_key && <span className="text-destructive">*</span>}
                         </Label>
-                        <Input
-                            id="api_key"
-                            type="password"
-                            placeholder={aiSetting.has_key ? t('settings.ai.apiKeyPlaceholder') : ''}
-                            {...register('api_key')}
+                        <Controller<AiFormValues, 'api_key'>
+                            control={control}
+                            name="api_key"
+                            render={({ field }) => (
+                                <SecretInput id="api_key" value={field.value ?? ''} onChange={field.onChange} />
+                            )}
                         />
                         <FieldError message={errors.api_key?.message} />
-                        {aiSetting.has_key && (
-                            <p className="text-xs text-muted-foreground">{t('settings.ai.apiKeySaved')}</p>
-                        )}
                     </div>
 
                     <Button type="submit" disabled={submitting}>
@@ -182,13 +215,13 @@ function MailTab({ mailSetting }: { mailSetting: MailSettingData }) {
     const [submitting, setSubmitting] = useState(false);
 
     const {
-        register, handleSubmit, setError,
+        register, control, handleSubmit, setError,
         formState: { errors },
     } = useForm<MailFormValues>({
         resolver: zodResolver(mailSchema),
         defaultValues: {
             provider: 'resend',
-            api_key: '',
+            api_key: mailSetting.api_key ?? '',
             from_address: mailSetting.from_address ?? '',
             from_name: mailSetting.from_name ?? '',
         },
@@ -223,16 +256,19 @@ function MailTab({ mailSetting }: { mailSetting: MailSettingData }) {
                         <Label htmlFor="mail_api_key">
                             {t('settings.mail.apiKey')} {!mailSetting.has_key && <span className="text-destructive">*</span>}
                         </Label>
-                        <Input
-                            id="mail_api_key"
-                            type="password"
-                            placeholder={mailSetting.has_key ? t('settings.mail.apiKeyPlaceholder') : 're_xxxxxxxx'}
-                            {...register('api_key')}
+                        <Controller<MailFormValues, 'api_key'>
+                            control={control}
+                            name="api_key"
+                            render={({ field }) => (
+                                <SecretInput
+                                    id="mail_api_key"
+                                    value={field.value ?? ''}
+                                    onChange={field.onChange}
+                                    placeholder={mailSetting.has_key ? undefined : 're_xxxxxxxx'}
+                                />
+                            )}
                         />
                         <FieldError message={errors.api_key?.message} />
-                        {mailSetting.has_key && (
-                            <p className="text-xs text-muted-foreground">{t('settings.mail.apiKeySaved')}</p>
-                        )}
                     </div>
 
                     <div className="space-y-1.5">
@@ -282,7 +318,7 @@ function StorageTab({ setting }: { setting: StorageSettingData }) {
         defaultValues: {
             driver:            setting.driver,
             access_key_id:     setting.access_key_id ?? '',
-            secret_access_key: '',
+            secret_access_key: setting.secret_access_key ?? '',
             bucket:            setting.bucket ?? '',
             endpoint:          setting.endpoint ?? '',
             region:            setting.region ?? '',
@@ -394,11 +430,12 @@ function StorageTab({ setting }: { setting: StorageSettingData }) {
                                 <Label htmlFor="secret_access_key">
                                     {t('settings.storage.secretAccessKey')} {!setting.has_secret && <span className="text-destructive">*</span>}
                                 </Label>
-                                <Input
-                                    id="secret_access_key"
-                                    type="password"
-                                    placeholder={setting.has_secret ? t('settings.storage.secretAccessKeyPlaceholder') : ''}
-                                    {...register('secret_access_key')}
+                                <Controller<StorageFormValues, 'secret_access_key'>
+                                    control={control}
+                                    name="secret_access_key"
+                                    render={({ field }) => (
+                                        <SecretInput id="secret_access_key" value={field.value ?? ''} onChange={field.onChange} />
+                                    )}
                                 />
                                 <FieldError message={errors.secret_access_key?.message} />
                             </div>
