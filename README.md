@@ -206,7 +206,9 @@ See [`CLAUDE.md`](CLAUDE.md) under "Belum dikerjakan (backlog)" and [`docs/PHASE
 | [`CLAUDE.md`](CLAUDE.md) | Coding rules, folder structure, mandatory conventions for contributions |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Database schema, folder structure, request lifecycle, authorization flow |
 | [`docs/PHASES.md`](docs/PHASES.md) | Development phase log from the start to now |
-| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Deploy & update walkthrough — automated and manual |
+| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Deploy & update walkthrough — native (automated and manual) |
+| [`docs/DOCKER.md`](docs/DOCKER.md) | Deploy walkthrough — Docker (Postgres), generic Linux/Proxmox |
+| [`docs/API.md`](docs/API.md) | Full route reference (method, path, auth, response type) — not a public API, this is an Inertia app |
 | [`docs/prd.md`](docs/prd.md) | Product requirements — background, personas, feature specs |
 | [`docs/RANOBEDB_INTEGRATION.md`](docs/RANOBEDB_INTEGRATION.md) | API research + development plan for RanobeDB light novel import |
 | [`CHANGELOG.md`](CHANGELOG.md) | Notable changes, by date |

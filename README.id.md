@@ -206,7 +206,9 @@ Lihat [`CLAUDE.md`](CLAUDE.md) bagian "Belum dikerjakan (backlog)" dan [`docs/PH
 | [`CLAUDE.md`](CLAUDE.md) | Aturan coding, struktur folder, konvensi wajib untuk kontribusi |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Skema database, folder structure, request lifecycle, authorization flow |
 | [`docs/PHASES.md`](docs/PHASES.md) | Log fase pengembangan dari awal sampai sekarang |
-| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Tutorial deploy & update — otomatis maupun manual |
+| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Tutorial deploy & update — native (otomatis maupun manual) |
+| [`docs/DOCKER.md`](docs/DOCKER.md) | Tutorial deploy — Docker (Postgres), generik Linux/Proxmox |
+| [`docs/API.md`](docs/API.md) | Referensi lengkap route (method, path, akses, tipe respons) — bukan API publik, ini app Inertia |
 | [`docs/prd.md`](docs/prd.md) | Product requirements — latar belakang, persona, spesifikasi fitur |
 | [`docs/RANOBEDB_INTEGRATION.md`](docs/RANOBEDB_INTEGRATION.md) | Riset API + rencana development import light novel dari RanobeDB |
 | [`CHANGELOG.md`](CHANGELOG.md) | Histori perubahan penting per tanggal |
