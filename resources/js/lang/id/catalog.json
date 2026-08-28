@@ -6,10 +6,11 @@
     "allStatus": "Semua status",
     "allGenre": "Semua genre",
     "genreFilter": {
-        "searchPlaceholder": "Cari genre...",
-        "emptyText": "Genre tidak ditemukan.",
+        "searchPlaceholder": "Cari genre atau tag...",
+        "emptyText": "Genre/tag tidak ditemukan.",
         "clearLabel": "Hapus semua",
-        "selectedCount": "{{count}} genre dipilih"
+        "selectedCount": "{{count}} dipilih",
+        "tagSectionLabel": "Tag"
     },
     "ownership": {
         "all": "Semua",

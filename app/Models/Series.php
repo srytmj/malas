@@ -35,6 +35,8 @@ class Series extends Model
         'illustrators',
         'themes',
         'demographics',
+        'tags',
+        'tag_categories',
         'is_adult',
     ];
 
@@ -50,6 +52,8 @@ class Series extends Model
             'illustrators' => 'array',
             'themes' => 'array',
             'demographics' => 'array',
+            'tags' => 'array',
+            'tag_categories' => 'array',
             'is_adult' => 'boolean',
         ];
     }

@@ -36,10 +36,14 @@ interface Props extends PageProps {
     series: PaginatedData<SeriesRow>;
     collectionSeriesIds: string[];
     genreOptions: { manga: string[]; novel: string[] };
-    filters: { search?: string | null; status?: string | null; type?: string | null; genre?: string[] | null; ownership?: string | null };
+    tagOptions: Record<string, string[]>;
+    filters: {
+        search?: string | null; status?: string | null; type?: string | null;
+        genre?: string[] | null; tag?: string[] | null; ownership?: string | null;
+    };
 }
 
-export default function CatalogIndex({ series, collectionSeriesIds, genreOptions, filters }: Props) {
+export default function CatalogIndex({ series, collectionSeriesIds, genreOptions, tagOptions, filters }: Props) {
     const { t } = useTranslation('catalog');
     const typeFilterOptions = useTypeFilterOptions();
     const statusLabels: Record<string, string> = {
@@ -59,6 +63,7 @@ export default function CatalogIndex({ series, collectionSeriesIds, genreOptions
         { label: t('common:common.manga'), options: genreOptions.manga },
         { label: t('common:common.lightNovel'), options: genreOptions.novel },
     ];
+    const tagGroups = Object.entries(tagOptions).map(([category, tags]) => ({ category, tags }));
     const [search, setSearch]         = useState(filters.search ?? '');
     const [refreshing, setRefreshing] = useState(false);
     const isFirstRender = useRef(true);
@@ -166,6 +171,10 @@ export default function CatalogIndex({ series, collectionSeriesIds, genreOptions
                     emptyText={t('genreFilter.emptyText')}
                     clearLabel={t('genreFilter.clearLabel')}
                     selectedLabel={(count) => t('genreFilter.selectedCount', { count })}
+                    tagGroups={tagGroups}
+                    tagValue={filters.tag ?? []}
+                    onTagChange={(tags) => handleFilter('tag', tags)}
+                    tagSectionLabel={t('genreFilter.tagSectionLabel')}
                 />
                 <ToggleGroup
                     value={[filters.ownership || 'all']}

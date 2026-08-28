@@ -6,10 +6,11 @@
     "allStatus": "All statuses",
     "allGenre": "All genres",
     "genreFilter": {
-        "searchPlaceholder": "Search genres...",
-        "emptyText": "No genres found.",
+        "searchPlaceholder": "Search genres or tags...",
+        "emptyText": "No genres/tags found.",
         "clearLabel": "Clear all",
-        "selectedCount": "{{count}} genres selected"
+        "selectedCount": "{{count}} selected",
+        "tagSectionLabel": "Tags"
     },
     "ownership": {
         "all": "All",

@@ -40,6 +40,14 @@ class SeriesController extends Controller
                     $sub->orWhereJsonContains('genres', $genre);
                 }
             }))
+            // Filter tag — pola sama persis dengan genre di atas (OR-match), tapi kolom terpisah
+            // (`tags`, bukan `genres`) karena sumbernya beda: genre AniList (flat, ~20 nilai tetap)
+            // vs tag AniList (~470 nilai, punya kategori, lihat AniListController::extractAllTagNames()).
+            ->when(array_filter((array) request('tag', [])), fn ($q, $tags) => $q->where(function ($sub) use ($tags) {
+                foreach ($tags as $tag) {
+                    $sub->orWhereJsonContains('tags', $tag);
+                }
+            }))
             ->when(request('ownership') === 'owned', fn ($q) => $q->whereIn('id', $collectionSeriesIds))
             ->when(request('ownership') === 'not_owned', fn ($q) => $q->whereNotIn('id', $collectionSeriesIds))
             ->withCount('volumes')
@@ -64,9 +72,11 @@ class SeriesController extends Controller
             'series' => $series,
             'collectionSeriesIds' => $collectionSeriesIds,
             'genreOptions' => $this->genreOptions(),
+            'tagOptions' => $this->tagOptions(),
             'filters' => [
                 ...request()->only(['search', 'status', 'type', 'ownership']),
                 'genre' => array_values(array_filter((array) request('genre', []))),
+                'tag' => array_values(array_filter((array) request('tag', []))),
             ],
         ]);
     }
@@ -89,6 +99,36 @@ class SeriesController extends Controller
             'manga' => $flatten('manga'),
             'novel' => $flatten('novel'),
         ];
+    }
+
+    /**
+     * Kelompokkan tag yang benar-benar dipakai di katalog per kategori AniList (mis. "Theme"),
+     * buat tree filter tag di Catalog/Index.tsx. Kategori mentah AniList (mis. "Theme-Reincarnation")
+     * disederhanakan ke bagian sebelum tanda hubung pertama ("Theme") biar tree-nya nggak terlalu
+     * dalam — detail sub-kategori tetap kebaca dari nama tag itu sendiri.
+     *
+     * @return array<string, array<int, string>> kategori => daftar nama tag, terurut
+     */
+    private function tagOptions(): array
+    {
+        $grouped = [];
+
+        Series::query()
+            ->whereNotNull('tag_categories')
+            ->pluck('tag_categories')
+            ->each(function (array $map) use (&$grouped) {
+                foreach ($map as $tagName => $category) {
+                    $bucket = explode('-', (string) $category, 2)[0] ?: 'Lainnya';
+                    $grouped[$bucket][$tagName] = true;
+                }
+            });
+
+        ksort($grouped);
+
+        return array_map(
+            fn ($tags) => collect(array_keys($tags))->sort()->values()->all(),
+            $grouped,
+        );
     }
 
     public function search(Request $request): JsonResponse

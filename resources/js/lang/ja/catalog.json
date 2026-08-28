@@ -6,10 +6,11 @@
     "allStatus": "すべてのステータス",
     "allGenre": "すべてのジャンル",
     "genreFilter": {
-        "searchPlaceholder": "ジャンルを検索...",
-        "emptyText": "ジャンルが見つかりません。",
+        "searchPlaceholder": "ジャンルまたはタグを検索...",
+        "emptyText": "ジャンル/タグが見つかりません。",
         "clearLabel": "すべて解除",
-        "selectedCount": "{{count}}件のジャンルを選択中"
+        "selectedCount": "{{count}}件選択中",
+        "tagSectionLabel": "タグ"
     },
     "ownership": {
         "all": "すべて",

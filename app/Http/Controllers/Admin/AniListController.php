@@ -289,8 +289,44 @@ class AniListController extends Controller
             'authors' => $this->extractAuthors($data['staff']['edges'] ?? []),
             'themes' => $this->extractTags($tags, 'Theme-', 8),
             'demographics' => $this->extractTags($tags, 'Demographic', 5),
+            'tags' => $this->extractAllTagNames($tags),
+            'tag_categories' => $this->extractTagCategoryMap($tags),
             'is_adult' => $data['isAdult'] ?? false,
         ];
+    }
+
+    /**
+     * Semua nama tag AniList non-spoiler, difilter minimal rank 60 (skala relevansi AniList
+     * 0-100) biar tag yang nyaris nggak relevan nggak ikut numpuk di filter katalog. Dipakai
+     * buat filter tag (whereJsonContains), makanya array datar nama string — pola sama
+     * dengan `genres`.
+     */
+    private function extractAllTagNames(array $tags): array
+    {
+        return array_values(array_unique(array_column($this->relevantTags($tags), 'name')));
+    }
+
+    /**
+     * Map nama tag -> kategori AniList (mis. "Isekai" -> "Theme-Reincarnation"), buat tag yang
+     * sama seperti dikembalikan `extractAllTagNames()`. Cuma dipakai buat ngelompokin tag jadi
+     * tree di UI filter (lihat `SeriesController::tagOptions()`), bukan buat query.
+     */
+    private function extractTagCategoryMap(array $tags): array
+    {
+        $map = [];
+        foreach ($this->relevantTags($tags) as $tag) {
+            $map[$tag['name']] = $tag['category'] ?? 'Lainnya';
+        }
+
+        return $map;
+    }
+
+    /** @return array<int, array{name: string, category: ?string}> */
+    private function relevantTags(array $tags): array
+    {
+        return array_values(array_filter($tags, fn ($t) => ! ($t['isMediaSpoiler'] ?? false)
+            && ($t['rank'] ?? 0) >= 60
+        ));
     }
 
     private function extractAuthors(array $staffEdges): array
