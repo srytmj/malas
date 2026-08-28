@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import {
-    BookOpen, Download, Eye, LayoutGrid, Layers, Library, List, Loader2, Minus, Plus, RefreshCw, Search, Trash2, Upload,
+    ArrowRight, BookOpen, CheckCheck, Download, Eye, Info, LayoutGrid, Layers, Library, Loader2,
+    MoreVertical, Minus, Plus, RefreshCw, Rows3, Search, Table2, Trash2, Upload,
 } from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
@@ -14,10 +15,14 @@ import { Button, buttonVariants } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { ScrollArea } from '@/Components/ui/scroll-area';
+import { Skeleton } from '@/Components/ui/skeleton';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/Components/ui/hover-card';
 import {
     ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger,
 } from '@/Components/ui/context-menu';
+import {
+    DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/Components/ui/dropdown-menu';
 import {
     Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue,
 } from '@/Components/ui/select';
@@ -67,7 +72,7 @@ interface Props extends PageProps {
 
 const SORT_VALUES = ['added_desc', 'added_asc', 'name_asc', 'name_desc', 'volumes_desc', 'volumes_asc'] as const;
 
-type ViewMode = 'grid' | 'table';
+type ViewMode = 'grid' | 'compact' | 'table';
 type SortValue = typeof SORT_VALUES[number];
 
 const VIEW_KEY = 'malas.collection.view';
@@ -122,12 +127,21 @@ export default function CollectionIndex({ collections }: Props) {
     const [sort, setSort]                   = useState<SortValue>(() => readLocal<SortValue>(SORT_KEY, 'added_desc'));
     const [refreshing, setRefreshing]       = useState(false);
     const [busyId, setBusyId]               = useState<string | null>(null);
+    const [markingAllId, setMarkingAllId]   = useState<string | null>(null);
 
     function handleAdvanceRead(collectionId: string, direction: 'forward' | 'backward') {
         setBusyId(`${collectionId}:${direction}`);
         router.patch(route('collection.volumes.readProgress', collectionId), { direction }, {
             preserveScroll: true,
             onFinish: () => setBusyId(null),
+        });
+    }
+
+    function handleMarkAllRead(collectionId: string) {
+        setMarkingAllId(collectionId);
+        router.patch(route('collection.volumes.readAll', collectionId), {}, {
+            preserveScroll: true,
+            onFinish: () => setMarkingAllId(null),
         });
     }
 
@@ -351,6 +365,170 @@ export default function CollectionIndex({ collections }: Props) {
         );
     }
 
+    const VIEW_OPTIONS: { value: ViewMode; icon: typeof LayoutGrid; label: string }[] = [
+        { value: 'grid', icon: LayoutGrid, label: t('index.gridView') },
+        { value: 'compact', icon: Rows3, label: t('index.compactView') },
+        { value: 'table', icon: Table2, label: t('index.tableView') },
+    ];
+
+    function ViewToggle() {
+        const activeIndex = VIEW_OPTIONS.findIndex((o) => o.value === view);
+        return (
+            <div className="relative flex items-center gap-0.5 rounded-md border p-0.5">
+                <div
+                    className="absolute h-7 w-7 rounded-sm bg-secondary transition-transform duration-200 ease-out"
+                    style={{ transform: `translateX(${activeIndex * 30}px)` }}
+                />
+                {VIEW_OPTIONS.map((opt) => {
+                    const Icon = opt.icon;
+                    return (
+                        <Button
+                            key={opt.value}
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="relative h-7 w-7 hover:bg-transparent active:scale-90 transition-transform"
+                            onClick={() => setView(opt.value)}
+                            aria-label={opt.label}
+                            aria-pressed={view === opt.value}
+                        >
+                            <Icon className="h-3.5 w-3.5" />
+                        </Button>
+                    );
+                })}
+            </div>
+        );
+    }
+
+    function RowActionsMenu({ c }: { c: CollectionRow }) {
+        const hasUnread = c.read_volumes_count < c.collection_volumes_count;
+        const nextVolume = c.read_volumes_count + 1;
+        return (
+            <DropdownMenu>
+                <DropdownMenuTrigger
+                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                    render={
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 active:scale-90 transition-transform"
+                            aria-label={t('index.moreActions')}
+                        />
+                    }
+                >
+                    <MoreVertical className="h-3.5 w-3.5" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                    <DropdownMenuItem onClick={() => router.visit(route('collection.show', c.slug))}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        {t('index.view')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                        disabled={!hasUnread || busyId !== null}
+                        onClick={() => handleAdvanceRead(c.id, 'forward')}
+                    >
+                        <ArrowRight className="mr-2 h-4 w-4" />
+                        {t('index.continueReading', { volume: nextVolume })}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                        disabled={!hasUnread || markingAllId !== null}
+                        onClick={() => handleMarkAllRead(c.id)}
+                    >
+                        <CheckCheck className="mr-2 h-4 w-4" />
+                        {t('index.markAllReadShort')}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem variant="destructive" onClick={() => setDeleteTarget(c)}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        {t('index.removeFromCollection')}
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        );
+    }
+
+    /** Isi menu klik-kanan — 4 aksi yang sama persis dengan `RowActionsMenu` (dropdown ⋮),
+     *  cuma beda komponen (ContextMenuItem, bukan DropdownMenuItem) karena beda root context.
+     *  Dipakai di grid & compact view, konsisten sama pola context-menu yang udah ada di
+     *  table view & `Admin/Series/Index.tsx`. */
+    function RowContextMenuItems({ c }: { c: CollectionRow }) {
+        const hasUnread = c.read_volumes_count < c.collection_volumes_count;
+        const nextVolume = c.read_volumes_count + 1;
+        return (
+            <ContextMenuContent>
+                <ContextMenuItem onClick={() => router.visit(route('collection.show', c.slug))}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    {t('index.view')}
+                </ContextMenuItem>
+                <ContextMenuItem
+                    disabled={!hasUnread || busyId !== null}
+                    onClick={() => handleAdvanceRead(c.id, 'forward')}
+                >
+                    <ArrowRight className="mr-2 h-4 w-4" />
+                    {t('index.continueReading', { volume: nextVolume })}
+                </ContextMenuItem>
+                <ContextMenuItem
+                    disabled={!hasUnread || markingAllId !== null}
+                    onClick={() => handleMarkAllRead(c.id)}
+                >
+                    <CheckCheck className="mr-2 h-4 w-4" />
+                    {t('index.markAllReadShort')}
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem variant="destructive" onClick={() => setDeleteTarget(c)}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    {t('index.removeFromCollection')}
+                </ContextMenuItem>
+            </ContextMenuContent>
+        );
+    }
+
+    function GridSkeleton() {
+        return (
+            <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(190px,1fr))]">
+                {Array.from({ length: 10 }).map((_, i) => (
+                    <div key={i} className="flex flex-col overflow-hidden rounded-lg border">
+                        <Skeleton className="aspect-[2/3] w-full rounded-none" />
+                        <div className="flex flex-col gap-2 p-3">
+                            <Skeleton className="h-4 w-4/5" />
+                            <Skeleton className="h-4 w-16" />
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    }
+
+    function CompactSkeleton() {
+        return (
+            <div className="rounded-lg border">
+                {Array.from({ length: 8 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-3 border-b px-3 py-2.5 last:border-b-0">
+                        <Skeleton className="h-4 flex-1" />
+                        <Skeleton className="h-4 w-14 shrink-0" />
+                        <Skeleton className="h-4 w-16 shrink-0" />
+                    </div>
+                ))}
+            </div>
+        );
+    }
+
+    function TableSkeleton() {
+        return (
+            <div className="rounded-lg border">
+                {Array.from({ length: 8 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-3 border-b px-3 py-2.5 last:border-b-0">
+                        <Skeleton className="h-10 w-7 shrink-0" />
+                        <Skeleton className="h-4 flex-1" />
+                        <Skeleton className="h-4 w-20 shrink-0" />
+                        <Skeleton className="h-4 w-24 shrink-0" />
+                    </div>
+                ))}
+            </div>
+        );
+    }
+
     return (
         <UserLayout
             header={
@@ -497,55 +675,86 @@ export default function CollectionIndex({ collections }: Props) {
                                 ))}
                             </SelectContent>
                         </Select>
-                        <div className="ml-auto flex items-center gap-1 rounded-md border p-0.5">
-                            <Button
-                                type="button"
-                                variant={view === 'grid' ? 'secondary' : 'ghost'}
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={() => setView('grid')}
-                                aria-label={t('index.gridView')}
-                            >
-                                <LayoutGrid className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                                type="button"
-                                variant={view === 'table' ? 'secondary' : 'ghost'}
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={() => setView('table')}
-                                aria-label={t('index.tableView')}
-                            >
-                                <List className="h-3.5 w-3.5" />
-                            </Button>
+                        <div className="ml-auto">
+                            <ViewToggle />
                         </div>
                     </div>
 
-                    {filteredCollections.length === 0 ? (
+                    {refreshing ? (
+                        view === 'grid' ? <GridSkeleton /> : view === 'compact' ? <CompactSkeleton /> : <TableSkeleton />
+                    ) : filteredCollections.length === 0 ? (
                         <p className="py-12 text-center text-sm text-muted-foreground">
                             {t('index.noneMatchFilter')}
                         </p>
                     ) : view === 'grid' ? (
-                        <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(160px,1fr))]">
-                            {filteredCollections.map((c) => (
-                                <div
-                                    key={c.id}
-                                    className="group flex flex-col overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-md cursor-pointer"
+                        <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(190px,1fr))]">
+                            {filteredCollections.map((c) => {
+                                const hasUnread = c.read_volumes_count < c.collection_volumes_count;
+                                const unreadCount = c.collection_volumes_count - c.read_volumes_count;
+                                const nextVolume = c.read_volumes_count + 1;
+                                return (
+                                <ContextMenu key={c.id}>
+                                <ContextMenuTrigger
                                     onClick={() => router.visit(route('collection.show', c.slug))}
+                                    render={<div className="group flex flex-col overflow-hidden rounded-lg border bg-card transition-shadow hover:shadow-md cursor-pointer" />}
                                 >
-                                    <AdultBlurOverlay isAdult={c.is_adult} className="aspect-[2/3] w-full overflow-hidden bg-muted">
-                                        {c.cover_url ? (
-                                            <img
-                                                src={c.cover_url}
-                                                alt={c.title_romaji}
-                                                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                            />
-                                        ) : (
-                                            <div className="flex h-full items-center justify-center">
-                                                <BookOpen className="h-10 w-10 text-muted-foreground/40" />
+                                    <div className="relative">
+                                        <AdultBlurOverlay isAdult={c.is_adult} className="aspect-[2/3] w-full overflow-hidden bg-muted">
+                                            {c.cover_url ? (
+                                                <img
+                                                    src={c.cover_url}
+                                                    alt={c.title_romaji}
+                                                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                                />
+                                            ) : (
+                                                <div className="flex h-full items-center justify-center">
+                                                    <BookOpen className="h-10 w-10 text-muted-foreground/40" />
+                                                </div>
+                                            )}
+                                        </AdultBlurOverlay>
+
+                                        {/* Hover overlay — desktop only, hover tidak ada di touch device.
+                                            Wrapper luar `inset-0` (bukan cuma `inset-x-0 bottom-0`) buat SAFETY biar
+                                            ke-clamp persis di kotak cover (AdultBlurOverlay bikin `relative` box sendiri
+                                            yang overflow-hidden, tapi overlay ini sibling-nya, bukan child-nya, jadi nggak
+                                            ke-clip otomatis) — tapi wrapper ini sendiri transparan, cuma numpang tempat.
+                                            Background gelap+blur cuma di panel dalam yang auto-height (nempel bawah lewat
+                                            `justify-end` si wrapper), jadi VISUALNYA cuma nutup bagian bawah cover
+                                            (bukan seluruh gambar), tetap aman dari overflow (`max-h-full overflow-y-auto`). */}
+                                        {c.collection_volumes_count > 0 && (
+                                            <div
+                                                className="pointer-events-none absolute inset-0 hidden flex-col justify-end opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100 md:flex"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <div className="flex max-h-full flex-col gap-2 overflow-y-auto bg-background/90 p-2.5 backdrop-blur-sm">
+                                                    <div className="flex items-center justify-between gap-1">
+                                                        <span className="flex items-baseline gap-1">
+                                                            <span className="text-sm font-medium text-primary">
+                                                                {t('index.volumeShort')} {c.read_volumes_count}
+                                                            </span>
+                                                            {c.total_volumes && <span className="text-xs text-muted-foreground">/ {c.total_volumes}</span>}
+                                                        </span>
+                                                        <ReadStepper c={c} />
+                                                    </div>
+                                                    {hasUnread && (
+                                                        <p className="text-xs text-amber-600 dark:text-amber-400">
+                                                            {t('index.unreadVolumes', { count: unreadCount })}
+                                                        </p>
+                                                    )}
+                                                    {hasUnread && (
+                                                        <Button
+                                                            size="sm"
+                                                            className="w-full active:scale-95 transition-transform"
+                                                            disabled={busyId !== null}
+                                                            onClick={() => handleAdvanceRead(c.id, 'forward')}
+                                                        >
+                                                            {t('index.continueReading', { volume: nextVolume })}
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </div>
                                         )}
-                                    </AdultBlurOverlay>
+                                    </div>
 
                                     <div className="flex flex-1 flex-col gap-1.5 p-3">
                                         <p className="line-clamp-2 text-sm font-medium leading-tight">{c.title_romaji}</p>
@@ -557,25 +766,75 @@ export default function CollectionIndex({ collections }: Props) {
                                             <MissingVolumesBadge c={c} />
                                         </div>
                                         <GenreBadges genres={c.genres} />
-                                        {c.collection_volumes_count > 0 && <ReadStepper c={c} />}
 
-                                        <div className="mt-auto flex items-center justify-between pt-1.5">
+                                        <div className="mt-auto flex items-center justify-between pt-1.5 md:hidden">
                                             <p className="text-xs text-muted-foreground">
                                                 <span className="font-medium text-foreground">{c.collection_volumes_count}</span>
                                                 {c.total_volumes ? `/${c.total_volumes}` : ''} {t('index.volumeShort')}
                                             </p>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-7 w-7 text-destructive/60 hover:text-destructive"
-                                                onClick={(e) => { e.stopPropagation(); setDeleteTarget(c); }}
-                                            >
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                            </Button>
+                                            <div onClick={(e) => e.stopPropagation()}>
+                                                <RowActionsMenu c={c} />
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                </ContextMenuTrigger>
+                                <RowContextMenuItems c={c} />
+                                </ContextMenu>
+                                );
+                            })}
+                        </div>
+                    ) : view === 'compact' ? (
+                        <div className="overflow-hidden rounded-lg border">
+                            {filteredCollections.map((c) => {
+                                return (
+                                <ContextMenu key={c.id}>
+                                <ContextMenuTrigger
+                                    onClick={() => router.visit(route('collection.show', c.slug))}
+                                    render={<div className="group flex cursor-pointer flex-col gap-1 border-b px-3 py-2 last:border-b-0 hover:bg-accent/50 transition-colors sm:flex-row sm:items-center sm:gap-3" />}
+                                >
+                                    <div className="flex min-w-0 flex-1 items-center justify-between gap-2 sm:justify-start">
+                                        <p className="min-w-0 flex-1 truncate text-sm font-medium">{c.title_romaji}</p>
+                                        <div className="sm:hidden" onClick={(e) => e.stopPropagation()}>
+                                            <RowActionsMenu c={c} />
+                                        </div>
+                                    </div>
+
+                                    {/* Default: badge + progress. Di desktop, hover ganti ke stepper + opsi. */}
+                                    <div className="flex items-center justify-between gap-2 sm:justify-end sm:gap-3">
+                                        <div className="flex items-center gap-2 sm:group-hover:hidden">
+                                            <SeriesStatusBadge status={c.status} />
+                                            {c.collection_volumes_count > 0 && (
+                                                <span className="w-24 shrink-0 text-right text-xs">
+                                                    <span className="font-medium">{t('index.volumeShort')} {c.read_volumes_count}</span>
+                                                    {c.total_volumes && <span className="text-muted-foreground"> / {c.total_volumes}</span>}
+                                                </span>
+                                            )}
+                                        </div>
+                                        {c.collection_volumes_count > 0 && (
+                                            <div
+                                                className="hidden items-center gap-1.5 sm:group-hover:flex"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <ReadStepper c={c} />
+                                                <Link
+                                                    href={route('collection.show', c.slug)}
+                                                    className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'h-7 w-7')}
+                                                    aria-label={t('index.view')}
+                                                >
+                                                    <Info className="h-3.5 w-3.5" />
+                                                </Link>
+                                                <RowActionsMenu c={c} />
+                                            </div>
+                                        )}
+                                        <div className="hidden sm:block sm:group-hover:hidden" onClick={(e) => e.stopPropagation()}>
+                                            <RowActionsMenu c={c} />
+                                        </div>
+                                    </div>
+                                </ContextMenuTrigger>
+                                <RowContextMenuItems c={c} />
+                                </ContextMenu>
+                                );
+                            })}
                         </div>
                     ) : (
                         <div className="rounded-lg border">
@@ -661,17 +920,7 @@ export default function CollectionIndex({ collections }: Props) {
                                                     </Button>
                                                 </TableCell>
                                             </ContextMenuTrigger>
-                                            <ContextMenuContent>
-                                                <ContextMenuItem onClick={() => router.visit(route('collection.show', c.slug))}>
-                                                    <Eye className="mr-2 h-4 w-4" />
-                                                    {t('index.view')}
-                                                </ContextMenuItem>
-                                                <ContextMenuSeparator />
-                                                <ContextMenuItem variant="destructive" onClick={() => setDeleteTarget(c)}>
-                                                    <Trash2 className="mr-2 h-4 w-4" />
-                                                    {t('index.removeFromCollection')}
-                                                </ContextMenuItem>
-                                            </ContextMenuContent>
+                                            <RowContextMenuItems c={c} />
                                         </ContextMenu>
                                     ))}
                                 </TableBody>

@@ -33,7 +33,12 @@
             "volumes_asc": "Volume tersedikit"
         },
         "gridView": "Tampilan grid",
+        "compactView": "Tampilan compact",
         "tableView": "Tampilan tabel",
+        "moreActions": "Opsi lain",
+        "continueReading": "Lanjut ke Vol. {{volume}}",
+        "markAllReadShort": "Tandai semua terbaca",
+        "unreadVolumes": "{{count}} volume belum dibaca",
         "noneMatchFilter": "Tidak ada koleksi yang cocok dengan filter saat ini.",
         "volumeShort": "vol.",
         "missingVolumes": {

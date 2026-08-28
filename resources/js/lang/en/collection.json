@@ -33,7 +33,12 @@
             "volumes_asc": "Fewest volumes"
         },
         "gridView": "Grid view",
+        "compactView": "Compact view",
         "tableView": "Table view",
+        "moreActions": "More actions",
+        "continueReading": "Continue to Vol. {{volume}}",
+        "markAllReadShort": "Mark all read",
+        "unreadVolumes": "{{count}} volumes unread",
         "noneMatchFilter": "No collection items match the current filters.",
         "volumeShort": "vol.",
         "missingVolumes": {

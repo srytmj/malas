@@ -33,7 +33,12 @@
             "volumes_asc": "巻数が少ない順"
         },
         "gridView": "グリッド表示",
+        "compactView": "コンパクト表示",
         "tableView": "テーブル表示",
+        "moreActions": "その他の操作",
+        "continueReading": "第{{volume}}巻に進む",
+        "markAllReadShort": "すべて既読にする",
+        "unreadVolumes": "未読 {{count}} 巻",
         "noneMatchFilter": "現在のフィルターに一致するコレクションはありません。",
         "volumeShort": "巻",
         "missingVolumes": {
