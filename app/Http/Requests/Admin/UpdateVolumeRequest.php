@@ -34,8 +34,6 @@ class UpdateVolumeRequest extends FormRequest
             'type' => ['required', Rule::in(['regular', 'digital', 'bind_up'])],
             'isbn' => ['nullable', 'string', 'max:20'],
             'published_at' => ['nullable', 'date'],
-            'cover' => ['nullable', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
-            'cover_url' => ['nullable', 'url', 'max:2048'],
         ];
     }
 }

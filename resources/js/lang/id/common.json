@@ -177,10 +177,6 @@
         },
         "seriesCard": {
             "inCollection": "Di koleksi"
-        },
-        "volumeGrid": {
-            "volumePrefix": "Vol. {{number}}",
-            "empty": "Belum ada volume."
         }
     },
     "errorPage": {

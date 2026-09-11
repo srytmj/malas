@@ -5,7 +5,6 @@ namespace App\Jobs;
 use App\Models\Series;
 use App\Models\SeriesMedia;
 use App\Models\StorageSetting;
-use App\Models\Volume;
 use App\Services\StorageSettingsService;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -34,7 +33,6 @@ class MigrateStorageFilesJob implements ShouldQueue
             $newDisk = $storage->disk();
 
             $paths = Series::whereNotNull('cover_path')->pluck('cover_path')
-                ->merge(Volume::whereNotNull('cover_path')->pluck('cover_path'))
                 ->merge(SeriesMedia::pluck('image_path'))
                 ->unique()
                 ->values();

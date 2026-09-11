@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { BookOpen, ExternalLink, Heart, Library, Ticket, Users } from 'lucide-react';
 import UserLayout from '@/Layouts/UserLayout';
 import PageHeader from '@/Components/app/PageHeader';
-import { VolumeGrid } from '@/Components/app/VolumeGrid';
+import { SeriesCard } from '@/Components/app/SeriesCard';
 import { AdultBlurOverlay } from '@/Components/app/AdultBlurOverlay';
 import { SeriesStatusBadge, SeriesTypeBadge } from '@/Components/app/StatusBadge';
 import { Badge } from '@/Components/ui/badge';
@@ -14,15 +14,19 @@ import {
 } from '@/Components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { PageProps } from '@/types';
-import { type SeriesStatus, type SeriesType, type VolumeType } from '@/lib/types';
+import { type SeriesStatus, type SeriesType } from '@/lib/types';
 
-interface VolumeRow {
+interface SimilarSeriesRow {
     id: string;
-    volume_number: number;
-    type: VolumeType;
-    isbn: string | null;
-    published_at: string | null;
+    slug: string;
+    title_romaji: string;
+    title_english: string | null;
     cover_url: string | null;
+    type: SeriesType;
+    status: SeriesStatus;
+    total_volumes: number | null;
+    score: number | null;
+    is_adult: boolean;
 }
 
 interface SeriesData {
@@ -66,14 +70,14 @@ interface WishlistItemRef {
 
 interface Props extends PageProps {
     series: SeriesData;
-    volumes: VolumeRow[];
+    similar_series: SimilarSeriesRow[];
     media: MediaItem[];
     collection: { id: string } | null;
     wishlist_item: WishlistItemRef | null;
     collectors: { avatars: CollectorAvatar[]; count: number };
 }
 
-export default function CatalogShow({ series, volumes, media, collection, wishlist_item, collectors }: Props) {
+export default function CatalogShow({ series, similar_series, media, collection, wishlist_item, collectors }: Props) {
     const { t } = useTranslation('catalog');
     const [adding, setAdding] = useState(false);
     const [wishlisting, setWishlisting] = useState(false);
@@ -282,11 +286,30 @@ export default function CatalogShow({ series, volumes, media, collection, wishli
                 </div>
             )}
 
-            {/* Volume list */}
-            <div className="mt-8">
-                <h2 className="mb-3 text-base font-semibold">{t('show.volumes', { count: volumes.length })}</h2>
-                <VolumeGrid volumes={volumes} />
-            </div>
+            {/* Rekomendasi — series serupa (genre yang sama), gantiin daftar volume yang dihapus */}
+            {similar_series.length > 0 && (
+                <div className="mt-8">
+                    <h2 className="mb-3 text-base font-semibold">{t('show.similarSeries')}</h2>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                        {similar_series.map((s) => (
+                            <SeriesCard
+                                key={s.id}
+                                id={s.id}
+                                title_romaji={s.title_romaji}
+                                title_english={s.title_english}
+                                cover_url={s.cover_url}
+                                status={s.status}
+                                type={s.type}
+                                total_volumes={s.total_volumes}
+                                volumes_count={0}
+                                score={s.score}
+                                is_adult={s.is_adult}
+                                href={route('catalog.show', s.slug)}
+                            />
+                        ))}
+                    </div>
+                </div>
+            )}
         </UserLayout>
     );
 }

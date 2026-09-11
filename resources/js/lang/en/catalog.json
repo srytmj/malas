@@ -39,6 +39,6 @@
         "collectorsCount": "{{count}} people collect this manga",
         "viewOnAnilist": "View on AniList",
         "gallery": "Gallery",
-        "volumes": "Volumes ({{count}})"
+        "similarSeries": "You Might Also Like"
     }
 }

@@ -39,6 +39,6 @@
         "collectorsCount": "{{count}}人がこのマンガをコレクション中",
         "viewOnAnilist": "AniListで見る",
         "gallery": "ギャラリー",
-        "volumes": "巻 ({{count}})"
+        "similarSeries": "こちらもおすすめ"
     }
 }

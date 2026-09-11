@@ -23,7 +23,6 @@ interface VolumeData {
     type: VolumeType;
     isbn: string | null;
     published_at: string | null;
-    cover_url: string | null;
 }
 
 interface Props extends PageProps {
@@ -54,9 +53,7 @@ export default function EditVolume({ volume, series }: Props) {
         bind_up: t('common:badge.volumeType.bind_up'),
     };
 
-    const [coverFile, setCoverFile] = useState<File | null>(null);
     const [submitting, setSubmitting] = useState(false);
-    const fileRef = useRef<HTMLInputElement>(null);
 
     const {
         register,
@@ -81,7 +78,6 @@ export default function EditVolume({ volume, series }: Props) {
         Object.entries(values).forEach(([k, v]) => {
             if (v !== undefined && v !== '') fd.append(k, v);
         });
-        if (coverFile) fd.append('cover', coverFile);
 
         router.post(route('admin.volumes.update', volume.id), fd, {
             forceFormData: true,
@@ -145,25 +141,6 @@ export default function EditVolume({ volume, series }: Props) {
                 <div className="space-y-1.5">
                     <Label htmlFor="published_at">{t('series.publishedAtLabel')}</Label>
                     <Input id="published_at" type="date" {...register('published_at')} />
-                </div>
-
-                <div className="space-y-1.5">
-                    <Label>{t('series.coverLabel')}</Label>
-                    {volume.cover_url && !coverFile && (
-                        <img
-                            src={volume.cover_url}
-                            alt={t('editVolume.breadcrumbVolume', { number: volume.volume_number })}
-                            className="h-24 w-16 rounded object-cover"
-                        />
-                    )}
-                    <Input
-                        ref={fileRef}
-                        type="file"
-                        accept="image/*"
-                        className="cursor-pointer"
-                        onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)}
-                    />
-                    {coverFile && <p className="text-xs text-muted-foreground">{t('editVolume.newFile', { name: coverFile.name })}</p>}
                 </div>
 
                 <div className="flex gap-3 pt-2">

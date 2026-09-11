@@ -177,10 +177,6 @@
         },
         "seriesCard": {
             "inCollection": "In collection"
-        },
-        "volumeGrid": {
-            "volumePrefix": "Vol. {{number}}",
-            "empty": "No volumes yet."
         }
     },
     "errorPage": {

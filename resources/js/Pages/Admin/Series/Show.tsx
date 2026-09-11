@@ -32,7 +32,6 @@ interface VolumeRow {
     type: VolumeType;
     isbn: string | null;
     published_at: string | null;
-    cover_url: string | null;
 }
 
 interface SeriesDetail {
@@ -100,8 +99,6 @@ export default function SeriesShow({ series, volumes, can, ownerships }: Props) 
     const [submitting, setSubmitting]       = useState(false);
     const [deletingVol, setDeletingVol]     = useState(false);
     const [deletingSeries, setDeletingSeries] = useState(false);
-    const [coverFile, setCoverFile]         = useState<File | null>(null);
-    const fileRef = useRef<HTMLInputElement>(null);
 
     const {
         register,
@@ -121,13 +118,11 @@ export default function SeriesShow({ series, volumes, can, ownerships }: Props) 
         Object.entries(values).forEach(([k, v]) => {
             if (v !== undefined && v !== '') fd.append(k, v);
         });
-        if (coverFile) fd.append('cover', coverFile);
 
         router.post(route('admin.series.volumes.store', series.id), fd, {
             forceFormData: true,
             onSuccess: () => {
                 reset({ type: 'regular' });
-                setCoverFile(null);
                 setAddVolumeOpen(false);
             },
             onError: (errs) => {
@@ -281,7 +276,6 @@ export default function SeriesShow({ series, volumes, can, ownerships }: Props) 
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-12" />
                                     <TableHead className="w-24">{t('series.table.volume')}</TableHead>
                                     <TableHead className="w-28">{t('series.table.type')}</TableHead>
                                     <TableHead>{t('series.table.isbn')}</TableHead>
@@ -292,11 +286,6 @@ export default function SeriesShow({ series, volumes, can, ownerships }: Props) 
                             <TableBody>
                                 {volumes.map((v) => (
                                     <TableRow key={v.id}>
-                                        <TableCell>
-                                            {v.cover_url
-                                                ? <img src={v.cover_url} alt={`Vol ${v.volume_number}`} className="h-10 w-7 rounded object-cover" />
-                                                : <div className="h-10 w-7 rounded bg-muted" />}
-                                        </TableCell>
                                         <TableCell className="font-medium">#{v.volume_number}</TableCell>
                                         <TableCell><VolumeTypeBadge type={v.type} /></TableCell>
                                         <TableCell className="text-sm text-muted-foreground">{v.isbn ?? '—'}</TableCell>
@@ -405,16 +394,6 @@ export default function SeriesShow({ series, volumes, can, ownerships }: Props) 
                         <div className="space-y-1.5">
                             <Label htmlFor="published_at">{t('series.publishedAtLabel')}</Label>
                             <Input id="published_at" type="date" {...register('published_at')} />
-                        </div>
-                        <div className="space-y-1.5">
-                            <Label>{t('series.coverLabel')}</Label>
-                            <Input
-                                ref={fileRef}
-                                type="file"
-                                accept="image/*"
-                                className="cursor-pointer"
-                                onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)}
-                            />
                         </div>
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setAddVolumeOpen(false)}>{t('common:common.cancel')}</Button>

@@ -15,7 +15,6 @@ class Volume extends Model
     protected $fillable = [
         'series_id',
         'volume_number',
-        'cover_path',
         'type',
         'digital_source',
         'isbn',

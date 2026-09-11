@@ -177,10 +177,6 @@
         },
         "seriesCard": {
             "inCollection": "コレクション内"
-        },
-        "volumeGrid": {
-            "volumePrefix": "第{{number}}巻",
-            "empty": "まだ巻がありません。"
         }
     },
     "errorPage": {

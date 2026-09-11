@@ -840,7 +840,10 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                                     v.read_at && 'opacity-50 grayscale',
                                 )}
                             >
-                                {/* Cover placeholder + number */}
+                                {/* Nggak ada cover per-volume (dihapus, lihat CHANGELOG) — daripada nyisain
+                                    placeholder kosong (angka doang di tengah), tengahnya sekalian dijadiin
+                                    tombol toggle baca/belum (icon mata gede), biar area yang tadinya nganggur
+                                    langsung berguna. */}
                                 <div
                                     className={cn(
                                         'relative flex aspect-[2/3] items-center justify-center bg-muted',
@@ -859,16 +862,13 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                                             type="button"
                                             disabled={togglingReadId === v.id}
                                             onClick={() => toggleRead(v.id)}
-                                            className="absolute left-1.5 top-1.5 rounded-md bg-background/80 p-1 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+                                            className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-muted-foreground/50 transition-colors hover:text-foreground disabled:opacity-50"
                                             aria-label={v.read_at ? t('show.markUnread', { number: v.volume_number }) : t('show.markRead', { number: v.volume_number })}
                                         >
-                                            {v.read_at ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                                            {v.read_at ? <Eye className="h-8 w-8" /> : <EyeOff className="h-8 w-8" />}
+                                            <span className="text-xs font-medium">{t('show.volumeShort')} {v.volume_number}</span>
                                         </button>
                                     )}
-                                    <div className="text-center">
-                                        <p className="text-2xl font-bold text-muted-foreground/40">{v.volume_number}</p>
-                                        <p className="text-xs text-muted-foreground/40">{t('show.volumeShort')}</p>
-                                    </div>
                                 </div>
 
                                 <div className="flex flex-col gap-1.5 p-2">

@@ -81,14 +81,13 @@ class SeriesController extends Controller
 
         $volumes = $series->volumes()
             ->orderBy('volume_number')
-            ->get(['id', 'volume_number', 'type', 'isbn', 'published_at', 'cover_path'])
+            ->get(['id', 'volume_number', 'type', 'isbn', 'published_at'])
             ->map(fn ($v) => [
                 'id' => $v->id,
                 'volume_number' => $v->volume_number,
                 'type' => $v->type,
                 'isbn' => $v->isbn,
                 'published_at' => $v->published_at?->toDateString(),
-                'cover_url' => $this->storage->url($v->cover_path),
             ]);
 
         return Inertia::render('Admin/Series/Show', [
@@ -130,14 +129,13 @@ class SeriesController extends Controller
 
         $volumes = $series->volumes()
             ->orderBy('volume_number')
-            ->get(['id', 'volume_number', 'type', 'isbn', 'published_at', 'cover_path'])
+            ->get(['id', 'volume_number', 'type', 'isbn', 'published_at'])
             ->map(fn ($v) => [
                 'id' => $v->id,
                 'volume_number' => $v->volume_number,
                 'type' => $v->type,
                 'isbn' => $v->isbn,
                 'published_at' => $v->published_at?->toDateString(),
-                'cover_url' => $this->storage->url($v->cover_path),
             ]);
 
         return Inertia::render('Admin/Series/Edit', [

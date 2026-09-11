@@ -89,7 +89,6 @@ interface VolumeRow {
     type: VolumeType;
     isbn: string | null;
     published_at: string | null;
-    cover_url: string | null;
 }
 
 interface SeriesData {
@@ -228,17 +227,10 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
     // Volume — add dialog
     const [addVolumeOpen, setAddVolumeOpen] = useState(false);
     const [addingVolume, setAddingVolume]   = useState(false);
-    const [volCoverFile, setVolCoverFile]   = useState<File | null>(null);
-    const volFileRef = useRef<HTMLInputElement>(null);
 
     // Volume — edit sheet
-    const [editVolume, setEditVolume]               = useState<VolumeRow | null>(null);
-    const [updatingVolume, setUpdatingVolume]       = useState(false);
-    const [evCoverMode, setEvCoverMode]             = useState<'local' | 'url'>('local');
-    const [evCoverFile, setEvCoverFile]             = useState<File | null>(null);
-    const [evCoverPreview, setEvCoverPreview]       = useState<string | null>(null);
-    const [evCoverUrlInput, setEvCoverUrlInput]     = useState('');
-    const evFileRef = useRef<HTMLInputElement>(null);
+    const [editVolume, setEditVolume]         = useState<VolumeRow | null>(null);
+    const [updatingVolume, setUpdatingVolume] = useState(false);
 
     // Volume — delete dialog
     const [deleteVolume, setDeleteVolume] = useState<VolumeRow | null>(null);
@@ -247,9 +239,6 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
     // Volume — generate dialog
     const [generateOpen, setGenerateOpen]       = useState(false);
     const [generatingVolumes, setGeneratingVolumes] = useState(false);
-
-    // Cover search — shared between series and edit-volume sheet
-    const [coverSearchTarget, setCoverSearchTarget] = useState<'series' | 'volume'>('series');
 
     // Series form
     const {
@@ -301,10 +290,6 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                 isbn:          editVolume.isbn          ?? '',
                 published_at:  editVolume.published_at  ?? '',
             });
-            setEvCoverMode('local');
-            setEvCoverFile(null);
-            setEvCoverPreview(null);
-            setEvCoverUrlInput('');
         }
     }, [editVolume]);
 
@@ -355,13 +340,11 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
         Object.entries(values).forEach(([k, v]) => {
             if (v !== undefined && v !== '') fd.append(k, v);
         });
-        if (volCoverFile) fd.append('cover', volCoverFile);
 
         router.post(route('admin.series.volumes.store', series.id), fd, {
             forceFormData: true,
             onSuccess: () => {
                 vReset({ type: 'regular' });
-                setVolCoverFile(null);
                 setAddVolumeOpen(false);
             },
             onError: (errs) => {
@@ -416,29 +399,15 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
     }, [coverSearchQuery, coverSearchOpen]);
 
     function openCoverSearch() {
-        setCoverSearchTarget('series');
         setCoverSearchQuery(`manga cover ${titleRomaji}`);
         setCoverSearchResults([]);
         setCoverSearchError(null);
         setCoverSearchOpen(true);
-    }
-
-    function openVolumeCoverSearch() {
-        setCoverSearchTarget('volume');
-        setCoverSearchError(null);
-        setCoverSearchOpen(true);
-        setCoverSearchQuery(`manga cover ${titleRomaji}`);
-        setCoverSearchResults([]);
     }
 
     function applyCoverImage(imageUrl: string) {
-        if (coverSearchTarget === 'series') {
-            setCoverMode('url');
-            setCoverUrlInput(imageUrl);
-        } else {
-            setEvCoverMode('url');
-            setEvCoverUrlInput(imageUrl);
-        }
+        setCoverMode('url');
+        setCoverUrlInput(imageUrl);
         setCoverSearchOpen(false);
     }
 
@@ -450,11 +419,6 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
         Object.entries(values).forEach(([k, v]) => {
             if (v !== undefined && v !== '') fd.append(k, v);
         });
-        if (evCoverMode === 'local' && evCoverFile) {
-            fd.append('cover', evCoverFile);
-        } else if (evCoverMode === 'url' && evCoverUrlInput.trim()) {
-            fd.append('cover_url', evCoverUrlInput.trim());
-        }
 
         router.post(route('admin.volumes.update', editVolume.id), fd, {
             forceFormData: true,
@@ -1080,7 +1044,6 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="w-12" />
                                         <TableHead className="w-24">{t('series.table.volume')}</TableHead>
                                         <TableHead className="w-28">{t('series.table.type')}</TableHead>
                                         <TableHead>{t('series.table.isbn')}</TableHead>
@@ -1091,11 +1054,6 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                                 <TableBody>
                                     {volumes.map((v) => (
                                         <TableRow key={v.id}>
-                                            <TableCell>
-                                                {v.cover_url
-                                                    ? <img src={v.cover_url} alt={`Vol ${v.volume_number}`} className="h-10 w-7 rounded object-cover" />
-                                                    : <div className="h-10 w-7 rounded bg-muted" />}
-                                            </TableCell>
                                             <TableCell className="font-medium">#{v.volume_number}</TableCell>
                                             <TableCell><VolumeTypeBadge type={v.type} /></TableCell>
                                             <TableCell className="text-sm text-muted-foreground">{v.isbn ?? '—'}</TableCell>
@@ -1167,27 +1125,6 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                         <div className="space-y-1.5">
                             <Label htmlFor="published_at">{t('series.publishedAtLabel')}</Label>
                             <Input id="published_at" type="date" {...vReg('published_at')} />
-                        </div>
-                        <div className="space-y-1.5">
-                            <Label>{t('series.coverLabel')}</Label>
-                            <input
-                                ref={volFileRef}
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={(e) => setVolCoverFile(e.target.files?.[0] ?? null)}
-                            />
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => volFileRef.current?.click()}
-                            >
-                                {t('common:common.chooseFile')}
-                            </Button>
-                            {volCoverFile && (
-                                <p className="text-xs text-muted-foreground">{volCoverFile.name}</p>
-                            )}
                         </div>
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setAddVolumeOpen(false)}>{t('common:common.cancel')}</Button>
@@ -1271,102 +1208,36 @@ export default function SeriesEdit({ series, volumes, media }: Props) {
                     </SheetHeader>
 
                     <ScrollArea className="flex-1">
-                        <form id="ev-form" onSubmit={evSubmit(onUpdateVolume)} className="space-y-5 px-6 py-5">
-                            {/* Cover — sama persis dengan series edit */}
-                            <div className="flex gap-4">
-                                {/* Preview */}
-                                <div className="shrink-0 space-y-2">
-                                    {(() => {
-                                        const display = evCoverMode === 'local'
-                                            ? (evCoverPreview ?? editVolume?.cover_url)
-                                            : (evCoverUrlInput.trim() || editVolume?.cover_url);
-                                        return display ? (
-                                            <img
-                                                key={display}
-                                                src={display}
-                                                alt="Cover"
-                                                className="w-20 rounded-lg object-cover shadow-sm"
-                                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                            />
-                                        ) : (
-                                            <div className="flex h-28 w-20 items-center justify-center rounded-lg bg-muted">
-                                                <BookOpen className="h-6 w-6 text-muted-foreground" />
-                                            </div>
-                                        );
-                                    })()}
-
-                                    {/* Mode tabs */}
-                                    <div className="flex w-20 overflow-hidden rounded-md border text-xs">
-                                        <button type="button" onClick={() => setEvCoverMode('local')}
-                                            className={cn('flex-1 py-1 transition-colors', evCoverMode === 'local' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted')}>
-                                            {t('series.local')}
-                                        </button>
-                                        <button type="button" onClick={() => setEvCoverMode('url')}
-                                            className={cn('flex-1 py-1 transition-colors', evCoverMode === 'url' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted')}>
-                                            {t('series.url')}
-                                        </button>
-                                    </div>
-
-                                    {evCoverMode === 'local' && (
-                                        <>
-                                            <input ref={evFileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
-                                                onChange={(e) => {
-                                                    const f = e.target.files?.[0] ?? null;
-                                                    setEvCoverFile(f);
-                                                    setEvCoverPreview(f ? URL.createObjectURL(f) : null);
-                                                }} />
-                                            <Button type="button" variant="outline" size="sm" className="w-20 text-xs"
-                                                onClick={() => evFileRef.current?.click()}>
-                                                {t('common:common.chooseFile')}
-                                            </Button>
-                                            {evCoverFile && <p className="w-20 truncate text-xs text-muted-foreground">{evCoverFile.name}</p>}
-                                        </>
+                        <form id="ev-form" onSubmit={evSubmit(onUpdateVolume)} className="space-y-3 px-6 py-5">
+                            <div>
+                                <Label htmlFor="ev-volume_number">{t('series.volumeNumberLabel')} <span className="text-destructive">*</span></Label>
+                                <Input id="ev-volume_number" type="number" min={1} className="mt-1" {...evReg('volume_number')} />
+                                <FieldError message={evErrors.volume_number ? t('common:common.required') : undefined} />
+                            </div>
+                            <div>
+                                <Label>{t('series.typeLabel')} <span className="text-destructive">*</span></Label>
+                                <Controller<VolumeFormValues, 'type'>
+                                    control={evCtrl}
+                                    name="type"
+                                    render={({ field }) => (
+                                        <Select value={field.value} onValueChange={field.onChange}>
+                                            <SelectTrigger className="mt-1"><SelectValue>{(value: string) => VOLUME_TYPE_LABELS[value] ?? value}</SelectValue></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="regular">{VOLUME_TYPE_LABELS.regular}</SelectItem>
+                                                <SelectItem value="digital">{VOLUME_TYPE_LABELS.digital}</SelectItem>
+                                                <SelectItem value="bind_up">{VOLUME_TYPE_LABELS.bind_up}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     )}
-
-                                    {evCoverMode === 'url' && (
-                                        <div className="w-20 space-y-1.5">
-                                            <Input className="h-7 text-xs" placeholder={t('series.pasteImageUrl')} value={evCoverUrlInput} onChange={(e) => setEvCoverUrlInput(e.target.value)} />
-                                            <Button type="button" variant="outline" size="sm" className="w-full text-xs" onClick={openVolumeCoverSearch}>
-                                                <ImageIcon className="mr-1 h-3 w-3" />
-                                                {t('common:common.search')}
-                                            </Button>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Form fields */}
-                                <div className="flex-1 space-y-3">
-                                    <div>
-                                        <Label htmlFor="ev-volume_number">{t('series.volumeNumberLabel')} <span className="text-destructive">*</span></Label>
-                                        <Input id="ev-volume_number" type="number" min={1} className="mt-1" {...evReg('volume_number')} />
-                                        <FieldError message={evErrors.volume_number ? t('common:common.required') : undefined} />
-                                    </div>
-                                    <div>
-                                        <Label>{t('series.typeLabel')} <span className="text-destructive">*</span></Label>
-                                        <Controller<VolumeFormValues, 'type'>
-                                            control={evCtrl}
-                                            name="type"
-                                            render={({ field }) => (
-                                                <Select value={field.value} onValueChange={field.onChange}>
-                                                    <SelectTrigger className="mt-1"><SelectValue>{(value: string) => VOLUME_TYPE_LABELS[value] ?? value}</SelectValue></SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="regular">{VOLUME_TYPE_LABELS.regular}</SelectItem>
-                                                        <SelectItem value="digital">{VOLUME_TYPE_LABELS.digital}</SelectItem>
-                                                        <SelectItem value="bind_up">{VOLUME_TYPE_LABELS.bind_up}</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            )}
-                                        />
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="ev-isbn">{t('series.isbnLabel')}</Label>
-                                        <Input id="ev-isbn" className="mt-1" {...evReg('isbn')} />
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="ev-published_at">{t('series.publishedAtLabel')}</Label>
-                                        <Input id="ev-published_at" type="date" className="mt-1" {...evReg('published_at')} />
-                                    </div>
-                                </div>
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="ev-isbn">{t('series.isbnLabel')}</Label>
+                                <Input id="ev-isbn" className="mt-1" {...evReg('isbn')} />
+                            </div>
+                            <div>
+                                <Label htmlFor="ev-published_at">{t('series.publishedAtLabel')}</Label>
+                                <Input id="ev-published_at" type="date" className="mt-1" {...evReg('published_at')} />
                             </div>
                         </form>
                     </ScrollArea>

@@ -39,6 +39,6 @@
         "collectorsCount": "{{count}} orang mengoleksi manga ini",
         "viewOnAnilist": "Lihat di AniList",
         "gallery": "Galeri",
-        "volumes": "Volume ({{count}})"
+        "similarSeries": "Mungkin Kamu Suka"
     }
 }

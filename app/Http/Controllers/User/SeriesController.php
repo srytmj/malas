@@ -163,16 +163,35 @@ class SeriesController extends Controller
 
     public function show(Series $series): Response
     {
-        $volumes = $series->volumes()
-            ->orderBy('volume_number')
-            ->get(['id', 'volume_number', 'type', 'isbn', 'published_at', 'cover_path'])
-            ->map(fn ($v) => [
-                'id' => $v->id,
-                'volume_number' => $v->volume_number,
-                'type' => $v->type,
-                'isbn' => $v->isbn,
-                'published_at' => $v->published_at?->toDateString(),
-                'cover_url' => $this->storage->url($v->cover_path),
+        // Rekomendasi "Series Serupa" — gantiin section daftar volume yang dihapus (app ini
+        // cuma buat ngetrack progress baca & kepemilikan, bukan galeri per volume). Prioritas
+        // OR-match genre yang sama (biar nggak keburu kosong kalau genre-nya banyak/spesifik),
+        // fallback ke tipe yang sama aja kalau series ini nggak punya genre sama sekali.
+        $similarSeries = Series::query()
+            ->where('id', '!=', $series->id)
+            ->where(function ($q) use ($series) {
+                if (! empty($series->genres)) {
+                    foreach ($series->genres as $genre) {
+                        $q->orWhereJsonContains('genres', $genre);
+                    }
+                } else {
+                    $q->where('type', $series->type);
+                }
+            })
+            ->inRandomOrder()
+            ->limit(12)
+            ->get(['id', 'slug', 'title_romaji', 'title_english', 'cover_path', 'type', 'status', 'total_volumes', 'score', 'is_adult'])
+            ->map(fn ($s) => [
+                'id' => $s->id,
+                'slug' => $s->slug,
+                'title_romaji' => $s->title_romaji,
+                'title_english' => $s->title_english,
+                'cover_url' => $this->storage->url($s->cover_path),
+                'type' => $s->type,
+                'status' => $s->status,
+                'total_volumes' => $s->total_volumes,
+                'score' => $s->score,
+                'is_adult' => $s->is_adult,
             ]);
 
         $collection = auth()->user()
@@ -206,7 +225,7 @@ class SeriesController extends Controller
                 'published_to' => $series->published_to?->toDateString(),
                 'cover_url' => $this->storage->url($series->cover_path),
             ],
-            'volumes' => $volumes,
+            'similar_series' => $similarSeries,
             'media' => $series->media->map(fn ($m) => [
                 'id' => $m->id,
                 'image_url' => $this->storage->url($m->image_path),
