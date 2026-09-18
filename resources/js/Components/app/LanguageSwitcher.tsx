@@ -10,8 +10,9 @@ import { cn } from '@/lib/utils';
 const LOCALES = ['id', 'en', 'ja'] as const;
 
 export function LanguageSwitcher({ collapsed }: { collapsed?: boolean }) {
-    const { locale, auth } = usePage().props;
-    const { t } = useTranslation();
+    const { locale: defaultLocale, auth } = usePage().props;
+    const { t, i18n } = useTranslation();
+    const currentLocale = i18n.language || defaultLocale;
     const [open, setOpen] = useState(false);
 
     function handleSelect(value: string) {
@@ -37,7 +38,7 @@ export function LanguageSwitcher({ collapsed }: { collapsed?: boolean }) {
                     ) : (
                         <Button variant="ghost" size="sm" className="w-full justify-start gap-3 text-muted-foreground">
                             <Languages className="h-4 w-4" />
-                            {t(`locale.${locale}`)}
+                            {t(`locale.${currentLocale}`)}
                         </Button>
                     )
                 }
@@ -50,7 +51,7 @@ export function LanguageSwitcher({ collapsed }: { collapsed?: boolean }) {
                         onClick={() => handleSelect(l)}
                         className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
                     >
-                        <Check className={cn('h-3.5 w-3.5', locale === l ? 'opacity-100' : 'opacity-0')} />
+                        <Check className={cn('h-3.5 w-3.5', currentLocale === l ? 'opacity-100' : 'opacity-0')} />
                         {t(`locale.${l}`)}
                     </button>
                 ))}
