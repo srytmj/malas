@@ -4,6 +4,26 @@ Semua perubahan penting pada Malas dicatat di file ini. Format mengikuti prinsip
 
 ---
 
+## 2026-09-18 — Migrasi Data Prod, Optimasi Performa Nginx, Perbaikan Header Landing, & Multi-Akun SSO
+
+- **Migrasi Data & Koleksi Lengkap ke Production (`yado-hosts` LXC 101)**:
+  - Memindahkan seluruh data operasional ke PostgreSQL 16 production: 2 users (Super Admin & user `sehnauoi` dengan `sso_id: 3`), 114 series, 773 volume, seluruh 39 koleksi komik (149 volume dimiliki/dibaca milik `sehnauoi`), 1 grup koleksi "RomCom" (`sehnauoi-romcom`), 12 group item, 11 wishlist item, riwayat peminjaman, pengaturan enkripsi, 2 tiket, dan 86 log aktivitas.
+  - Sinkronisasi 363 file media cover komik (~51 MB) ke dalam Docker named volume `malas_storage`, serta symlink `public/storage -> /var/www/html/storage/app/public` agar Nginx melayani file media secara direct HTTP 200.
+  - Sinkronisasi `APP_KEY` environment agar enkripsi database untuk API key Gemini dan pengaturan email Resend terdekripsi bersih (`DECRYPTED_OK`).
+- **Optimasi Performa Nginx (Gzip & Immutable Caching)**:
+  - Diagnosa waktu load lambat: response backend PHP/database sudah sangat cepat (~20 ms), namun bundle JavaScript Vite (610 KB) dan aset cover dilayani mentah tanpa kompresi dan tanpa header browser cache melalui Cloudflare Tunnel.
+  - Mengaktifkan Gzip compression (level 6, min-length 256 bytes) di `deploy/nginx.conf` untuk semua tipe teks, JSON, CSS, dan JavaScript.
+  - Menambahkan header `Cache-Control: public, max-age=31536000, immutable` untuk bundle aset di `/build/assets/` (1 tahun) dan 30 hari untuk cover komik di `/storage/covers/`.
+  - Ukuran transfer bundle JavaScript terpangkas dari **610 KB** menjadi **192 KB** (~68.5% lebih hemat), menghasilkan status `cf-cache-status: HIT` di CDN Cloudflare dan loading 0 ms dari browser memory/disk cache pada navigasi berikutnya.
+- **Perbaikan UI Header Landing Page**:
+  - Memperbaiki layout header dan footer di `resources/js/Pages/Landing.tsx`: kontainer `<header>` dan `<footer>` diubah dari `max-w-5xl` menjadi `max-w-3xl mx-auto` agar sejajar dengan kartu hero utama di `<main>`, mengatasi tombol Login dan switcher yang terlempar terlalu ke kanan.
+  - Menambahkan props `size`, `side`, `align`, dan `className` pada `LanguageSwitcher.tsx` dan `ThemeSwitcher.tsx` sehingga dapat dirender compact (`size="icon-sm"`, `side="bottom"`, `align="end"`) di navbar header.
+- **Multi-Account Linking via SSO (`prompt=login`)**:
+  - Modal "Tambah Akun" (`LoginMethodDialog` dengan `mode="link"`) dan `SsoController::redirect()` kini meneruskan parameter `prompt=login` ke SSO Yado.
+  - Memastikan otentikasi akun target memaksa login baru di sisi SSO tanpa tertahan sesi akun sebelumnya, lalu mengaitkannya ke session `linked_account_ids` di Malas sehingga user dapat berpindah akun (`AccountSwitcher`) secara instan tanpa re-auth berulang.
+
+---
+
 ## 2026-08-30 — Cover Volume: Dibangun lalu Dihapus Total, Diganti Rekomendasi Series Serupa
 
 - **Request awal**: cari cover per volume otomatis — buka halaman edit series, scrap semua buku dengan judul yang lagi diedit, ambil edisi Jepang aja biar covernya full (nggak dipotong-crop kayak edisi lokal/Barat).

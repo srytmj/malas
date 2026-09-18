@@ -50,7 +50,7 @@
 - Dashboard with charts (Recharts), not just raw numbers
 - "Genre Taste" word cloud + AI funfact (bring your own Gemini/OpenAI/Claude API key, configured by the admin)
 - Opt-in public profile + follow + user directory
-- Multi-account switching — link and quick-switch between accounts in the same browser session
+- Multi-account switching — link and quick-switch between accounts in the same browser session (with silent SSO & forced re-auth via `prompt=login`)
 - Undo button on toasts for reversible actions
 - Light/Dark/System theme, three languages (id/en/ja) — UI, validation messages, *and* controller flash messages are all fully translated
 
@@ -77,7 +77,7 @@ Full feature list in [`CLAUDE.md`](CLAUDE.md) under "Fitur yang Sudah Ada" (Indo
 | UI components | shadcn/ui (Base UI-based) |
 | Styling | Tailwind CSS v4 |
 | Bundler | Vite |
-| Database | SQLite (dev) / MySQL 8+ (prod) |
+| Database | SQLite (dev) / PostgreSQL 16 (prod) |
 | Auth/Roles | Spatie Laravel Permission |
 | SSO Auth | Yado (PKCE OAuth2) |
 | External APIs | AniList GraphQL, RanobeDB REST |

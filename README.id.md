@@ -50,7 +50,7 @@
 - Dashboard dengan chart (Recharts), bukan cuma angka
 - Word cloud "Selera Genre" + funfact AI (BYO API key Gemini/OpenAI/Claude, dikonfigurasi admin)
 - Profil publik opt-in + follow + direktori pengguna
-- Multi-account switching — sambungin & switch cepat antar akun di sesi browser yang sama
+- Multi-account switching — sambungin & switch cepat antar akun di sesi browser yang sama (dengan silent SSO & paksa re-auth via `prompt=login`)
 - Undo di toast untuk aksi reversible
 - Tema Light/Dark/System, tiga bahasa (id/en/ja) — UI, pesan validasi, *dan* flash message controller semuanya sudah full diterjemahkan
 
@@ -77,7 +77,7 @@ Detail lengkap tiap fitur ada di [`CLAUDE.md`](CLAUDE.md) bagian "Fitur yang Sud
 | Komponen UI | shadcn/ui (berbasis Base UI) |
 | Styling | Tailwind CSS v4 |
 | Bundler | Vite |
-| Database | SQLite (dev) / MySQL 8+ (prod) |
+| Database | SQLite (dev) / PostgreSQL 16 (prod) |
 | Auth/Role | Spatie Laravel Permission |
 | Auth SSO | Yado (PKCE OAuth2) |
 | API eksternal | AniList GraphQL, RanobeDB REST |
