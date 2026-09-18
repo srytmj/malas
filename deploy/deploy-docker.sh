@@ -57,12 +57,19 @@ if [[ ! -f ".env" ]]; then
     read -rsp "SSO_CLIENT_SECRET (opsional): " SSO_CLIENT_SECRET
     echo ""
 
-    sed -i "s|APP_URL=.*|APP_URL=http://${APP_DOMAIN}|"                 .env
+    read -rp "Gunakan HTTPS untuk APP_URL? (Y/n): " USE_HTTPS
+    PROTO="https"
+    if [[ "${USE_HTTPS,,}" == "n" ]]; then
+        PROTO="http"
+    fi
+
+    sed -i "s|APP_URL=.*|APP_URL=${PROTO}://${APP_DOMAIN}|"                 .env
     sed -i "s|APP_PORT=.*|APP_PORT=${APP_PORT}|"                        .env
     sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=${DB_PASSWORD}|"                .env
     sed -i "s|SSO_CLIENT_ID=.*|SSO_CLIENT_ID=${SSO_CLIENT_ID}|"          .env
     sed -i "s|SSO_CLIENT_SECRET=.*|SSO_CLIENT_SECRET=${SSO_CLIENT_SECRET}|" .env
-    sed -i "s|SSO_REDIRECT_URI=.*|SSO_REDIRECT_URI=http://${APP_DOMAIN}/auth/callback|" .env
+    sed -i "s|SSO_REDIRECT_URI=.*|SSO_REDIRECT_URI=${PROTO}://${APP_DOMAIN}/auth/callback|" .env
+    sed -i "s|SSO_BASE_URL=.*|SSO_BASE_URL=https://sso.yado.my.id|"     .env
 
     success "deploy/.env dikonfigurasi."
 else
@@ -105,6 +112,7 @@ success "Database siap."
 step "Migration & seeding"
 # =============================================================================
 docker compose exec -T app php artisan migrate --force
+docker compose exec -T app php artisan db:seed --class=RoleSeeder --force
 docker compose exec -T app php artisan db:seed --class=MenuSeeder --force
 docker compose exec -T app php artisan storage:link || true
 success "Migration dan seeding selesai."

@@ -139,6 +139,14 @@ Sama seperti metode native (lihat [`docs/DEPLOYMENT.md`](DEPLOYMENT.md#setelah-d
 - **Cloudflare Tunnel (rekomendasi, tanpa IP publik)**: install `cloudflared` di host (LXC/VM) — bukan di dalam container — arahkan tunnel ke `http://localhost:${APP_PORT}`.
 - **Certbot/reverse proxy lain di host**: kalau punya IP publik, taruh Nginx/Caddy/Traefik lain di host yang reverse-proxy ke `http://localhost:${APP_PORT}`, urus SSL di situ.
 
+> **PENTING (Reverse Proxy / Cloudflare Tunnel & Mixed Content)**:
+> Saat aplikasi diakses via HTTPS melalui tunnel/reverse proxy sementara Nginx container mendengarkan via HTTP, konfigurasi `deploy/nginx.conf` **wajib** meneruskan parameter FastCGI HTTPS:
+> ```nginx
+> fastcgi_param HTTPS on;
+> fastcgi_param HTTP_X_FORWARDED_PROTO https;
+> ```
+> Tanpa parameter ini, Laravel dan library Ziggy di frontend akan mengasumsikan URL berbasis `http://`, sehingga browser memblokir request navigasi (sidebar / Cari Cepat `⌘K`) karena kebijakan *Mixed Content*.
+
 ---
 
 ## Troubleshooting
@@ -177,3 +185,49 @@ docker compose exec app tail -n 50 storage/logs/laravel.log
 docker compose exec app php artisan storage:link
 ```
 Symlink butuh permission tulis ke `public/` — sudah di-handle di `Dockerfile` (`chown` ke user `malas` non-root), tapi kalau pernah override image ini, pastikan `public/` owned oleh user yang menjalankan PHP-FPM.
+
+### Menu Sidebar & Cari Cepat (`⌘K`) Tidak Bisa Diklik (Mixed Content)
+
+- **Gejala**: Menu sidebar tidak merespons saat diklik, dialog Cari Cepat (`⌘K`) tidak dapat berpindah halaman, di console browser muncul pesan:
+  `Mixed Content: The page at https://... was loaded over HTTPS, but requested an insecure XMLHttpRequest endpoint http://.... This request has been blocked.`
+- **Penyebab**: Ziggy di frontend me-render route dengan protokol `http://` karena Nginx lokal belum meneruskan status HTTPS ke PHP-FPM.
+- **Solusi**:
+  1. Pastikan file `deploy/nginx.conf` memuat:
+     ```nginx
+     fastcgi_param HTTPS on;
+     fastcgi_param HTTP_X_FORWARDED_PROTO https;
+     ```
+  2. Pastikan file `.env` memakai protokol HTTPS:
+     ```dotenv
+     APP_URL=https://<domain>
+     SSO_REDIRECT_URI=https://<domain>/auth/callback
+     ```
+  3. Reload Nginx dan bersihkan cache:
+     ```bash
+     docker compose exec nginx nginx -s reload
+     docker compose exec app php artisan config:clear
+     docker compose exec app php artisan route:clear
+     docker compose exec app php artisan view:clear
+     ```
+
+### Menu Admin & Sidebar Kosong Melompong
+
+- **Gejala**: Setelah fresh deploy / migrasi database baru, sidebar tidak menampilkan menu atau menu admin hilang.
+- **Penyebab**: Navigasi Malas bersifat dinamis dari database (tabel `menus` dan `roles`). Jika database baru dimigrasikan tanpa seeding, tabel tersebut masih kosong.
+- **Solusi**:
+  Jalankan seeder role dan menu:
+  ```bash
+  docker compose exec app php artisan db:seed --class=RoleSeeder --force
+  docker compose exec app php artisan db:seed --class=MenuSeeder --force
+  docker compose exec app php artisan cache:clear
+  ```
+
+### SSO Login Error 500 (`Invalid key supplied` / Passport)
+
+- **Gejala**: Saat klik login SSO, muncul error 500 atau pesan `LogicException: Invalid key supplied at CryptKey.php`.
+- **Penyebab**: Instance server SSO belum memiliki encryption keys Passport (`storage/oauth-private.key` dan `oauth-public.key`).
+- **Solusi**:
+  Di container server SSO (`sso-yado`), jalankan:
+  ```bash
+  docker compose exec app php artisan passport:keys
+  ```
