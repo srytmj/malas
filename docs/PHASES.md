@@ -308,7 +308,7 @@ Loan mereferensikan `collection_volume_id` (bukan `volume_id`).
 Dikerjakan bertahap setelah 2026-07-03, tidak dalam urutan fase formal:
 
 1. **Migrasi Jikan → AniList** — `JikanService` dihapus total, diganti `AniListService` (GraphQL). Menambah kolom `anilist_id`, `genres`, `authors`, `themes`, `demographics` (json) di `series`. Search & import UI dirombak jadi absolute overlay per-card (bukan Popover, karena anchor engine Base UI selalu menempatkan popover di samping trigger, bukan di tengah).
-2. **SSO whitearchive.id** — `SsoController` PKCE OAuth2 menggantikan auth lokal Breeze sepenuhnya. Kolom baru di `users`: `sso_id`, `username`, `avatar`; `password` jadi nullable.
+2. **SSO Yado** — `SsoController` PKCE OAuth2 menggantikan auth lokal Breeze sepenuhnya. Kolom baru di `users`: `sso_id`, `username`, `avatar`; `password` jadi nullable.
 3. **Sistem tiket** — tabel `tickets` + `User/Tickets/*` (buat & lihat) + `Admin/Tickets/*` (respond). Bisa diakses langsung dari katalog dengan series pre-filled. Note "buat tiket request" ditambahkan di halaman Catalog dan Collection kosong/hasil pencarian nihil.
 4. **Storage settings via UI** — tabel `storage_settings` (driver `local`/`s3`, credentials ter-encrypt) + `StorageSettingsService` sebagai satu-satunya jalur akses file. Semua kode yang sebelumnya panggil `Storage::` facade langsung dimigrasi.
 5. **Database backup & import** — `DatabaseBackupController` (super_admin only): download SQL dump (exclude tabel sensitif seperti `users`, `sessions`, `jobs`), import dengan `DELETE + INSERT` per tabel dibungkus transaction agar atomic (bukan `TRUNCATE`, yang implicit-commit di MySQL).
@@ -435,7 +435,7 @@ Dikerjakan iteratif setelah Phase 13, tidak dalam urutan fase formal:
 
 ## Phase 16 — Login Tanpa SSO (Fallback) + Konfigurasi Email (Resend) ✅
 
-**Goal:** Jalan darurat login kalau whitearchive.id (SSO) benar-benar tidak bisa diakses — down, migrasi, atau maintenance — tanpa membangun sistem password lokal permanen (yang bertentangan dengan desain "SSO-only" project ini).
+**Goal:** Jalan darurat login kalau Yado (SSO) benar-benar tidak bisa diakses — down, migrasi, atau maintenance — tanpa membangun sistem password lokal permanen (yang bertentangan dengan desain "SSO-only" project ini).
 
 Keputusan desain (hasil diskusi sebelum implementasi): bukan sistem approval admin (dibahas lalu disederhanakan), bukan password lokal (tidak ada user yang punya password tersimpan). Solusinya: magic link sekali-pakai lewat email yang sudah tersinkron dari SSO — verifikasi identitas lewat kepemilikan inbox, bukan sesuatu yang bisa ditebak (nama/email publik).
 

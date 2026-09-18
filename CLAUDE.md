@@ -28,7 +28,7 @@ Untuk setiap rencana perubahan yang belum dapat konfirmasi → **tulis rencanany
 | Auth/Role | Spatie Laravel Permission |
 | File storage | Local (dev) atau S3-compatible/Cloudflare R2 (prod) — dikonfigurasi via UI admin, bukan `.env` |
 | External API | AniList GraphQL (`https://graphql.anilist.co`) — untuk import metadata manga/manhwa/manhua |
-| Auth SSO | whitearchive.id — PKCE-based OAuth2, semua user dikelola via SSO |
+| Auth SSO | Yado — PKCE-based OAuth2, semua user dikelola via SSO |
 
 ---
 
@@ -407,7 +407,7 @@ Jangan duplikasi atau rebuild ulang fitur-fitur ini:
 | Blur konten 18+ | `Admin/Settings/Index.tsx` (tab Konten) + `SiteSettingController` |
 | Log aktivitas admin | `Admin/ActivityLog/Index.tsx` + `ActivityLogController` |
 | Galeri media tambahan per series | `SeriesMediaGallery.tsx` + `Admin/SeriesMediaController` |
-| SSO login via whitearchive.id | `SsoController` (PKCE OAuth2) |
+| SSO login via Yado | `SsoController` (PKCE OAuth2) |
 | Import metadata light novel dari RanobeDB | `Admin/RanobeDb/Index.tsx` + `RanobeDbController` + `RanobeDbService`, lihat [`docs/RANOBEDB_INTEGRATION.md`](docs/RANOBEDB_INTEGRATION.md) |
 | Sync metadata RanobeDB ke series yang ada | Edit Series page (Popover "Sync RanobeDB") |
 | Selera Genre — word cloud genre (aktif) + funfact AI (**sengaja dinonaktifkan sementara**, lihat `DashboardController::FUNFACT_GENERATION_ENABLED = false`) | `User/Dashboard.tsx` (`GenreFunfactCard`) + `DashboardController::regenerateFunfact()` + `AiFunfactService`, config provider di `Admin/Settings/Index.tsx` (tab AI, Gemini/OpenAI/Claude — **bukan** lagi Puter.js, dihapus Phase 31). Word cloud genre tetap tampil normal (bukan AI, murni distribusi genre koleksi); yang di-skip cuma auto-generate + tombol "Generate Ulang" + teks funfact AI-nya. Set konstanta balik ke `true` buat ngaktifin ulang — nggak ada data yang perlu di-restore |

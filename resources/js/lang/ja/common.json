@@ -95,12 +95,12 @@
     },
     "settings": {
         "title": "設定",
-        "description": "whitearchive.id で管理されるあなたのアカウント情報。",
+        "description": "Yado で管理されるあなたのアカウント情報。",
         "profile": "プロフィール",
-        "profileDescription": "名前、ユーザー名、メールアドレスはログインのたびに whitearchive.id アカウントと同期されます。",
+        "profileDescription": "名前、ユーザー名、メールアドレスはログインのたびに Yado アカウントと同期されます。",
         "email": "メールアドレス",
         "role": "ロール",
-        "manageAccount": "whitearchive.id でアカウントを管理",
+        "manageAccount": "Yado でアカウントを管理",
         "publicProfile": "公開プロフィール",
         "publicProfileDescription": "有効にすると、他のユーザーがあなたのコレクションとジャンルの好みを見たり、フォローしたりできます。18+コンテンツは通常通りぼかされます。",
         "showProfilePublicly": "プロフィールを公開する",
@@ -198,7 +198,7 @@
         },
         "502": {
             "title": "SSOが応答しません",
-            "description": "whitearchive.idサーバーに接続できません。しばらくしてから再度お試しください。"
+            "description": "Yadoサーバーに接続できません。しばらくしてから再度お試しください。"
         },
         "503": {
             "title": "サーバーが利用できません",
@@ -224,7 +224,7 @@
         "pageTitle": "ようこそ",
         "heading": "マンガ・ライトノベルコレクション管理",
         "subheading": "カタログ、個人コレクション、マンガ・ライトノベルの貸出をひとつの場所で管理できます。",
-        "loginButton": "whitearchive.idでログイン",
+        "loginButton": "Yadoでログイン",
         "features": {
             "catalog": {
                 "title": "カタログ",
@@ -276,9 +276,9 @@
         "description": "ログイン方法を選んでください。",
         "linkTitle": "アカウントを追加",
         "linkDescription": "連携したい別のアカウントにログインしてください。このブラウザを使っている間は、再ログインせずにアカウントを切り替えられます。",
-        "ssoOption": "whitearchive.idでログイン",
+        "ssoOption": "Yadoでログイン",
         "emailOption": "メールでログイン",
-        "syncHint": "whitearchive.idでログインすると名前・アバター・ユーザー名が再同期されます。メールログインでは同期されません。",
+        "syncHint": "Yadoでログインすると名前・アバター・ユーザー名が再同期されます。メールログインでは同期されません。",
         "emailTitle": "メールでログイン",
         "emailDescription": "普段ログインに使っているメールアドレスを入力すると、登録済みであれば一度だけ使えるログインリンクを送信します。",
         "emailLabel": "メールアドレス",

@@ -53,18 +53,18 @@ Profil publik (`/u/{username-atau-id}`) **tidak ada di sidebar** — diakses lew
 ```
 Landing page → klik tombol "Login" (header atau hero)
   └─ LoginMethodDialog terbuka — 2 pilihan setara:
-        ├─ "Login dengan whitearchive.id" → lanjut ke Login SSO di bawah
+        ├─ "Login dengan Yado" → lanjut ke Login SSO di bawah
         └─ "Login dengan Email" → form email inline di modal yang sama
               → lanjut ke Login dengan Email (Magic Link) di bawah
 ```
 
 Dialog yang sama juga jadi tempat nanti fitur "Tambah Akun" (multi-account, direncanakan — lihat backlog) dipasang.
 
-### Login SSO (whitearchive.id)
+### Login SSO (Yado)
 ```
 GET /auth/redirect
-  └─ Redirect ke whitearchive.id dengan PKCE code_challenge
-        └─ User login di whitearchive.id (di luar Malas)
+  └─ Redirect ke Yado dengan PKCE code_challenge
+        └─ User login di Yado (di luar Malas)
               └─ Redirect balik ke GET /auth/callback
                     ├─ Tukar code → token, ambil klaim user (sso_id, name, username, email, avatar)
                     ├─ User baru → dibuat otomatis (role default `user`)

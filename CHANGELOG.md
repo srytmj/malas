@@ -245,10 +245,10 @@ Semua perubahan penting pada Malas dicatat di file ini. Format mengikuti prinsip
 
 ## 2026-08-03 (lanjutan 2) — Modal Pilihan Login (SSO / Email)
 
-- Landing page sekarang munculin modal pilihan cara login begitu tombol "Login" diklik — "Login dengan whitearchive.id" atau "Login dengan Email" (`LoginMethodDialog.tsx`), bukan langsung redirect ke SSO.
+- Landing page sekarang munculin modal pilihan cara login begitu tombol "Login" diklik — "Login dengan Yado" atau "Login dengan Email" (`LoginMethodDialog.tsx`), bukan langsung redirect ke SSO.
 - Login lewat Email dipromosikan dari link kecil "SSO nggak bisa diakses?" (fallback darurat tersembunyi) jadi opsi setara SSO di modal — mekanisme backend-nya sama persis (magic link sekali-pakai, `SsoFallbackController`), cuma framing UI-nya berubah.
 - Rate limit endpoint `POST /auth/fallback` dinaikkan dari `throttle:3,15` ke `throttle:5,10` — sekarang dipakai sebagai opsi harian, bukan cuma darurat, jadi limitnya perlu lebih longgar.
-- **Catatan penting**: profil (nama/avatar/username) cuma ikut ke-sync ulang dari whitearchive.id pas login lewat SSO. User yang seterusnya login lewat email nggak dapat update profil otomatis — ini keputusan sadar, bukan bug (didiskusikan & disetujui sebelum implementasi).
+- **Catatan penting**: profil (nama/avatar/username) cuma ikut ke-sync ulang dari Yado pas login lewat SSO. User yang seterusnya login lewat email nggak dapat update profil otomatis — ini keputusan sadar, bukan bug (didiskusikan & disetujui sebelum implementasi).
 
 ---
 
@@ -263,7 +263,7 @@ Semua perubahan penting pada Malas dicatat di file ini. Format mengikuti prinsip
 
 ### Fixed
 
-- `SsoController::logout()` selalu memaksa browser navigasi ke domain SSO (`whitearchive.id/logout`) buat destroy sesi di sana juga — kalau SSO down, browser nge-hang lama nunggu koneksi ke domain yang mati, padahal sesi lokal sebenarnya sudah invalid duluan. Ditambah `ssoReachable()`, pengecekan cepat (timeout 3 detik) sebelum redirect — kalau tidak bisa dihubungi, langsung balik ke halaman utama tanpa nunggu. Diverifikasi lewat HTTP request langsung: logout sekarang selesai dalam ~3.4 detik yang dibatasi timeout, bukan berpotensi hang tanpa batas menunggu browser sendiri yang menyerah.
+- `SsoController::logout()` selalu memaksa browser navigasi ke domain SSO (`sso.yado.my.id/logout`) buat destroy sesi di sana juga — kalau SSO down, browser nge-hang lama nunggu koneksi ke domain yang mati, padahal sesi lokal sebenarnya sudah invalid duluan. Ditambah `ssoReachable()`, pengecekan cepat (timeout 3 detik) sebelum redirect — kalau tidak bisa dihubungi, langsung balik ke halaman utama tanpa nunggu. Diverifikasi lewat HTTP request langsung: logout sekarang selesai dalam ~3.4 detik yang dibatasi timeout, bukan berpotensi hang tanpa batas menunggu browser sendiri yang menyerah.
 
 ### Added
 
@@ -275,7 +275,7 @@ Semua perubahan penting pada Malas dicatat di file ini. Format mengikuti prinsip
 
 ### Login Tanpa SSO (Fallback)
 
-Jalan darurat kalau whitearchive.id (SSO) benar-benar tidak bisa diakses (down/migrasi/maintenance) — bukan pengganti SSO, cuma buat kondisi darurat. Sengaja **tidak** pakai password lokal (tidak ada user yang punya password tersimpan, semua dikelola SSO) atau sistem approval admin (dibahas lalu disederhanakan) — dipilih magic link sekali-pakai lewat email yang sudah tersinkron dari SSO, verifikasi identitas lewat kepemilikan inbox.
+Jalan darurat kalau Yado (SSO) benar-benar tidak bisa diakses (down/migrasi/maintenance) — bukan pengganti SSO, cuma buat kondisi darurat. Sengaja **tidak** pakai password lokal (tidak ada user yang punya password tersimpan, semua dikelola SSO) atau sistem approval admin (dibahas lalu disederhanakan) — dipilih magic link sekali-pakai lewat email yang sudah tersinkron dari SSO, verifikasi identitas lewat kepemilikan inbox.
 
 #### Added
 - Link "SSO nggak bisa diakses?" di Landing page → `/auth/fallback` — form isi email → magic link sekali-pakai dikirim (kalau email terdaftar & mail service terkonfigurasi) → klik link → langsung login.
@@ -285,7 +285,7 @@ Jalan darurat kalau whitearchive.id (SSO) benar-benar tidak bisa diakses (down/m
 
 #### Fixed
 - `ActivityLog::record()` selalu pakai `auth()->id()` buat `user_id` (kolom NOT NULL) — meledak (SQL constraint violation → 500) untuk aksi yang dipicu guest seperti request login tanpa SSO. Ditambah fallback ke ID user subject kalau tidak ada yang login. Ketemu & diperbaiki saat verifikasi end-to-end lewat HTTP request langsung, bukan cuma tinker.
-- `SsoController::logout()` selalu maksa browser navigasi ke domain SSO (`whitearchive.id/logout`) buat destroy sesi SSO juga — kalau SSO down, browser nge-hang lama nunggu koneksi ke domain yang mati (session lokal sebenarnya sudah keburu invalid duluan). Ditambah pengecekan cepat (`ssoReachable()`, timeout 3 detik) sebelum redirect — kalau SSO tidak bisa dihubungi, langsung balik ke halaman utama tanpa nunggu.
+- `SsoController::logout()` selalu maksa browser navigasi ke domain SSO (`sso.yado.my.id/logout`) buat destroy sesi SSO juga — kalau SSO down, browser nge-hang lama nunggu koneksi ke domain yang mati (session lokal sebenarnya sudah keburu invalid duluan). Ditambah pengecekan cepat (`ssoReachable()`, timeout 3 detik) sebelum redirect — kalau SSO tidak bisa dihubungi, langsung balik ke halaman utama tanpa nunggu.
 
 ### Login Darurat via CLI
 
@@ -476,7 +476,7 @@ Batch besar perbaikan & fitur di sisi user dan admin, plus infrastruktur queue w
 ## 2026-07-21 — SSO Integration
 
 ### Added
-- `SsoController` — autentikasi PKCE-based OAuth2 ke whitearchive.id. Semua user (termasuk admin) login lewat SSO, tidak ada form register/login lokal lagi.
+- `SsoController` — autentikasi PKCE-based OAuth2 ke Yado. Semua user (termasuk admin) login lewat SSO, tidak ada form register/login lokal lagi.
 - Kolom baru di `users`: `sso_id` (unique), `username`, `avatar`. `password` diubah jadi nullable.
 - Halaman `Settings/Index.tsx` — profil user ditampilkan read-only (data profil dikelola di sisi SSO).
 

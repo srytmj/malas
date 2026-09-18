@@ -95,12 +95,12 @@
     },
     "settings": {
         "title": "Settings",
-        "description": "Your account info, managed via whitearchive.id.",
+        "description": "Your account info, managed via Yado.",
         "profile": "Profile",
-        "profileDescription": "Name, username, and email are synced from your whitearchive.id account on every login.",
+        "profileDescription": "Name, username, and email are synced from your Yado account on every login.",
         "email": "Email",
         "role": "Role",
-        "manageAccount": "Manage Account on whitearchive.id",
+        "manageAccount": "Manage Account on Yado",
         "publicProfile": "Public Profile",
         "publicProfileDescription": "When enabled, other people can see your collection and Genre Taste, and can follow you. 18+ content still stays blurred as usual.",
         "showProfilePublicly": "Show my profile publicly",
@@ -198,7 +198,7 @@
         },
         "502": {
             "title": "SSO Not Responding",
-            "description": "Could not reach the whitearchive.id server. Please try again shortly."
+            "description": "Could not reach the Yado server. Please try again shortly."
         },
         "503": {
             "title": "Server Unavailable",
@@ -224,7 +224,7 @@
         "pageTitle": "Welcome",
         "heading": "Manga & Light Novel Collection Management",
         "subheading": "Manage your catalog, personal collection, and manga and light novel loans all in one place.",
-        "loginButton": "Log in with whitearchive.id",
+        "loginButton": "Log in with Yado",
         "features": {
             "catalog": {
                 "title": "Catalog",
@@ -276,9 +276,9 @@
         "description": "Choose how you want to log in.",
         "linkTitle": "Add Account",
         "linkDescription": "Log in to another account you want to link. You can switch between accounts without logging in again as long as you're in this browser.",
-        "ssoOption": "Log in with whitearchive.id",
+        "ssoOption": "Log in with Yado",
         "emailOption": "Log in with Email",
-        "syncHint": "Logging in via whitearchive.id re-syncs your name, avatar, and username. Logging in via email doesn't.",
+        "syncHint": "Logging in via Yado re-syncs your name, avatar, and username. Logging in via email doesn't.",
         "emailTitle": "Log in with Email",
         "emailDescription": "Enter the email you normally log in with — if it's registered, we'll send a one-time login link to it.",
         "emailLabel": "Email",

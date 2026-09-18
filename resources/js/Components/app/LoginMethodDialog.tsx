@@ -19,7 +19,7 @@ interface LoginMethodDialogProps {
 }
 
 /**
- * Modal pilihan cara login — SSO whitearchive.id atau magic link lewat email — dipakai dari
+ * Modal pilihan cara login — SSO Yado atau magic link lewat email — dipakai dari
  * tombol "Login" di Landing page (mode="login") DAN dari AccountSwitcher buat "Tambah Akun"
  * (mode="link"). `mode` di sini cuma ganti copy/teks ("Tambah Akun" vs "Masuk ke Malas") —
  * keputusan link-atau-replace akun sepenuhnya di server (AccountLinkService::loginAs()) berdasarkan

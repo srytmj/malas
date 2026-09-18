@@ -47,7 +47,7 @@ Malas v2 adalah rebuild total dengan stack baru (React + Inertia) untuk UI yang 
 ## 4. Fitur
 
 ### F-01 — Autentikasi
-- Login via SSO whitearchive.id (PKCE-based OAuth2) — tidak ada form register/login lokal
+- Login via SSO Yado (PKCE-based OAuth2) — tidak ada form register/login lokal
 - Semua akun (termasuk admin) dikelola di sisi SSO; Malas hanya menyimpan `sso_id`, `name`, `username`, `email`, `avatar` dari klaim SSO
 - Profil ditampilkan read-only di `/settings` (edit profil dilakukan di sisi SSO)
 - Session management via Laravel session standar setelah callback SSO sukses
@@ -262,7 +262,7 @@ User mencatat volume yang dipinjamkan dari koleksinya:
 - Token (`sso_fallback_tokens`) tersimpan ter-hash, TTL 15 menit, single-use
 - Rate limit 5x/10 menit per endpoint request (dinaikkan dari 3x/15 menit setelah dipromosikan jadi opsi harian); response selalu pesan generik yang sama (anti email-enumeration, tidak membocorkan status akun)
 - Butuh provider email terkonfigurasi (Resend, F-23) — kalau belum dikonfigurasi, fitur ini diam-diam tidak mengirim apa pun (tidak error ke user)
-- **Trade-off yang disengaja**: profil (nama/avatar/username) cuma ikut ke-sync ulang dari whitearchive.id pas login lewat SSO. User yang seterusnya selalu login lewat email tidak dapat update profil otomatis — didiskusikan dan disetujui, bukan bug
+- **Trade-off yang disengaja**: profil (nama/avatar/username) cuma ikut ke-sync ulang dari Yado pas login lewat SSO. User yang seterusnya selalu login lewat email tidak dapat update profil otomatis — didiskusikan dan disetujui, bukan bug
 - Halaman mandiri `/auth/fallback` tetap tersedia sebagai direct link (dipakai juga oleh CLI `sso:emergency-login`, lihat F-24)
 
 ### F-23 — Konfigurasi Email (Resend) *(Admin, super_admin only)*

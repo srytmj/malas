@@ -5,7 +5,7 @@
 > - **Halaman (Inertia)** — render komponen React lewat Inertia, response HTML biasa (atau partial reload kalau request-nya dari Inertia sendiri)
 > - **JSON** — endpoint AJAX internal (search, autocomplete, status check) yang dipanggil `fetch()` dari frontend, balikin JSON murni
 > - **Redirect (flash)** — aksi mutasi (create/update/delete) yang balikin `redirect()->with(...)`, ditangkap Inertia sebagai flash message + reload halaman asal
-> - **Redirect (eksternal)** — `Inertia::location()`, forced full-page navigation ke URL luar (dipakai buat redirect ke halaman authorize SSO whitearchive.id)
+> - **Redirect (eksternal)** — `Inertia::location()`, forced full-page navigation ke URL luar (dipakai buat redirect ke halaman authorize SSO Yado)
 > - **File download** — response `streamDownload()`
 >
 > Route framework bawaan (`sanctum/csrf-cookie`, `storage/{path}`, `up`) sengaja di-skip karena bukan bagian dari fitur aplikasi.

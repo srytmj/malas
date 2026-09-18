@@ -203,7 +203,7 @@
         },
         "mail": {
             "cardTitle": "メール設定",
-            "cardDescription": "whitearchive.id にアクセスできないときの「SSOなしログイン」機能（マジックリンク）で使用します。プロバイダー: Resend。APIキーはデータベースに暗号化して保存されます — 目のアイコンをクリックするとこのページで確認できます（super_admin限定）。",
+            "cardDescription": "Yado にアクセスできないときの「SSOなしログイン」機能（マジックリンク）で使用します。プロバイダー: Resend。APIキーはデータベースに暗号化して保存されます — 目のアイコンをクリックするとこのページで確認できます（super_admin限定）。",
             "apiKey": "Resend APIキー",
             "fromAddress": "送信元アドレス",
             "fromName": "送信元名",

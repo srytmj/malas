@@ -53,7 +53,7 @@ Route::get('/', function () {
     return redirect($user->isAdmin() ? route('admin.dashboard') : route('dashboard'));
 });
 
-// SSO — whitearchive.id
+// SSO — Yado
 Route::get('/auth/redirect', [SsoController::class, 'redirect'])->name('sso.redirect');
 Route::get('/auth/callback', [SsoController::class, 'callback'])->name('sso.callback');
 

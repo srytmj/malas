@@ -203,7 +203,7 @@
         },
         "mail": {
             "cardTitle": "Email Configuration",
-            "cardDescription": "Used for the login-without-SSO feature (magic link) when whitearchive.id is unreachable. Provider: Resend. API key is stored encrypted in the database — click the eye icon to reveal it on this page (super_admin only).",
+            "cardDescription": "Used for the login-without-SSO feature (magic link) when Yado is unreachable. Provider: Resend. API key is stored encrypted in the database — click the eye icon to reveal it on this page (super_admin only).",
             "apiKey": "Resend API Key",
             "fromAddress": "From Address",
             "fromName": "From Name",

@@ -16,7 +16,7 @@ class IssueEmergencyLoginLink extends Command
      */
     protected $signature = 'sso:emergency-login {identifier=super_admin : Role (super_admin/admin/user) atau email/username spesifik}';
 
-    protected $description = 'Terbitkan link login sekali-pakai tanpa lewat SSO — dipakai kalau whitearchive.id benar-benar tidak bisa diakses. Butuh akses CLI/SSH ke server.';
+    protected $description = 'Terbitkan link login sekali-pakai tanpa lewat SSO — dipakai kalau Yado benar-benar tidak bisa diakses. Butuh akses CLI/SSH ke server.';
 
     private const ROLE_ALIASES = [
         'super_admin' => 'super_admin',

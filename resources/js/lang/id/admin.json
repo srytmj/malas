@@ -203,7 +203,7 @@
         },
         "mail": {
             "cardTitle": "Konfigurasi Email",
-            "cardDescription": "Dipakai untuk fitur login tanpa SSO (magic link) saat whitearchive.id tidak bisa diakses. Provider: Resend. API key disimpan terenkripsi di database — klik ikon mata buat lihat nilainya di halaman ini (khusus super_admin).",
+            "cardDescription": "Dipakai untuk fitur login tanpa SSO (magic link) saat Yado tidak bisa diakses. Provider: Resend. API key disimpan terenkripsi di database — klik ikon mata buat lihat nilainya di halaman ini (khusus super_admin).",
             "apiKey": "API Key Resend",
             "fromAddress": "Alamat Pengirim",
             "fromName": "Nama Pengirim",

@@ -18,7 +18,7 @@
                     </tr>
                     <tr>
                         <td style="font-size:14px; color:#374151; line-height:1.6; padding-bottom:24px;">
-                            Ada permintaan login ke Malas tanpa lewat SSO (whitearchive.id). Kalau ini kamu, klik tombol di bawah untuk masuk. Link ini cuma berlaku 15 menit dan cuma bisa dipakai sekali.
+                            Ada permintaan login ke Malas tanpa lewat SSO (Yado). Kalau ini kamu, klik tombol di bawah untuk masuk. Link ini cuma berlaku 15 menit dan cuma bisa dipakai sekali.
                         </td>
                     </tr>
                     <tr>

@@ -22,7 +22,7 @@ Kalau kamu sudah pernah deploy native (MySQL/SQLite) dan mau pindah ke sini, lih
 - Docker Engine + Docker Compose plugin (`docker compose version` harus jalan)
 - LXC/VM Proxmox (atau host Linux apa pun) dengan akses internet buat pull base image
 - Repo Malas sudah di-clone
-- Credentials SSO whitearchive.id (boleh dikosongkan dulu kalau mau pakai Login via Email saja)
+- Credentials SSO Yado (boleh dikosongkan dulu kalau mau pakai Login via Email saja)
 
 Kalau LXC Proxmox belum ada Docker:
 

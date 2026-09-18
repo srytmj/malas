@@ -79,7 +79,7 @@ Full feature list in [`CLAUDE.md`](CLAUDE.md) under "Fitur yang Sudah Ada" (Indo
 | Bundler | Vite |
 | Database | SQLite (dev) / MySQL 8+ (prod) |
 | Auth/Roles | Spatie Laravel Permission |
-| SSO Auth | whitearchive.id (PKCE OAuth2) |
+| SSO Auth | Yado (PKCE OAuth2) |
 | External APIs | AniList GraphQL, RanobeDB REST |
 | AI | Gemini/OpenAI/Claude, API key configured via admin UI |
 | Email | Resend (configured via admin UI, not `.env`) |
@@ -124,7 +124,7 @@ Open `http://localhost:8000`.
 
 ### SSO login during development
 
-Login goes through whitearchive.id SSO — register your application at `sso.whitearchive.id/dashboard/applications` to get `SSO_CLIENT_ID` and `SSO_CLIENT_SECRET`, then set them in `.env`:
+Login goes through Yado SSO — register your application at `sso.yado.my.id/dashboard/applications` to get `SSO_CLIENT_ID` and `SSO_CLIENT_SECRET`, then set them in `.env`:
 
 ```env
 SSO_CLIENT_ID=
@@ -172,7 +172,7 @@ npx tsc --noEmit
 
 ## Troubleshooting
 
-**Can't log in at all / whitearchive.id (SSO) is down?**
+**Can't log in at all / Yado (SSO) is down?**
 
 ```bash
 php artisan sso:emergency-login super_admin

@@ -19,7 +19,7 @@
 | Styling | Tailwind CSS | v4 | Utility-first, konsisten dengan shadcn |
 | Bundler | Vite | latest | Fast HMR, built-in dengan Laravel |
 | Auth/Role | Spatie Permission | latest | Industry standard untuk Laravel RBAC |
-| Auth SSO | whitearchive.id | — | PKCE-based OAuth2; semua akun user dikelola via SSO, bukan register lokal |
+| Auth SSO | Yado | — | PKCE-based OAuth2; semua akun user dikelola via SSO, bukan register lokal |
 | DB (dev) | SQLite | 3 | Zero config untuk development |
 | DB (prod) | MySQL | 8+ | Proven untuk production |
 | Storage | Local disk atau S3-compatible (Cloudflare R2, dll) | — | Dikonfigurasi via UI admin (`storage_settings` table), bukan `.env` |
@@ -42,7 +42,7 @@
 | Kolom | Tipe | Keterangan |
 |-------|------|-----------|
 | id | uuid PK | |
-| sso_id | string unique | nullable — ID akun dari whitearchive.id |
+| sso_id | string unique | nullable — ID akun dari Yado |
 | name | string | |
 | username | string | nullable |
 | email | string unique | |
@@ -331,7 +331,7 @@ app/
 │   │   └── Auth/
 │   │       ├── SsoController.php           (PKCE OAuth2 redirect/callback/logout)
 │   │       └── SsoFallbackController.php   (login tanpa SSO — magic link email sekali-pakai,
-│   │                                        dipakai kalau whitearchive.id tidak bisa diakses)
+│   │                                        dipakai kalau Yado tidak bisa diakses)
 │   ├── Middleware/
 │   │   ├── CheckMenuAccess.php
 │   │   ├── EnsureNotBanned.php
@@ -556,14 +556,14 @@ Semua file (cover series, cover volume) diakses lewat **`StorageSettingsService`
 - Menggantikan integrasi Jikan/MyAnimeList generasi sebelumnya (`JikanService` sudah dihapus total).
 - **Batch import** (`AniListController::bulkImport()`): filter genre (`genre_in`) + tahun rilis + sort popularitas dilewatkan ke `AniListService::searchManga()`. **Penting**: `seasonYear` di skema AniList adalah konsep musim tayang anime dan selalu balikin array kosong untuk `type: MANGA` — diverifikasi langsung ke API sebelum dipakai. Filter tahun untuk manga harus lewat rentang `startDate_greater`/`startDate_lesser` (`FuzzyDateInt`, format `YYYYMMDD`: `gt = {tahun}0000`, `lt = {tahun+1}0000`). `AniListService::getMangaBatch()` ambil sampai 50 series sekaligus dalam satu request GraphQL (`media(id_in: [...])`) — bukan N request terpisah, penting buat menghemat kuota rate-limit AniList (~90 req/menit).
 
-### SSO whitearchive.id
+### SSO Yado
 - PKCE-based OAuth2. Semua user (termasuk admin) login lewat SSO — tidak ada form register/login lokal.
-- Flow: `/auth/redirect` → whitearchive.id → `/auth/callback` (`SsoController`) → user dibuat/diupdate dari klaim SSO (`sso_id`, `name`, `username`, `email`, `avatar`) → session dibuat.
+- Flow: `/auth/redirect` → Yado → `/auth/callback` (`SsoController`) → user dibuat/diupdate dari klaim SSO (`sso_id`, `name`, `username`, `email`, `avatar`) → session dibuat.
 - Halaman `Settings/Index.tsx` menampilkan profil secara read-only (data profil dikelola di sisi SSO, bukan di Malas).
 - `SsoController::curlRequest()` pakai curl langsung (bukan `Http::` facade Laravel/Guzzle) — di environment ini `curl_multi` milik Guzzle intermiten hang di PHP-FPM, blocking `curl_exec` lebih reliable.
 
 ### Login dengan Email (magic link)
-- Awalnya dibangun sebagai fallback darurat kalau whitearchive.id tidak bisa diakses, sekarang dipromosikan jadi **opsi login setara SSO** — dipilih dari `LoginMethodDialog.tsx` (modal "Masuk ke Malas" yang muncul saat klik tombol Login di Landing page), bukan cuma link kecil tersembunyi. Mekanisme backend tidak berubah sama sekali dari versi fallback-nya.
+- Awalnya dibangun sebagai fallback darurat kalau Yado tidak bisa diakses, sekarang dipromosikan jadi **opsi login setara SSO** — dipilih dari `LoginMethodDialog.tsx` (modal "Masuk ke Malas" yang muncul saat klik tombol Login di Landing page), bukan cuma link kecil tersembunyi. Mekanisme backend tidak berubah sama sekali dari versi fallback-nya.
 - Flow: `LoginMethodDialog` (atau langsung `/auth/fallback`) → user isi email → `POST /auth/fallback` (`throttle:5,10`, dinaikkan dari `3,15` setelah dipromosikan jadi opsi harian) → kalau email cocok dengan user yang ada DAN `mail_settings` terkonfigurasi, terbitkan `SsoFallbackToken` (TTL 15 menit, single-use) dan kirim magic link lewat email (`SsoFallbackLoginMail`) → user klik link → `GET /auth/fallback/{token}` (`SsoFallbackController::consume`) → `Auth::login()` langsung, redirect sesuai role.
 - **Trade-off yang disengaja**: profil (nama/avatar/username) cuma ikut ke-sync ulang dari SSO pas login lewat SSO — user yang selalu login lewat email tidak dapat update profil otomatis.
 - **Anti email-enumeration**: response `POST /auth/fallback` SELALU pesan generik yang sama ("kalau email terdaftar, link sudah dikirim") baik email-nya valid/tidak/user banned — tidak pernah membocorkan status akun lewat response.

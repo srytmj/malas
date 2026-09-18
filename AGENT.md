@@ -23,7 +23,7 @@ UI terinspirasi dari MangaDex (mangadex.org): card-based, cover-forward, dark/li
 | UI | shadcn/ui (Base UI) + Tailwind CSS v4 + Recharts + embla-carousel-react + cmdk |
 | DB (dev) | SQLite |
 | DB (prod) | MySQL 8+ |
-| Auth | SSO whitearchive.id (PKCE OAuth2) + Spatie Permission — tidak ada login lokal |
+| Auth | SSO Yado (PKCE OAuth2) + Spatie Permission — tidak ada login lokal |
 | Storage | Local disk atau S3-compatible (Cloudflare R2, dll), dikonfigurasi via UI admin, bukan `.env` |
 | External API | AniList GraphQL — import metadata manga/manhwa/manhua/novel |
 | Bundler | Vite |

@@ -95,12 +95,12 @@
     },
     "settings": {
         "title": "Pengaturan",
-        "description": "Informasi akunmu, dikelola lewat whitearchive.id.",
+        "description": "Informasi akunmu, dikelola lewat Yado.",
         "profile": "Profil",
-        "profileDescription": "Nama, username, dan email disinkron dari akun whitearchive.id-mu setiap login.",
+        "profileDescription": "Nama, username, dan email disinkron dari akun Yado-mu setiap login.",
         "email": "Email",
         "role": "Role",
-        "manageAccount": "Kelola Akun di whitearchive.id",
+        "manageAccount": "Kelola Akun di Yado",
         "publicProfile": "Profil Publik",
         "publicProfileDescription": "Kalau aktif, orang lain bisa lihat koleksi dan Selera Genre-mu, dan bisa follow kamu. Konten 18+ tetap di-blur seperti biasa.",
         "showProfilePublicly": "Tampilkan profilku ke publik",
@@ -198,7 +198,7 @@
         },
         "502": {
             "title": "SSO Tidak Merespons",
-            "description": "Tidak dapat menghubungi server whitearchive.id. Coba lagi beberapa saat lagi."
+            "description": "Tidak dapat menghubungi server Yado. Coba lagi beberapa saat lagi."
         },
         "503": {
             "title": "Server Tidak Tersedia",
@@ -224,7 +224,7 @@
         "pageTitle": "Selamat Datang",
         "heading": "Manajemen Koleksi Manga & Light Novel",
         "subheading": "Kelola katalog, koleksi pribadi, dan peminjaman manga dan light novel-mu di satu tempat.",
-        "loginButton": "Login dengan whitearchive.id",
+        "loginButton": "Login dengan Yado",
         "features": {
             "catalog": {
                 "title": "Katalog",
@@ -276,9 +276,9 @@
         "description": "Pilih cara login.",
         "linkTitle": "Tambah Akun",
         "linkDescription": "Login ke akun lain yang mau kamu sambungkan. Kamu bisa switch antar akun tanpa login ulang selama masih di browser ini.",
-        "ssoOption": "Login dengan whitearchive.id",
+        "ssoOption": "Login dengan Yado",
         "emailOption": "Login dengan Email",
-        "syncHint": "Login lewat whitearchive.id men-sync ulang nama, avatar, dan username-mu. Login lewat email tidak.",
+        "syncHint": "Login lewat Yado men-sync ulang nama, avatar, dan username-mu. Login lewat email tidak.",
         "emailTitle": "Login dengan Email",
         "emailDescription": "Masukkan email yang biasa kamu pakai login — kalau terdaftar, kami kirim link login sekali-pakai ke sana.",
         "emailLabel": "Email",
