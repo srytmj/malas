@@ -16,7 +16,7 @@ class SsoController extends Controller
 {
     public function __construct(private AccountLinkService $accountLink) {}
 
-    public function redirect(): Response
+    public function redirect(Request $request): Response
     {
         $codeVerifier = bin2hex(random_bytes(32));
         $codeChallenge = rtrim(
@@ -30,7 +30,7 @@ class SsoController extends Controller
             'sso_state' => $state,
         ]);
 
-        $query = http_build_query([
+        $params = [
             'response_type' => 'code',
             'client_id' => config('sso.client_id'),
             'redirect_uri' => config('sso.redirect_uri'),
@@ -38,7 +38,13 @@ class SsoController extends Controller
             'code_challenge' => $codeChallenge,
             'code_challenge_method' => 'S256',
             'state' => $state,
-        ]);
+        ];
+
+        if ($request->query('prompt') === 'login' || $request->query('mode') === 'link') {
+            $params['prompt'] = 'login';
+        }
+
+        $query = http_build_query($params);
 
         // Inertia::location() forces a real browser navigation instead of an
         // XHR follow, which would fail cross-origin (CORS) when this route

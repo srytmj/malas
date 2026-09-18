@@ -69,7 +69,7 @@ export function LoginMethodDialog({ open, onOpenChange, mode = 'login' }: LoginM
                             <DialogDescription>{isLinkMode ? t('loginDialog.linkDescription') : t('loginDialog.description')}</DialogDescription>
                         </DialogHeader>
                         <div className="flex flex-col gap-2">
-                            <a href={route('sso.redirect')} className="w-full">
+                            <a href={route('sso.redirect', isLinkMode ? { prompt: 'login' } : {})} className="w-full">
                                 <Button className="w-full justify-start" size="lg">
                                     <LogIn className="mr-2 h-4 w-4" />
                                     {t('loginDialog.ssoOption')}
