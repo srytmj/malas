@@ -8,7 +8,7 @@ import { createRoot } from 'react-dom/client';
 import { Toaster } from '@/Components/ui/sonner';
 import { type PageProps } from '@/types';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || 'MALAS';
 
 createInertiaApp({
     title: (title) => title ? `${title} - ${appName}` : appName,
