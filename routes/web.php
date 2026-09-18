@@ -39,6 +39,10 @@ use App\Http\Controllers\User\WishlistController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+Route::get('/health', function () {
+    return response()->json(['status' => 'ok', 'service' => 'malas', 'timestamp' => now()->toIso8601String()]);
+})->name('health')->middleware('throttle:60,1');
+
 Route::get('/', function () {
     $user = auth()->user();
 
