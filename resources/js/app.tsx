@@ -12,11 +12,15 @@ const appName = import.meta.env.VITE_APP_NAME || 'MALAS';
 
 createInertiaApp({
     title: (title) => title ? `${title} - ${appName}` : appName,
-    resolve: (name) =>
-        resolvePageComponent(
-            `./Pages/${name}.tsx`,
-            import.meta.glob('./Pages/**/*.tsx'),
-        ),
+    resolve: (name) => {
+        const pages = import.meta.glob('./Pages/**/*.tsx');
+        return resolvePageComponent(`./Pages/${name}.tsx`, pages).catch((e: any) => {
+            if (e.message?.includes('dynamically imported module') || e.name === 'TypeError') {
+                window.location.reload();
+            }
+            throw e;
+        });
+    },
     setup({ el, App, props }) {
         const initialLocale = (props.initialPage.props as unknown as PageProps).locale;
         if (initialLocale) void i18n.changeLanguage(initialLocale);
