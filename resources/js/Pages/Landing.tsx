@@ -25,11 +25,11 @@ export default function Landing() {
 
             <div className="flex min-h-screen flex-col bg-background">
                 <header className="border-b">
-                    <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-3">
+                    <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-4 py-3">
                         <span className="text-sm font-bold tracking-tight">Malas</span>
                         <div className="flex items-center gap-1.5">
-                            <LanguageSwitcher />
-                            <ThemeSwitcher />
+                            <LanguageSwitcher collapsed side="bottom" align="end" size="icon-sm" className="shrink-0" />
+                            <ThemeSwitcher collapsed side="bottom" align="end" size="icon-sm" className="shrink-0" />
                             <Button variant="outline" size="sm" onClick={() => setLoginOpen(true)}>
                                 <LogIn className="mr-1.5 h-3.5 w-3.5" />
                                 {t('landing.header.login')}
@@ -76,7 +76,7 @@ export default function Landing() {
                 </main>
 
                 <footer className="border-t">
-                    <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-2 px-4 py-6 text-center sm:flex-row sm:justify-between sm:text-left">
+                    <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-2 px-4 py-6 text-center sm:flex-row sm:justify-between sm:text-left">
                         <div>
                             <p className="text-sm font-semibold">Malas</p>
                             <p className="text-xs text-muted-foreground">{t('landing.footer.tagline')}</p>

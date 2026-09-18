@@ -9,7 +9,21 @@ import { cn } from '@/lib/utils';
 
 const LOCALES = ['id', 'en', 'ja'] as const;
 
-export function LanguageSwitcher({ collapsed }: { collapsed?: boolean }) {
+interface LanguageSwitcherProps {
+    collapsed?: boolean;
+    side?: 'top' | 'right' | 'bottom' | 'left' | 'inline-start' | 'inline-end';
+    align?: 'start' | 'center' | 'end';
+    className?: string;
+    size?: 'icon' | 'icon-sm' | 'icon-xs' | 'default' | 'sm' | 'lg';
+}
+
+export function LanguageSwitcher({
+    collapsed,
+    side = 'right',
+    align = 'start',
+    className,
+    size,
+}: LanguageSwitcherProps) {
     const { locale: defaultLocale, auth } = usePage().props;
     const { t, i18n } = useTranslation();
     const currentLocale = i18n.language || defaultLocale;
@@ -32,18 +46,27 @@ export function LanguageSwitcher({ collapsed }: { collapsed?: boolean }) {
             <PopoverTrigger
                 render={
                     collapsed ? (
-                        <Button variant="ghost" size="icon" className="mx-auto flex" aria-label={t('locale.label')}>
+                        <Button
+                            variant="ghost"
+                            size={size ?? 'icon'}
+                            className={className ? cn('flex shrink-0', className) : 'mx-auto flex'}
+                            aria-label={t('locale.label')}
+                        >
                             <Languages className="h-4 w-4" />
                         </Button>
                     ) : (
-                        <Button variant="ghost" size="sm" className="w-full justify-start gap-3 text-muted-foreground">
+                        <Button
+                            variant="ghost"
+                            size={size ?? 'sm'}
+                            className={cn('w-full justify-start gap-3 text-muted-foreground', className)}
+                        >
                             <Languages className="h-4 w-4" />
                             {t(`locale.${currentLocale}`)}
                         </Button>
                     )
                 }
             />
-            <PopoverContent side="right" className="w-44 p-1" align="start">
+            <PopoverContent side={side} className="w-44 p-1" align={align}>
                 {LOCALES.map((l) => (
                     <button
                         key={l}

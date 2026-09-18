@@ -14,7 +14,21 @@ const THEME_ICONS: Record<Theme, LucideIcon> = {
     system: Monitor,
 };
 
-export function ThemeSwitcher({ collapsed }: { collapsed?: boolean }) {
+interface ThemeSwitcherProps {
+    collapsed?: boolean;
+    side?: 'top' | 'right' | 'bottom' | 'left' | 'inline-start' | 'inline-end';
+    align?: 'start' | 'center' | 'end';
+    className?: string;
+    size?: 'icon' | 'icon-sm' | 'icon-xs' | 'default' | 'sm' | 'lg';
+}
+
+export function ThemeSwitcher({
+    collapsed,
+    side = 'right',
+    align = 'start',
+    className,
+    size,
+}: ThemeSwitcherProps) {
     const { theme, resolvedTheme, setTheme } = useTheme();
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
@@ -33,18 +47,27 @@ export function ThemeSwitcher({ collapsed }: { collapsed?: boolean }) {
             <PopoverTrigger
                 render={
                     collapsed ? (
-                        <Button variant="ghost" size="icon" className="mx-auto flex" aria-label={t('theme.label')}>
+                        <Button
+                            variant="ghost"
+                            size={size ?? 'icon'}
+                            className={className ? cn('flex shrink-0', className) : 'mx-auto flex'}
+                            aria-label={t('theme.label')}
+                        >
                             <TriggerIcon className="h-4 w-4" />
                         </Button>
                     ) : (
-                        <Button variant="ghost" size="sm" className="w-full justify-start gap-3 text-muted-foreground">
+                        <Button
+                            variant="ghost"
+                            size={size ?? 'sm'}
+                            className={cn('w-full justify-start gap-3 text-muted-foreground', className)}
+                        >
                             <TriggerIcon className="h-4 w-4" />
                             {t(`theme.${theme}`)}
                         </Button>
                     )
                 }
             />
-            <PopoverContent side="right" className="w-44 p-1" align="start">
+            <PopoverContent side={side} className="w-44 p-1" align={align}>
                 {THEMES.map((option) => {
                     const OptionIcon = THEME_ICONS[option];
                     return (
