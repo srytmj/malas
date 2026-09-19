@@ -2,7 +2,7 @@
 // Inertia page props / auth types live in @/types/index.d.ts.
 
 export type SeriesStatus          = 'publishing' | 'finished' | 'on_hiatus' | 'discontinued' | 'not_yet_published';
-export type SeriesType            = 'manga' | 'manhwa' | 'manhua' | 'novel' | 'one_shot' | 'doujinshi';
+export type SeriesType            = 'manga' | 'novel' | 'one_shot' | 'doujinshi' | 'other';
 export type VolumeType            = 'regular' | 'digital' | 'bind_up';
 export type CollectionCondition   = 'mint' | 'good' | 'fair' | 'poor';
 export type CollectionVolumeFormat = 'physical' | 'ebook' | 'online' | 'webtoon';

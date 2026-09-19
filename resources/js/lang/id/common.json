@@ -75,8 +75,7 @@
         "lightNovel": "Light Novel",
         "oneShot": "One Shot",
         "doujinshi": "Doujinshi",
-        "manhwa": "Manhwa",
-        "manhua": "Manhua"
+        "other": "Lainnya"
     },
     "palette": {
         "adminTitle": "Command Palette",
@@ -86,6 +85,7 @@
         "userDescription": "Cari manga di katalog atau koleksimu, atau navigasi cepat ke halaman lain",
         "userPlaceholder": "Cari judul manga, koleksi, atau halaman...",
         "noResults": "Tidak ada hasil.",
+        "searching": "Mencari...",
         "navigation": "Navigasi",
         "series": "Series",
         "users": "Pengguna",
@@ -127,11 +127,10 @@
         },
         "type": {
             "manga": "Manga",
-            "manhwa": "Manhwa",
-            "manhua": "Manhua",
             "novel": "Novel",
             "one_shot": "One Shot",
-            "doujinshi": "Doujinshi"
+            "doujinshi": "Doujinshi",
+            "other": "Lainnya"
         },
         "volumeType": {
             "regular": "Regular",
@@ -176,7 +175,10 @@
             "close": "Tutup pengumuman"
         },
         "seriesCard": {
-            "inCollection": "Di koleksi"
+            "inCollection": "Di koleksi",
+            "alreadyInCollection": "Sudah ada di koleksi",
+            "quickAdd": "Tambah ke koleksi",
+            "goToCollection": "Buka Koleksiku"
         }
     },
     "errorPage": {

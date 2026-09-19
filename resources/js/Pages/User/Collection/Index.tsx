@@ -120,8 +120,8 @@ export default function CollectionIndex({ collections }: Props) {
     const [deleteTarget, setDeleteTarget]   = useState<CollectionRow | null>(null);
     const [deleting, setDeleting]           = useState(false);
     const [filterQuery, setFilterQuery]     = useState('');
-    const [statusFilter, setStatusFilter]   = useState('');
-    const [genreFilter, setGenreFilter]     = useState('');
+    const [statusFilter, setStatusFilter]   = useState('all');
+    const [genreFilter, setGenreFilter]     = useState('all');
     const [typeFilter, setTypeFilter]       = useState('all');
     const [view, setView]                   = useState<ViewMode>(() => readLocal<ViewMode>(VIEW_KEY, 'grid'));
     const [sort, setSort]                   = useState<SortValue>(() => readLocal<SortValue>(SORT_KEY, 'added_desc'));
@@ -177,8 +177,8 @@ export default function CollectionIndex({ collections }: Props) {
             const matchesQuery = !q
                 || c.title_romaji.toLowerCase().includes(q)
                 || (c.title_english?.toLowerCase().includes(q) ?? false);
-            const matchesStatus = !statusFilter || c.status === statusFilter;
-            const matchesGenre = !genreFilter || c.genres.includes(genreFilter);
+            const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
+            const matchesGenre = genreFilter === 'all' || c.genres.includes(genreFilter);
             const matchesType = typeFilter === 'all' || c.type === typeFilter;
             return matchesQuery && matchesStatus && matchesGenre && matchesType;
         })
@@ -623,27 +623,27 @@ export default function CollectionIndex({ collections }: Props) {
                         >
                             <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} />
                         </Button>
-                        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? '')}>
+                        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? 'all')}>
                             <SelectTrigger className="w-40">
                                 <SelectValue placeholder={t('index.allStatus')}>
                                     {(value: string) => statusOptions.find((s) => s.value === value)?.label ?? t('index.allStatus')}
                                 </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">{t('index.allStatus')}</SelectItem>
+                                <SelectItem value="all">{t('index.allStatus')}</SelectItem>
                                 {statusOptions.map((s) => (
                                     <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
-                        <Select value={genreFilter} onValueChange={(v) => setGenreFilter(v ?? '')}>
+                        <Select value={genreFilter} onValueChange={(v) => setGenreFilter(v ?? 'all')}>
                             <SelectTrigger className="w-40">
                                 <SelectValue placeholder={t('index.allGenre')}>
-                                    {(value: string) => value || t('index.allGenre')}
+                                    {(value: string) => (value === 'all' ? t('index.allGenre') : value)}
                                 </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">{t('index.allGenre')}</SelectItem>
+                                <SelectItem value="all">{t('index.allGenre')}</SelectItem>
                                 {genreGroups.manga.length > 0 && (
                                     <SelectGroup>
                                         <SelectLabel>{t('common:common.manga')}</SelectLabel>

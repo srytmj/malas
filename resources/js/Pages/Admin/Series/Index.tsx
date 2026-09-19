@@ -93,7 +93,7 @@ export default function SeriesIndex({ series, filters }: Props) {
     function handleFilter(key: string, value: string) {
         router.get(
             route('admin.series.index'),
-            { ...filters, search, [key]: value || undefined },
+            { ...filters, search, [key]: (value && value !== 'all') ? value : undefined },
             { preserveState: true, preserveScroll: true, replace: true },
         );
     }
@@ -197,8 +197,8 @@ export default function SeriesIndex({ series, filters }: Props) {
                     <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} />
                 </Button>
                 <Select
-                    value={filters.status ?? ''}
-                    onValueChange={(v) => handleFilter('status', v ?? '')}
+                    value={filters.status ?? 'all'}
+                    onValueChange={(v) => handleFilter('status', v ?? 'all')}
                 >
                     <SelectTrigger className="w-40">
                         <SelectValue placeholder={t('series.index.allStatuses')}>
@@ -206,7 +206,7 @@ export default function SeriesIndex({ series, filters }: Props) {
                         </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="">{t('series.index.allStatuses')}</SelectItem>
+                        <SelectItem value="all">{t('series.index.allStatuses')}</SelectItem>
                         {STATUSES.map((s) => (
                             <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                         ))}

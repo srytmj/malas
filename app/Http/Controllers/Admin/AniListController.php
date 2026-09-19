@@ -67,7 +67,7 @@ class AniListController extends Controller
 
     /**
      * Post-filter by our internal type — AniList's GraphQL query can't cleanly express
-     * "manhwa"/"manhua" (those are inferred from countryOfOrigin, not a real format enum),
+     * "other" (KR/CN/TW manga inferred from countryOfOrigin, not a real format enum),
      * so filtering happens here instead of as a query variable.
      *
      * @param  array<int, array<string, mixed>>  $results
@@ -422,8 +422,7 @@ class AniListController extends Controller
         return match (true) {
             $format === 'NOVEL' => 'novel',
             $format === 'ONE_SHOT' => 'one_shot',
-            $countryOfOrigin === 'KR' => 'manhwa',
-            in_array($countryOfOrigin, ['CN', 'TW'], true) => 'manhua',
+            in_array($countryOfOrigin, ['KR', 'CN', 'TW'], true) => 'other',
             default => 'manga',
         };
     }

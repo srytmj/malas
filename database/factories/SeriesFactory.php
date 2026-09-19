@@ -13,7 +13,7 @@ class SeriesFactory extends Factory
         return [
             'title_romaji' => fake()->words(3, true),
             'status' => fake()->randomElement(['publishing', 'finished', 'on_hiatus']),
-            'type' => fake()->randomElement(['manga', 'manhwa', 'manhua']),
+            'type' => fake()->randomElement(['manga', 'novel', 'one_shot', 'doujinshi', 'other']),
             'total_volumes' => fake()->numberBetween(1, 30),
             'score' => fake()->randomFloat(2, 5, 10),
         ];

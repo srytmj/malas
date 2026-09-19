@@ -1,9 +1,10 @@
-import { Link } from '@inertiajs/react';
+import { useState, type MouseEvent } from 'react';
+import { Link, router } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Check, Plus, Loader2, LibraryBig } from 'lucide-react';
 import { SeriesStatusBadge, SeriesTypeBadge } from '@/Components/app/StatusBadge';
 import { AdultBlurOverlay } from '@/Components/app/AdultBlurOverlay';
-import { Badge } from '@/Components/ui/badge';
+import { cn } from '@/lib/utils';
 import { type SeriesStatus, type SeriesType } from '@/lib/types';
 
 interface SeriesCardProps {
@@ -19,9 +20,12 @@ interface SeriesCardProps {
     href: string;
     inCollection?: boolean;
     is_adult?: boolean;
+    /** Tampilkan quick-add/shortcut koleksi di atas cover — dipakai di Katalog, di-skip di halaman lain (mis. hasil "Series Serupa") biar nggak ganggu. */
+    showCollectionQuickAction?: boolean;
 }
 
 export function SeriesCard({
+    id,
     title_romaji,
     title_english,
     cover_url,
@@ -31,8 +35,29 @@ export function SeriesCard({
     href,
     inCollection,
     is_adult,
+    showCollectionQuickAction,
 }: SeriesCardProps) {
     const { t } = useTranslation();
+    const [adding, setAdding] = useState(false);
+
+    function handleQuickAdd(e: MouseEvent) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (adding) return;
+        setAdding(true);
+        router.post(route('collection.store'), { series_ids: [id] }, {
+            preserveScroll: true,
+            preserveState: true,
+            onFinish: () => setAdding(false),
+        });
+    }
+
+    function handleGoToCollection(e: MouseEvent) {
+        e.preventDefault();
+        e.stopPropagation();
+        router.visit(route('collection.index'));
+    }
+
     return (
         <Link href={href} className="group flex flex-col overflow-hidden rounded-lg border bg-card text-card-foreground transition-shadow hover:shadow-md">
             {/* Cover */}
@@ -41,7 +66,10 @@ export function SeriesCard({
                     <img
                         src={cover_url}
                         alt={title_romaji}
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        className={cn(
+                            'h-full w-full object-cover transition-transform duration-300 group-hover:scale-105',
+                            inCollection && 'scale-105 blur-[2px]',
+                        )}
                     />
                 ) : (
                     <div className="flex h-full items-center justify-center">
@@ -49,9 +77,31 @@ export function SeriesCard({
                     </div>
                 )}
                 {inCollection && (
-                    <div className="absolute top-2 right-2">
-                        <Badge variant="secondary" className="text-xs px-1.5 py-0.5">{t('components.seriesCard.inCollection')}</Badge>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/40 px-2 text-center text-white">
+                        <Check className="h-5 w-5" />
+                        <span className="text-xs font-medium leading-tight">{t('components.seriesCard.alreadyInCollection')}</span>
+                        {showCollectionQuickAction && (
+                            <button
+                                type="button"
+                                onClick={handleGoToCollection}
+                                className="mt-1 flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-medium text-black opacity-100 transition-opacity hover:bg-white md:opacity-0 md:group-hover:opacity-100"
+                            >
+                                <LibraryBig className="h-3 w-3" />
+                                {t('components.seriesCard.goToCollection')}
+                            </button>
+                        )}
                     </div>
+                )}
+                {showCollectionQuickAction && !inCollection && (
+                    <button
+                        type="button"
+                        onClick={handleQuickAdd}
+                        disabled={adding}
+                        aria-label={t('components.seriesCard.quickAdd')}
+                        className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-black opacity-100 transition-opacity hover:bg-white disabled:opacity-50 md:opacity-0 md:group-hover:opacity-100"
+                    >
+                        {adding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                    </button>
                 )}
                 {score !== null && (
                     <div className="absolute bottom-2 left-2 rounded bg-black/60 px-1.5 py-0.5 text-xs font-medium text-white">

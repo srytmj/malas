@@ -128,8 +128,7 @@ class ExternalSearchController extends Controller
     {
         return match (true) {
             isset(self::MANGA_FORMAT_MAP[$format]) => self::MANGA_FORMAT_MAP[$format],
-            $countryOfOrigin === 'KR' => 'manhwa',
-            in_array($countryOfOrigin, ['CN', 'TW'], true) => 'manhua',
+            in_array($countryOfOrigin, ['KR', 'CN', 'TW'], true) => 'other',
             default => 'manga',
         };
     }

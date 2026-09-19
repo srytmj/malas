@@ -212,7 +212,7 @@ export default function ActivityLogIndex({ logs, categories, users, filters }: P
     }, [search]);
 
     function handleFilter(key: string, value: string) {
-        router.get(route('admin.activity-logs.index'), { ...filters, search, [key]: value || undefined }, {
+        router.get(route('admin.activity-logs.index'), { ...filters, search, [key]: (value && value !== 'all') ? value : undefined }, {
             preserveState: true,
             preserveScroll: true,
             replace: true,
@@ -237,14 +237,14 @@ export default function ActivityLogIndex({ logs, categories, users, filters }: P
                     onChange={(e) => setSearch(e.target.value)}
                     className="w-64"
                 />
-                <Select value={filters.category ?? ''} onValueChange={(v) => handleFilter('category', v ?? '')}>
+                <Select value={filters.category ?? 'all'} onValueChange={(v) => handleFilter('category', v ?? 'all')}>
                     <SelectTrigger className="w-44">
                         <SelectValue placeholder={t('activityLog.allCategories')}>
-                            {(value: string) => (categoryLabels[value] ?? value) || t('activityLog.allCategories')}
+                            {(value: string) => (value === 'all' ? t('activityLog.allCategories') : (categoryLabels[value] ?? value))}
                         </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="">{t('activityLog.allCategories')}</SelectItem>
+                        <SelectItem value="all">{t('activityLog.allCategories')}</SelectItem>
                         {categories.map((c) => (
                             <SelectItem key={c} value={c}>{categoryLabels[c] ?? c}</SelectItem>
                         ))}

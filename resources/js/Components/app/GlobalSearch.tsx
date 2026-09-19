@@ -32,6 +32,7 @@ export function GlobalSearch() {
     const [query, setQuery] = useState('');
     const [catalogResults, setCatalogResults] = useState<SearchResult[]>([]);
     const [collectionResults, setCollectionResults] = useState<SearchResult[]>([]);
+    const [searching, setSearching] = useState(false);
 
     useEffect(() => {
         function handleKeyDown(e: KeyboardEvent) {
@@ -57,8 +58,10 @@ export function GlobalSearch() {
         if (q.length < 2) {
             setCatalogResults([]);
             setCollectionResults([]);
+            setSearching(false);
             return;
         }
+        setSearching(true);
         const timer = setTimeout(async () => {
             try {
                 const url = new URL(route('search'), window.location.origin);
@@ -70,6 +73,8 @@ export function GlobalSearch() {
             } catch {
                 setCatalogResults([]);
                 setCollectionResults([]);
+            } finally {
+                setSearching(false);
             }
         }, 300);
         return () => clearTimeout(timer);
@@ -95,7 +100,11 @@ export function GlobalSearch() {
                     onValueChange={setQuery}
                 />
                 <CommandList>
-                    <CommandEmpty>{t('palette.noResults')}</CommandEmpty>
+                    {searching ? (
+                        <div className="py-6 text-center text-sm text-muted-foreground">{t('palette.searching')}</div>
+                    ) : (
+                        <CommandEmpty>{t('palette.noResults')}</CommandEmpty>
+                    )}
                     <CommandGroup heading={t('palette.navigation')}>
                         {navItems.map((item) => {
                             const Icon = item.icon ? (ICON_MAP[item.icon] ?? null) : null;

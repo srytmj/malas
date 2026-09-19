@@ -75,8 +75,7 @@
         "lightNovel": "Light Novel",
         "oneShot": "One Shot",
         "doujinshi": "Doujinshi",
-        "manhwa": "Manhwa",
-        "manhua": "Manhua"
+        "other": "Other"
     },
     "palette": {
         "adminTitle": "Command Palette",
@@ -86,6 +85,7 @@
         "userDescription": "Search manga in the catalog or your collection, or quick-navigate to another page",
         "userPlaceholder": "Search manga title, collection, or page...",
         "noResults": "No results found.",
+        "searching": "Searching...",
         "navigation": "Navigation",
         "series": "Series",
         "users": "Users",
@@ -127,11 +127,10 @@
         },
         "type": {
             "manga": "Manga",
-            "manhwa": "Manhwa",
-            "manhua": "Manhua",
             "novel": "Novel",
             "one_shot": "One Shot",
-            "doujinshi": "Doujinshi"
+            "doujinshi": "Doujinshi",
+            "other": "Other"
         },
         "volumeType": {
             "regular": "Regular",
@@ -176,7 +175,10 @@
             "close": "Dismiss announcement"
         },
         "seriesCard": {
-            "inCollection": "In collection"
+            "inCollection": "In collection",
+            "alreadyInCollection": "Already in your collection",
+            "quickAdd": "Add to collection",
+            "goToCollection": "Open My Collection"
         }
     },
     "errorPage": {

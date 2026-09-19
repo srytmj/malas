@@ -21,7 +21,7 @@ class StoreSeriesRequest extends FormRequest
             'title_japanese' => ['nullable', 'string', 'max:500'],
             'synopsis' => ['nullable', 'string'],
             'status' => ['required', Rule::in(['publishing', 'finished', 'on_hiatus', 'discontinued', 'not_yet_published'])],
-            'type' => ['required', Rule::in(['manga', 'manhwa', 'manhua', 'novel', 'one_shot', 'doujinshi'])],
+            'type' => ['required', Rule::in(['manga', 'novel', 'one_shot', 'doujinshi', 'other'])],
             'cover' => ['nullable', 'mimes:jpeg,jpg,png,webp', 'max:2048'],
             'published_from' => ['nullable', 'date'],
             'published_to' => ['nullable', 'date', 'after_or_equal:published_from'],

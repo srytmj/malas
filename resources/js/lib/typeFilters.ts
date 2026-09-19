@@ -13,7 +13,6 @@ export function useTypeFilterOptions(): { value: string; label: string }[] {
         { value: 'novel', label: t('common.lightNovel') },
         { value: 'one_shot', label: t('common.oneShot') },
         { value: 'doujinshi', label: t('common.doujinshi') },
-        { value: 'manhwa', label: t('common.manhwa') },
-        { value: 'manhua', label: t('common.manhua') },
+        { value: 'other', label: t('common.other') },
     ];
 }

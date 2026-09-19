@@ -21,7 +21,7 @@ const baseSchema = z.object({
     title_japanese: z.string().optional(),
     synopsis:       z.string().optional(),
     status:         z.enum(['publishing', 'finished', 'on_hiatus', 'discontinued', 'not_yet_published']),
-    type:           z.enum(['manga', 'manhwa', 'manhua', 'novel', 'one_shot', 'doujinshi']),
+    type:           z.enum(['manga', 'novel', 'one_shot', 'doujinshi', 'other']),
     published_from: z.string().optional(),
     published_to:   z.string().optional(),
     total_volumes:  z.string().optional(),
@@ -52,11 +52,10 @@ export default function SeriesCreate() {
 
     const TYPE_LABELS: Record<string, string> = {
         manga: t('common:badge.type.manga'),
-        manhwa: t('common:badge.type.manhwa'),
-        manhua: t('common:badge.type.manhua'),
         novel: t('common:badge.type.novel'),
         one_shot: t('common:badge.type.one_shot'),
         doujinshi: t('common:badge.type.doujinshi'),
+        other: t('common:badge.type.other'),
     };
 
     const schema = useMemo(() => baseSchema.refine(
@@ -157,11 +156,10 @@ export default function SeriesCreate() {
                                     <SelectTrigger><SelectValue>{(value: string) => TYPE_LABELS[value] ?? value}</SelectValue></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="manga">{TYPE_LABELS.manga}</SelectItem>
-                                        <SelectItem value="manhwa">{TYPE_LABELS.manhwa}</SelectItem>
-                                        <SelectItem value="manhua">{TYPE_LABELS.manhua}</SelectItem>
                                         <SelectItem value="novel">{TYPE_LABELS.novel}</SelectItem>
                                         <SelectItem value="one_shot">{TYPE_LABELS.one_shot}</SelectItem>
                                         <SelectItem value="doujinshi">{TYPE_LABELS.doujinshi}</SelectItem>
+                                        <SelectItem value="other">{TYPE_LABELS.other}</SelectItem>
                                     </SelectContent>
                                 </Select>
                             )}

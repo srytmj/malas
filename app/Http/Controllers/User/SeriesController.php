@@ -15,7 +15,7 @@ class SeriesController extends Controller
 {
     // "Manga group" mencakup semua tipe komik; light novel berdiri sendiri karena
     // vocab genre-nya (dari RanobeDB) cenderung berbeda dari manga (dari AniList).
-    private const MANGA_TYPES = ['manga', 'manhwa', 'manhua', 'one_shot', 'doujinshi'];
+    private const MANGA_TYPES = ['manga', 'one_shot', 'doujinshi', 'other'];
 
     public function __construct(private StorageSettingsService $storage) {}
 
@@ -51,7 +51,7 @@ class SeriesController extends Controller
             ->when(request('ownership') === 'owned', fn ($q) => $q->whereIn('id', $collectionSeriesIds))
             ->when(request('ownership') === 'not_owned', fn ($q) => $q->whereNotIn('id', $collectionSeriesIds))
             ->withCount('volumes')
-            ->latest()
+            ->orderBy('title_romaji')
             ->paginate(24)
             ->withQueryString()
             ->through(fn ($s) => [

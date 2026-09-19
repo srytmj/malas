@@ -41,6 +41,7 @@ export function CommandPalette() {
     const [series, setSeries] = useState<SeriesResult[]>([]);
     const [users, setUsers] = useState<UserResult[]>([]);
     const [tickets, setTickets] = useState<TicketResult[]>([]);
+    const [searching, setSearching] = useState(false);
 
     useEffect(() => {
         function handleKeyDown(e: KeyboardEvent) {
@@ -67,9 +68,11 @@ export function CommandPalette() {
             setSeries([]);
             setUsers([]);
             setTickets([]);
+            setSearching(false);
             return;
         }
-        const t = setTimeout(async () => {
+        setSearching(true);
+        const timer = setTimeout(async () => {
             try {
                 const url = new URL(route('admin.command-search'), window.location.origin);
                 url.searchParams.set('q', q);
@@ -82,9 +85,11 @@ export function CommandPalette() {
                 setSeries([]);
                 setUsers([]);
                 setTickets([]);
+            } finally {
+                setSearching(false);
             }
         }, 300);
-        return () => clearTimeout(t);
+        return () => clearTimeout(timer);
     }, [query, open]);
 
     function go(routeName: string, param?: string) {
@@ -98,7 +103,11 @@ export function CommandPalette() {
             <Command>
                 <CommandInput placeholder={t('palette.adminPlaceholder')} value={query} onValueChange={setQuery} />
                 <CommandList>
-                    <CommandEmpty>{t('palette.noResults')}</CommandEmpty>
+                    {searching ? (
+                        <div className="py-6 text-center text-sm text-muted-foreground">{t('palette.searching')}</div>
+                    ) : (
+                        <CommandEmpty>{t('palette.noResults')}</CommandEmpty>
+                    )}
                     <CommandGroup heading={t('palette.navigation')}>
                         {navItems.map((item) => {
                             const Icon = item.icon ? (ICON_MAP[item.icon] ?? null) : null;

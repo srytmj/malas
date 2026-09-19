@@ -47,7 +47,7 @@ export default function CatalogIndex({ series, collectionSeriesIds, genreOptions
     const { t } = useTranslation('catalog');
     const typeFilterOptions = useTypeFilterOptions();
     const statusLabels: Record<string, string> = {
-        '': t('allStatus'),
+        all: t('allStatus'),
         publishing: t('common:badge.status.publishing'),
         finished: t('common:badge.status.finished'),
         on_hiatus: t('common:badge.status.on_hiatus'),
@@ -84,7 +84,9 @@ export default function CatalogIndex({ series, collectionSeriesIds, genreOptions
     }, [search]);
 
     function handleFilter(key: string, value: string | string[]) {
-        const cleaned = Array.isArray(value) ? (value.length > 0 ? value : undefined) : (value || undefined);
+        const cleaned = Array.isArray(value)
+            ? (value.length > 0 ? value : undefined)
+            : (value && value !== 'all' ? value : undefined);
         router.get(
             route('catalog.index'),
             { ...filters, search, [key]: cleaned },
@@ -145,16 +147,16 @@ export default function CatalogIndex({ series, collectionSeriesIds, genreOptions
                     <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} />
                 </Button>
                 <Select
-                    value={filters.status ?? ''}
-                    onValueChange={(v) => handleFilter('status', v ?? '')}
+                    value={filters.status ?? 'all'}
+                    onValueChange={(v) => handleFilter('status', v ?? 'all')}
                 >
                     <SelectTrigger className="w-36">
                         <SelectValue placeholder={t('allStatus')}>
-                            {(value: string) => statusLabels[value] ?? statusLabels['']}
+                            {(value: string) => statusLabels[value] ?? statusLabels['all']}
                         </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="">{t('allStatus')}</SelectItem>
+                        <SelectItem value="all">{t('allStatus')}</SelectItem>
                         <SelectItem value="publishing">{t('common:badge.status.publishing')}</SelectItem>
                         <SelectItem value="finished">{t('common:badge.status.finished')}</SelectItem>
                         <SelectItem value="on_hiatus">{t('common:badge.status.on_hiatus')}</SelectItem>
@@ -215,6 +217,7 @@ export default function CatalogIndex({ series, collectionSeriesIds, genreOptions
                             {...s}
                             href={route('catalog.show', s.slug)}
                             inCollection={collectionSet.has(s.id)}
+                            showCollectionQuickAction
                         />
                     ))}
                 </div>

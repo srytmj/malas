@@ -320,7 +320,7 @@ export default function CollectionShow({ collection, series, volumes, last_read_
     const [selectedIds, setSelectedIds]       = useState<Set<string>>(new Set());
     const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
     const [bulkDeleting, setBulkDeleting]     = useState(false);
-    const [formatFilter, setFormatFilter]     = useState('');
+    const [formatFilter, setFormatFilter]     = useState('all');
     const [bulkFormatOpen, setBulkFormatOpen] = useState(false);
     const [bulkFormatSaving, setBulkFormatSaving] = useState(false);
     const [togglingReadId, setTogglingReadId] = useState<string | null>(null);
@@ -537,7 +537,7 @@ export default function CollectionShow({ collection, series, volumes, last_read_
     }
 
     const ownedCount = volumes.length;
-    const filteredVolumes = formatFilter ? volumes.filter((v) => v.format === formatFilter) : volumes;
+    const filteredVolumes = formatFilter !== 'all' ? volumes.filter((v) => v.format === formatFilter) : volumes;
     const hasUnreadVolume = volumes.some((v) => !v.read_at);
     const hasReadVolume = volumes.some((v) => v.read_at);
     const formatSummaries = (['physical', 'ebook', 'online', 'webtoon'] as CollectionVolumeFormat[])
@@ -752,14 +752,14 @@ export default function CollectionShow({ collection, series, volumes, last_read_
                                 </Button>
                             </>
                         )}
-                        <Select value={formatFilter} onValueChange={(v) => setFormatFilter(v ?? '')}>
+                        <Select value={formatFilter} onValueChange={(v) => setFormatFilter(v ?? 'all')}>
                             <SelectTrigger className="h-8 w-32 text-xs">
                                 <SelectValue placeholder={t('show.allFormat')}>
                                     {(value: string) => formatLabels[value] ?? t('show.allFormat')}
                                 </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">{t('show.allFormat')}</SelectItem>
+                                <SelectItem value="all">{t('show.allFormat')}</SelectItem>
                                 <SelectItem value="physical">{t('common:badge.format.physical')}</SelectItem>
                                 <SelectItem value="ebook">{t('common:badge.format.ebook')}</SelectItem>
                                 <SelectItem value="online">{t('common:badge.format.online')}</SelectItem>

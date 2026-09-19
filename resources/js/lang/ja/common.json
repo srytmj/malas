@@ -75,8 +75,7 @@
         "lightNovel": "ライトノベル",
         "oneShot": "読み切り",
         "doujinshi": "同人誌",
-        "manhwa": "マンファ",
-        "manhua": "マンホア"
+        "other": "その他"
     },
     "palette": {
         "adminTitle": "コマンドパレット",
@@ -86,6 +85,7 @@
         "userDescription": "カタログやコレクション内のマンガを検索、または他のページへ移動",
         "userPlaceholder": "マンガのタイトル、コレクション、ページを検索...",
         "noResults": "結果が見つかりません。",
+        "searching": "検索中...",
         "navigation": "ナビゲーション",
         "series": "シリーズ",
         "users": "ユーザー",
@@ -127,11 +127,10 @@
         },
         "type": {
             "manga": "マンガ",
-            "manhwa": "マンファ",
-            "manhua": "マンホア",
             "novel": "ノベル",
             "one_shot": "読み切り",
-            "doujinshi": "同人誌"
+            "doujinshi": "同人誌",
+            "other": "その他"
         },
         "volumeType": {
             "regular": "通常版",
@@ -176,7 +175,10 @@
             "close": "お知らせを閉じる"
         },
         "seriesCard": {
-            "inCollection": "コレクション内"
+            "inCollection": "コレクション内",
+            "alreadyInCollection": "すでにコレクションにあります",
+            "quickAdd": "コレクションに追加",
+            "goToCollection": "マイコレクションを開く"
         }
     },
     "errorPage": {
